@@ -3,12 +3,11 @@ import pyglet.gl as gl
 import numpy as np
 
 from argparse import ArgumentParser
-from xmlrpc.server import SimpleXMLRPCServer
 
 def vec(lis):
     return np.array(lis, dtype='float')
 
-class ServerArgParser(ArgumentParser):
+class StimArgParser(ArgumentParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -16,83 +15,120 @@ class ServerArgParser(ArgumentParser):
         self.add_argument('--tag', type=str, default=None)
 
         # monitor physical definition
+        # defaults are for MacBook Pro (Retina, 15-inch, Mid 2015)
         self.add_argument('--id', type=int, default=0)
-        self.add_argument('--pa', type=float, nargs=3, default=[-1, -1, -1])
-        self.add_argument('--pb', type=float, nargs=3, default=[+1, -1, -1])
-        self.add_argument('--pc', type=float, nargs=3, default=[-1, +1, -1])
+        self.add_argument('--pa', type=float, nargs=3, default=[-0.166, -0.1035, -1])
+        self.add_argument('--pb', type=float, nargs=3, default=[+0.166, -0.1035, -1])
+        self.add_argument('--pc', type=float, nargs=3, default=[-0.166, +0.1035, -1])
 
-class DisplayServer:
-    def __init__(self, id, pa, pb, pc, near_clip=1e-2, far_clip=100, side=2.5e-2):
+class GlItem:
+    def __init__(self, gl_type, dims):
         # save settings
+        self.gl_type = gl_type
+        self.dims = dims
+
+        # set up vertex data
+        self.vertex_data = []
+        self.vertex_format = 'v{:d}f'.format(self.dims)
+
+        # set up color data
+        self.color_data = []
+        self.color_format = 'c3B'
+
+    def draw(self):
+        if self.num_vertices > 0:
+            pyglet.graphics.draw(self.num_vertices,
+                                 self.gl_type,
+                                 (self.vertex_format, self.vertex_data),
+                                 (self.color_format, self.color_data))
+
+    @property
+    def num_vertices(self):
+        return len(self.vertex_data) // self.dims
+
+class GlItem2D(GlItem):
+    def __init__(self, gl_type):
+        super().__init__(gl_type=gl_type, dims=2)
+
+class GlItem3D(GlItem):
+    def __init__(self, gl_type):
+        super().__init__(gl_type=gl_type, dims=3)
+
+class StimDisplay:
+    def __init__(self, id, pa, pb, pc, draw_pd_square=True, draw_debug_info=True):
+        # save settings
+        self.id = id
         self.pa = pa
         self.pb = pb
         self.pc = pc
-        self.n = near_clip
-        self.f = far_clip
+        self.draw_pd_square = draw_pd_square
+        self.draw_debug_info = draw_debug_info
 
-        # compute normal vectors
-        self.set_norm_vecs()
+        # list initialization
+        self.stim = None
 
-        # initialize variables
+        # initialize normal vectors
+        self.init_norm_vecs()
+
+        # set initial eye position
+        # (this will trigger a projection matrix update)
         self.set_pe(0, 0, 0)
 
-        # initialize graphics
-        self.gl_vertices = []
-        self.gl_colors = []
+        # initialize the window
+        self.init_window()
 
-        # initialize corner square
-        w = np.linalg.norm(self.pb-self.pa)
-        h = np.linalg.norm(self.pc-self.pa)
-        urx = 1
-        ury = 1
-        llx = urx - 2/w * side
-        lly = ury - 2/h * side
-        self.hud_vertices = [llx, lly, urx, lly, urx, ury, llx, ury]
-        self.hud_colors = [255]*12
+        # initialize PD square
+        # (requires the window to have been initialized)
+        self.init_pd_square()
 
-        # create server
-        # self.server = SimpleXMLRPCServer(addr=('127.0.0.1', 0), logRequests=False)
-        # self.server.register_function(self.set_pe)
-        # self.server.register_function(self.set_background_color)
-
-        # get the appropriate screen
-        display = pyglet.window.get_platform().get_default_display()
-        screen = display.get_screens()[id]
-
-        # get the appropriate window
-        self.window = pyglet.window.Window(screen=screen, fullscreen=False, resizable=True, visible=False)
-
-        # initialize the background color
+        # miscellaneous initialization
         self.set_background_color(0, 0, 0)
+        self.init_clock_display()
+
+        # initialize the ID label
+        self.init_id_label()
 
         # draw objects
         @self.window.event
         def on_draw():
             gl.glClear(gl.GL_COLOR_BUFFER_BIT)
 
+            ###################
+            # 3D drawing
+            ###################
+
             # load the perspective-corrected projection matrix
             gl.glMatrixMode(gl.GL_PROJECTION)
             gl.glLoadMatrixf(self.gl_proj_mat)
 
             # load the model view matrix
-            # (is this necessary?)
             gl.glMatrixMode(gl.GL_MODELVIEW)
             gl.glLoadIdentity()
 
-            n_vert = len(self.gl_vertices) // 3
-            if n_vert > 0:
-                pyglet.graphics.draw(n_vert, gl.GL_TRIANGLES, ('v3f', self.gl_vertices), ('c3B', self.gl_colors))
+            # draw 3D items
+            if self.stim is not None:
+                self.stim.draw()
+
+            ###################
+            # 2D drawing
+            ###################
 
             # load the orthographic projection matrix
             gl.glMatrixMode(gl.GL_PROJECTION)
             gl.glLoadIdentity()
+            gl.glOrtho(0, self.window.width, 0, self.window.height, -1, 1)
 
             # load the model view matrix
-            # (is this necessary?)
             gl.glMatrixMode(gl.GL_MODELVIEW)
             gl.glLoadIdentity()
 
-            pyglet.graphics.draw(4, gl.GL_QUADS, ('v2f', self.hud_vertices), ('c3B', self.hud_colors))
+            # draw PD square
+            if self.draw_pd_square:
+                self.pd_square.draw()
+
+            if self.draw_debug_info:
+                self.id_label.draw()
+                self.clock_display.draw()
 
         # handle escape key
         @self.window.event
@@ -106,32 +142,97 @@ class DisplayServer:
 
     def update(self, dt):
         pass
-        #self.server.handle_request()
 
     ###########################################
-    # functions accessible through the server
+    # control functions
     ###########################################
+
+    # debug options
+
+    def show_debug_info(self):
+        self.draw_debug_info = True
+
+    def hide_debug_info(self):
+        self.draw_debug_info = False
+
+    # photodiode square options
+
+    def show_pd_square(self):
+        self.draw_pd_square = True
+
+    def hide_pd_square(self):
+        self.hide_pd_square = False
+
+    def set_pd_square(self):
+        self.pd_square.color_data = [255] * 12
+
+    def clear_pd_square(self):
+        self.pd_square.color_data = [0] * 12
+
+    def toggle_pd_square(self):
+        self.pd_square.color_data = [255 - elem for elem in self.pd_square.color_data]
+
+    # background color
 
     def set_background_color(self, r, g, b):
         gl.glClearColor(r, g, b, 0)
+
+    # eye position
 
     def set_pe(self, x, y, z):
         self.pe = vec([x, y, z])
         self.update_proj_mat()
 
     ###########################################
-    # project matrix calculation
+    # initialization functions
     ###########################################
 
-    def set_norm_vecs(self):
-        # function need only be called once, after pa/pb/pc are defined
+    def init_window(self):
+        display = pyglet.window.get_platform().get_default_display()
+        screen = display.get_screens()[self.id]
+        self.window = pyglet.window.Window(screen=screen, fullscreen=True, visible=False)
+
+    def init_pd_square(self, square_side=0.5e-2):
+        self.pd_square = GlItem2D(gl.GL_QUADS)
+
+        # compute upper right corner coordinates
+        urx = self.window.width
+        ury = self.window.height
+
+        # compute lower left corner coordinates
+        llx = urx - self.window.width/self.screen_width * square_side
+        lly = ury - self.window.height/self.screen_height * square_side
+
+        # compute vertices of the square
+        self.pd_square.vertex_data = [llx, lly, urx, lly, urx, ury, llx, ury]
+
+        # compute colors of the vertices
+        self.pd_square.color_data = [255]*12
+
+    def init_clock_display(self):
+        self.clock_display = pyglet.window.FPSDisplay(self.window)
+
+    def init_id_label(self):
+        self.id_label = pyglet.text.Label(
+            'ID: {:d}'.format(self.id),
+            x = self.window.width - 10,
+            y = 10,
+            font_size = 24,
+            bold = True,
+            color = (127, 127, 127, 127),
+            anchor_x = 'right'
+        )
+
+    def init_norm_vecs(self):
         # ref: http://csc.lsu.edu/~kooima/articles/genperspective/
 
         self.vr = self.pb - self.pa
-        self.vr /= np.linalg.norm(self.vr)
+        self.screen_width = np.linalg.norm(self.vr)
+        self.vr /= self.screen_width
 
         self.vu = self.pc - self.pa
-        self.vu /= np.linalg.norm(self.vu)
+        self.screen_height = np.linalg.norm(self.vu)
+        self.vu /= self.screen_height
 
         self.vn = np.cross(self.vr, self.vu)
         self.vn /= np.linalg.norm(self.vn)
@@ -143,7 +244,11 @@ class DisplayServer:
             [self.vr[2], self.vu[2], self.vn[2], 0],
             [0, 0, 0, 1]], dtype='float')
 
-    def update_proj_mat(self):
+    ###########################################
+    # projection matrix calculation
+    ###########################################
+
+    def update_proj_mat(self, n=1e-2, f=100):
         # function should be called whenever pe is updated
         # ref: http://csc.lsu.edu/~kooima/articles/genperspective/
 
@@ -156,16 +261,16 @@ class DisplayServer:
         d = -np.dot(self.vn, va)
 
         # Compute screen coordinates
-        l = np.dot(self.vr, va) * self.n/d
-        r = np.dot(self.vr, vb) * self.n/d
-        b = np.dot(self.vu, va) * self.n/d
-        t = np.dot(self.vu, vc) * self.n/d
+        l = np.dot(self.vr, va) * n/d
+        r = np.dot(self.vr, vb) * n/d
+        b = np.dot(self.vu, va) * n/d
+        t = np.dot(self.vu, vc) * n/d
 
         # Projection matrix
         P = np.array([
-            [(2.0*self.n) / (r - l), 0, (r + l) / (r - l), 0],
-            [0, (2.0*self.n) / (t - b), (t + b) / (t - b), 0],
-            [0, 0, -(self.f + self.n) / (self.f - self.n), -(2.0*self.f*self.n) / (self.f - self.n)],
+            [(2.0*n) / (r - l), 0, (r + l) / (r - l), 0],
+            [0, (2.0*n) / (t - b), (t + b) / (t - b), 0],
+            [0, 0, -(f + n) / (f - n), -(2.0*f*n) / (f - n)],
             [0, 0, -1, 0]], dtype='float')
 
         # Translation matrix
@@ -182,14 +287,14 @@ class DisplayServer:
         self.gl_proj_mat = (gl.GLfloat * 16)(*offAxis.flatten('F'))
 
 def main():
-    parser = ServerArgParser()
+    parser = StimArgParser()
     args = parser.parse_args()
 
-    display_server = DisplayServer(id=args.id, pa=vec(args.pa), pb=vec(args.pb), pc=vec(args.pc))
+    stim = StimDisplay(id=args.id, pa=vec(args.pa), pb=vec(args.pb), pc=vec(args.pc))
 
-    pyglet.clock.schedule(display_server.update)
+    pyglet.clock.schedule(stim.update)
 
-    display_server.window.set_visible()
+    stim.window.set_visible()
     pyglet.app.run()
 
 if __name__ == '__main__':
