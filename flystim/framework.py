@@ -1,71 +1,32 @@
 import pyglet
 import pyglet.gl as gl
 import numpy as np
+import time
 
+# handle I/O
+import sys
+import json
+from threading import Thread
+from queue import Queue, Empty
 from argparse import ArgumentParser
 
-def vec(lis):
-    return np.array(lis, dtype='float')
-
-class StimArgParser(ArgumentParser):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # argument tag used to identify the process
-        self.add_argument('--tag', type=str, default=None)
-
-        # monitor physical definition
-        # defaults are for MacBook Pro (Retina, 15-inch, Mid 2015)
-        self.add_argument('--id', type=int, default=0)
-        self.add_argument('--pa', type=float, nargs=3, default=[-0.166, -0.1035, -1])
-        self.add_argument('--pb', type=float, nargs=3, default=[+0.166, -0.1035, -1])
-        self.add_argument('--pc', type=float, nargs=3, default=[-0.166, +0.1035, -1])
-
-class GlItem:
-    def __init__(self, gl_type, dims):
-        # save settings
-        self.gl_type = gl_type
-        self.dims = dims
-
-        # set up vertex data
-        self.vertex_data = []
-        self.vertex_format = 'v{:d}f'.format(self.dims)
-
-        # set up color data
-        self.color_data = []
-        self.color_format = 'c3B'
-
-    def draw(self):
-        if self.num_vertices > 0:
-            pyglet.graphics.draw(self.num_vertices,
-                                 self.gl_type,
-                                 (self.vertex_format, self.vertex_data),
-                                 (self.color_format, self.color_data))
-
-    @property
-    def num_vertices(self):
-        return len(self.vertex_data) // self.dims
-
-class GlItem2D(GlItem):
-    def __init__(self, gl_type):
-        super().__init__(gl_type=gl_type, dims=2)
-
-class GlItem3D(GlItem):
-    def __init__(self, gl_type):
-        super().__init__(gl_type=gl_type, dims=3)
+from flystim import graphics
+from flystim import cylinder
 
 class StimDisplay:
-    def __init__(self, id, pa, pb, pc, draw_pd_square=True, draw_debug_info=True):
+    def __init__(self, id, pa, pb, pc, draw_debug_info=True, in_pipe=None):
         # save settings
         self.id = id
-        self.pa = pa
-        self.pb = pb
-        self.pc = pc
-        self.draw_pd_square = draw_pd_square
+        self.pa = StimDisplay.vec(pa)
+        self.pb = StimDisplay.vec(pb)
+        self.pc = StimDisplay.vec(pc)
         self.draw_debug_info = draw_debug_info
+        self.in_pipe = in_pipe
 
-        # list initialization
+        # stimulus initialization
         self.stim = None
+        self.stim_started = False
+        self.stim_start_time = None
 
         # initialize normal vectors
         self.init_norm_vecs()
@@ -82,7 +43,8 @@ class StimDisplay:
         self.init_pd_square()
 
         # miscellaneous initialization
-        self.set_background_color(0, 0, 0)
+        self.idle_background_color = (0.0, 0.0, 0.0)
+        self.set_background_color(*self.idle_background_color)
         self.init_clock_display()
 
         # initialize the ID label
@@ -105,7 +67,7 @@ class StimDisplay:
             gl.glMatrixMode(gl.GL_MODELVIEW)
             gl.glLoadIdentity()
 
-            # draw 3D items
+            # draw stimulus
             if self.stim is not None:
                 self.stim.draw()
 
@@ -123,8 +85,8 @@ class StimDisplay:
             gl.glLoadIdentity()
 
             # draw PD square
-            if self.draw_pd_square:
-                self.pd_square.draw()
+            self.pd_square.draw()
+            self.toggle_pd_square()
 
             if self.draw_debug_info:
                 self.id_label.draw()
@@ -137,15 +99,44 @@ class StimDisplay:
                 self.window.close()
 
     ###########################################
-    # frame update function
+    # scheduled functions
     ###########################################
 
     def update(self, dt):
-        pass
+        if self.stim is not None and self.stim_started:
+            self.stim.eval_at(time.time()-self.stim_start_time)
 
     ###########################################
     # control functions
     ###########################################
+
+    # stimulus options
+
+    def load_stim(self, name, *args, **kwargs):
+        if name == 'RotatingBars':
+            self.stim = cylinder.RotatingBars(*args, **kwargs)
+        elif name == 'ExpandingEdges':
+            self.stim = cylinder.ExpandingEdges(*args, **kwargs)
+        elif name == 'GaussianNoise':
+            self.stim = cylinder.GaussianNoise(*args, **kwargs)
+        elif name == 'SequentialBars':
+            self.stim = cylinder.SequentialBars(*args, **kwargs)
+        else:
+            raise ValueError('Invalid class name.')
+
+        self.set_background_color(*self.stim.background_color)
+        self.stim.eval_at(0)
+
+    def start_stim(self, t):
+        self.stim_started = True
+        self.stim_start_time = t
+
+    def stop_stim(self):
+        self.stim = None
+        self.stim_started = False
+        self.stim_start_time = None
+
+        self.set_background_color(*self.idle_background_color)
 
     # debug options
 
@@ -157,22 +148,13 @@ class StimDisplay:
 
     # photodiode square options
 
-    def show_pd_square(self):
-        self.draw_pd_square = True
-
-    def hide_pd_square(self):
-        self.hide_pd_square = False
-
-    def set_pd_square(self):
-        self.pd_square.color_data = [255] * 12
-
-    def clear_pd_square(self):
-        self.pd_square.color_data = [0] * 12
-
     def toggle_pd_square(self):
-        self.pd_square.color_data = [255 - elem for elem in self.pd_square.color_data]
+        self.pd_square.color_data = [1 - elem for elem in self.pd_square.color_data]
 
     # background color
+
+    def set_idle_background_color(self, r, g, b):
+        self.idle_background_color = (r, g, b)
 
     def set_background_color(self, r, g, b):
         gl.glClearColor(r, g, b, 0)
@@ -180,7 +162,7 @@ class StimDisplay:
     # eye position
 
     def set_pe(self, x, y, z):
-        self.pe = vec([x, y, z])
+        self.pe = StimDisplay.vec([x, y, z])
         self.update_proj_mat()
 
     ###########################################
@@ -190,10 +172,11 @@ class StimDisplay:
     def init_window(self):
         display = pyglet.window.get_platform().get_default_display()
         screen = display.get_screens()[self.id]
-        self.window = pyglet.window.Window(screen=screen, fullscreen=True, visible=False)
+
+        self.window = pyglet.window.Window(screen=screen, fullscreen=False)
 
     def init_pd_square(self, square_side=0.5e-2):
-        self.pd_square = GlItem2D(gl.GL_QUADS)
+        self.pd_square = graphics.Item2D(gl.GL_QUADS)
 
         # compute upper right corner coordinates
         urx = self.window.width
@@ -207,7 +190,7 @@ class StimDisplay:
         self.pd_square.vertex_data = [llx, lly, urx, lly, urx, ury, llx, ury]
 
         # compute colors of the vertices
-        self.pd_square.color_data = [255]*12
+        self.pd_square.color_data = [1]*12
 
     def init_clock_display(self):
         self.clock_display = pyglet.window.FPSDisplay(self.window)
@@ -242,7 +225,7 @@ class StimDisplay:
             [self.vr[0], self.vu[0], self.vn[0], 0],
             [self.vr[1], self.vu[1], self.vn[1], 0],
             [self.vr[2], self.vu[2], self.vn[2], 0],
-            [0, 0, 0, 1]], dtype='float')
+            [0, 0, 0, 1]], dtype=float)
 
     ###########################################
     # projection matrix calculation
@@ -271,14 +254,14 @@ class StimDisplay:
             [(2.0*n) / (r - l), 0, (r + l) / (r - l), 0],
             [0, (2.0*n) / (t - b), (t + b) / (t - b), 0],
             [0, 0, -(f + n) / (f - n), -(2.0*f*n) / (f - n)],
-            [0, 0, -1, 0]], dtype='float')
+            [0, 0, -1, 0]], dtype=float)
 
         # Translation matrix
         T = np.array([
             [1, 0, 0, -self.pe[0]],
             [0, 1, 0, -self.pe[1]],
             [0, 0, 1, -self.pe[2]],
-            [0, 0, 0, 1]], dtype='float')
+            [0, 0, 0, 1]], dtype=float)
 
         # Compute overall projection matrix
         offAxis = np.dot(np.dot(P, self.M.T), T)
@@ -286,15 +269,80 @@ class StimDisplay:
         # Format matrix for OpenGL
         self.gl_proj_mat = (gl.GLfloat * 16)(*offAxis.flatten('F'))
 
+    ###########################################
+    # static methods
+    ###########################################
+
+    @staticmethod
+    def vec(lis):
+        return np.array(lis, dtype=float)
+
+# function to feed lines from a stream to a queue
+def stream_to_queue(s, q):
+    for line in s:
+        q.put(line)
+
+class StimControl:
+    def __init__(self, stim_display):
+        # save pointer to stim_display
+        self.stim_display = stim_display
+
+        # create thread to handle I/O
+        self.s = sys.stdin
+        self.q = Queue()
+        self.t = Thread(target=stream_to_queue, args=(self.s, self.q))
+        self.t.daemon = True
+        self.t.start()
+
+    def update(self, dt):
+        while True:
+            try:
+                line = self.q.get_nowait()
+            except Empty:
+                break
+
+            self.handle(line)
+
+    def handle(self, line):
+        request = json.loads(line)
+
+        cmd_name = request[0]
+        kwargs = request[1]
+
+        if cmd_name == 'load_stim':
+            self.stim_display.load_stim(**kwargs)
+        elif cmd_name == 'start_stim':
+            self.stim_display.start_stim(**kwargs)
+        elif cmd_name == 'stop_stim':
+            self.stim_display.stop_stim()
+        else:
+            raise ValueError('Invalid command.')
+
+class ServerArgParser(ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # monitor physical definition
+        self.add_argument('--id', type=int, default=0)
+        self.add_argument('--pa', type=float, nargs=3, default=[-0.166, -0.1035, -0.3])
+        self.add_argument('--pb', type=float, nargs=3, default=[+0.166, -0.1035, -0.3])
+        self.add_argument('--pc', type=float, nargs=3, default=[-0.166, +0.1035, -0.3])
+
 def main():
-    parser = StimArgParser()
+    parser = ServerArgParser()
     args = parser.parse_args()
 
-    stim = StimDisplay(id=args.id, pa=vec(args.pa), pb=vec(args.pb), pc=vec(args.pc))
+    # initialize the display
+    stim_display = StimDisplay(id=args.id, pa=args.pa, pb=args.pb, pc=args.pc)
 
-    pyglet.clock.schedule(stim.update)
+    # initialize the control handler
+    stim_control = StimControl(stim_display)
 
-    stim.window.set_visible()
+    # schedule regular tasks
+    pyglet.clock.schedule(stim_display.update)
+    pyglet.clock.schedule(stim_control.update)
+
+    # run the application
     pyglet.app.run()
 
 if __name__ == '__main__':
