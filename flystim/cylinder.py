@@ -5,17 +5,17 @@ from flystim import graphics
 from flystim.reprandom import colored_noise
 
 class CylinderStim:
-    def __init__(self, radius=2.0, height=10.0, background_color=None):
+    def __init__(self, radius=2.0, height=10.0, background=None):
         super().__init__()
 
         # initialize settings
-        if background_color is None:
-            background_color = (0.0, 0.0, 0.0)
+        if background is None:
+            background = (0.0, 0.0, 0.0)
 
         # save settings
         self.radius = radius
         self.height = height
-        self.background_color = background_color
+        self.background = background
 
         # initialize arrays
         self.starts = None
@@ -117,8 +117,8 @@ class GaussianNoise(CylinderStim):
     def __init__(self, period=15, vert_extent=30, width=2, gauss_mean=0.5, gauss_std=0.5, time_constant=20e-3,
                  random_seed=0, runtime=3, pts_per_tau=10, **kwargs):
         # set background to gray if not set already
-        if 'background_color' not in kwargs:
-            kwargs['background_color'] = (0.5, 0.5, 0.5)
+        if 'background' not in kwargs:
+            kwargs['background'] = (0.5, 0.5, 0.5)
 
         # super constructor
         super().__init__(**kwargs)
@@ -166,8 +166,8 @@ class SequentialBars(CylinderStim):
     def __init__(self, width=5, period=20, offset=0, first_active_bright=True, second_active_bright=True,
                  first_active_time=1, second_active_time=2, **kwargs):
         # set background if not set already
-        if 'background_color' not in kwargs:
-            kwargs['background_color'] = (0.5, 0.5, 0.5)
+        if 'background' not in kwargs:
+            kwargs['background'] = (0.5, 0.5, 0.5)
 
         # super constructor
         super().__init__(**kwargs)

@@ -5,6 +5,8 @@ import json
 
 from time import sleep, time
 
+from flystim.rpc import RpcClient
+
 def launch():
     # get full path to this file
     # ref: https://stackoverflow.com/questions/37863476/why-use-both-os-path-abspath-and-os-path-realpath/40311142
@@ -26,25 +28,27 @@ def launch():
     # return the process
     return p
 
+class StimClient(RpcClient):
+    def load_stim(self, *args, **kwargs):
+        self.handle(method='load_stim', args=args, kwargs=kwargs)
+
+    def start_stim(self, *args, **kwargs):
+        self.handle(method='start_stim', args=args, kwargs=kwargs)
+
+    def stop_stim(self, *args, **kwargs):
+        self.handle(method='stop_stim', args=args, kwargs=kwargs)
+
 def main():
     p = launch()
+    stim_client = StimClient(p.stdin)
 
-    request = ['load_stim', {'name': 'RotatingBars'}]
-    p.stdin.write((json.dumps(request)+'\n').encode('ascii'))
-    p.stdin.flush()
-
+    stim_client.load_stim(name='RotatingBars')
     sleep(3)
 
-    request = ['start_stim', {'t': time()}]
-    p.stdin.write((json.dumps(request)+'\n').encode('ascii'))
-    p.stdin.flush()
-
+    stim_client.start_stim(t=time())
     sleep(3)
 
-    request = ['stop_stim', {}]
-    p.stdin.write((json.dumps(request)+'\n').encode('ascii'))
-    p.stdin.flush()
-
+    stim_client.stop_stim()
     sleep(3)
 
     p.wait()
