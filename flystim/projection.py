@@ -2,21 +2,9 @@ import numpy as np
 
 class Projection:
     def __init__(self, screen, pe=None, n=1e-2, f=100):
-        # initialize input variables
-        self._screen = None
-        self._pe = None
-        self._n = None
-        self._f = None
-
-        # initialize output variable
-        self._mat = None
-
-        # initialize state
-        self.stale = True
-
         # set defaults
         if pe is None:
-            pe = [0, 0, 0]
+            pe = np.array([0, 0, 0], dtype=float)
 
         # save settings
         self.screen = screen
@@ -24,7 +12,9 @@ class Projection:
         self.f = f
         self.pe = pe
 
-    def refresh(self):
+    @property
+    def mat(self):
+        # calculations are based on the following article:
         # ref: http://csc.lsu.edu/~kooima/articles/genperspective/
 
         # Determine frustum extents
@@ -59,59 +49,9 @@ class Projection:
         T = np.eye(4, dtype=float)
         T[:3, 3] = -self.pe
 
-        # Set output property
-        self._mat = np.dot(np.dot(P, M.T), T)
+        # Compute overall projection matrix
+        mat = np.dot(np.dot(P, M.T), T)
 
-        # Set state
-        self.stale = False
+        # Return result
+        return mat
 
-    ####################################
-    # input properties
-    ####################################
-
-    @property
-    def screen(self):
-        return self._screen
-
-    @screen.setter
-    def screen(self, val):
-        self._screen = val
-        self.stale = True
-
-    @property
-    def pe(self):
-        return self._pe
-
-    @pe.setter
-    def pe(self, val):
-        self._pe = np.array(val, dtype=float)
-        self.stale = True
-
-    @property
-    def n(self):
-        return self._n
-
-    @n.setter
-    def n(self, val):
-        self._n = val
-        self.stale = True
-
-    @property
-    def f(self):
-        return self._f
-
-    @f.setter
-    def f(self, val):
-        self._f = val
-        self.stale = True
-
-    ####################################
-    # output properties
-    ####################################
-
-    @property
-    def mat(self):
-        if self.stale:
-            self.refresh()
-
-        return self._mat

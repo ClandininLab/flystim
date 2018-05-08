@@ -39,14 +39,14 @@ class StimClient(RpcClient):
     def __init__(self, process):
         super().__init__(s=process.stdin)
 
-    def load_stim(self, *args, **kwargs):
-        self.handle(method='load_stim', args=args, kwargs=kwargs)
+    def load_stim(self, name, params):
+        self.handle(method='load_stim', args=[name, params])
 
-    def start_stim(self, *args, **kwargs):
-        self.handle(method='start_stim', args=args, kwargs=kwargs)
+    def start_stim(self, t):
+        self.handle(method='start_stim', args=[t])
 
-    def stop_stim(self, *args, **kwargs):
-        self.handle(method='stop_stim', args=args, kwargs=kwargs)
+    def stop_stim(self):
+        self.handle(method='stop_stim', args=[])
 
 def launch(screens, port=0):
     # Launch a separate display process for each screen
@@ -57,9 +57,9 @@ def launch(screens, port=0):
 
     # Define RPC methods used to interact with the ensemble of screens
 
-    def load_stim(name, kwargs):
+    def load_stim(name, params):
         for stim_client in stim_clients:
-            stim_client.load_stim(name, **kwargs)
+            stim_client.load_stim(name, params)
 
         return 0
 

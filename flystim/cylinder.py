@@ -6,8 +6,6 @@ from flystim.reprandom import colored_noise
 
 class CylinderStim:
     def __init__(self, radius=2.0, height=10.0, background=None):
-        super().__init__()
-
         # initialize settings
         if background is None:
             background = (0.0, 0.0, 0.0)
@@ -76,6 +74,10 @@ class CylinderStim:
 
 class RotatingBars(CylinderStim):
     def __init__(self, period=20, duty_cycle=0.5, rate=10, **kwargs):
+        # set background to black if not set already
+        if 'background' not in kwargs:
+            kwargs['background'] = (0.0, 0.0, 0.0)
+
         # call super constructor
         super().__init__(**kwargs)
 
@@ -96,6 +98,10 @@ class RotatingBars(CylinderStim):
 
 class ExpandingEdges(CylinderStim):
     def __init__(self, period=15, width=2, rate=10, **kwargs):
+        # set background to black if not set already
+        if 'background' not in kwargs:
+            kwargs['background'] = (0.0, 0.0, 0.0)
+
         # super constructor
         super().__init__(**kwargs)
 

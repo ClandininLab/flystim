@@ -1,6 +1,7 @@
 import pyglet
 import pyglet.gl as gl
 import time
+import numpy as np
 
 from argparse import ArgumentParser
 
@@ -102,15 +103,15 @@ class StimDisplay:
 
     # stimulus options
 
-    def load_stim(self, name, *args, **kwargs):
+    def load_stim(self, name, params):
         if name == 'RotatingBars':
-            self.stim = cylinder.RotatingBars(*args, **kwargs)
+            self.stim = cylinder.RotatingBars(**params)
         elif name == 'ExpandingEdges':
-            self.stim = cylinder.ExpandingEdges(*args, **kwargs)
+            self.stim = cylinder.ExpandingEdges(**params)
         elif name == 'GaussianNoise':
-            self.stim = cylinder.GaussianNoise(*args, **kwargs)
+            self.stim = cylinder.GaussianNoise(**params)
         elif name == 'SequentialBars':
-            self.stim = cylinder.SequentialBars(*args, **kwargs)
+            self.stim = cylinder.SequentialBars(**params)
         else:
             raise ValueError('Invalid class name.')
 
@@ -205,34 +206,33 @@ class StimControl(RpcServer):
         # call super constructor
         super().__init__()
 
-    def handle(self, method, args, kwargs):
+    def handle(self, method, args):
         if method == 'load_stim':
-            self.stim_display.load_stim(*args, **kwargs)
+            self.stim_display.load_stim(*args)
         elif method == 'start_stim':
-            self.stim_display.start_stim(*args, **kwargs)
+            self.stim_display.start_stim(*args)
         elif method == 'stop_stim':
-            self.stim_display.stop_stim(*args, **kwargs)
+            self.stim_display.stop_stim(*args)
         else:
             raise ValueError('Invalid method.')
 
-class StimArgParser(ArgumentParser):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # monitor physical definition
-        self.add_argument('--id', type=int)
-        self.add_argument('--pa', type=float, nargs=3)
-        self.add_argument('--pb', type=float, nargs=3)
-        self.add_argument('--pc', type=float, nargs=3)
-        self.add_argument('--fullscreen', action='store_true')
-
 def main():
+    # set up command line parser
+    parser = ArgumentParser()
+    parser.add_argument('--id', type=int)
+    parser.add_argument('--pa', type=float, nargs=3)
+    parser.add_argument('--pb', type=float, nargs=3)
+    parser.add_argument('--pc', type=float, nargs=3)
+    parser.add_argument('--fullscreen', action='store_true')
+
     # parse command line arguments
-    parser = StimArgParser()
     args = parser.parse_args()
 
     # initialize the display
-    screen = Screen(id=args.id, pa=args.pa, pb=args.pb, pc=args.pc, fullscreen=args.fullscreen)
+    pa = np.array(args.pa, dtype=float)
+    pb = np.array(args.pb, dtype=float)
+    pc = np.array(args.pc, dtype=float)
+    screen = Screen(id=args.id, pa=pa, pb=pb, pc=pc, fullscreen=args.fullscreen)
     stim_display = StimDisplay(screen=screen)
 
     # initialize the control handler

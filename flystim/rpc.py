@@ -44,21 +44,20 @@ class RpcServer:
             # extract method name and arguments
             method = request['method']
             args = request.get('args', [])
-            kwargs = request.get('kwargs', {})
 
             # run command
-            self.handle(method=method, args=args, kwargs=kwargs)
+            self.handle(method=method, args=args)
 
-    def handle(self, method, args, kwargs):
+    def handle(self, method, args):
         pass
 
 class RpcClient:
     def __init__(self, s):
         self.s = s
 
-    def handle(self, method, args, kwargs):
+    def handle(self, method, args):
         # generate request string
-        request = json.dumps({'method': method, 'args': args, 'kwargs': kwargs})
+        request = json.dumps({'method': method, 'args': args})
 
         # write request
         self.s.write((request + '\n').encode('utf-8'))

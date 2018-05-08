@@ -14,6 +14,7 @@ def main():
         rate = dir*choice(rates)
 
         client.load_stim('RotatingBars', {'rate': rate})
+
         sleep(550e-3)
         client.start_stim()
         sleep(250e-3)
