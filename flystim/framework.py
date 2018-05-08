@@ -94,12 +94,6 @@ class StimDisplay:
                 for text_label in self.text_labels:
                     text_label.draw()
 
-        # handle escape key
-        @self.window.event
-        def on_key_press(symbol, modifiers):
-            if symbol == pyglet.window.key.ESCAPE:
-                self.close()
-
     ###########################################
     # scheduled functions
     ###########################################
@@ -155,13 +149,6 @@ class StimDisplay:
         self.stim_start_time = None
 
         self.set_background_color(*self.idle_background)
-
-    def close(self):
-        """
-        Closes the display window, which will cause the pyglet event loop to stop.
-        """
-
-        self.window.close()
 
     # corner square options
 
@@ -314,8 +301,12 @@ def main():
     pyglet.clock.schedule(lambda dt: stim_display.update())
     pyglet.clock.schedule(lambda dt: stim_control.update())
 
-    # run the application
-    pyglet.app.run()
+    # Run application
+    # Use Ctrl+C to exit.
+    try:
+        pyglet.app.run()
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == '__main__':
     main()

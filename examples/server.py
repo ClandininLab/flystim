@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Example server program for one screen.
-# Please start this program first before launching client.py
+# Please start this program first before launching client.py.  You can exit the server by pressing Ctrl+C.
 
 # In order to display perspective-corrected stimuli, you will need to modify this program so that the Screen
 # object is instantiated with the right screen dimensions, and you should also set fullscreen=True.

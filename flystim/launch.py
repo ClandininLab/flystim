@@ -141,7 +141,11 @@ def launch(screens, port=0):
     server.register_function(stop_stim, 'stop_stim')
 
     # Run server
-    server.serve_forever()
+    # Use Ctrl+C to exit.
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
 
 def main():
     screens = [Screen(fullscreen=False)]
