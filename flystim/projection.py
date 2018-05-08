@@ -1,10 +1,22 @@
 import numpy as np
 
 class Projection:
+    """
+    Class to compute the projection matrix for a given screen and eye position.
+    Based on this article: http://csc.lsu.edu/~kooima/articles/genperspective/
+    """
+
     def __init__(self, screen, pe=None, n=1e-2, f=100):
+        """
+        :param screen: flystim.screen.Screen object containing screen dimension information
+        :param pe: Eye position (3-tuple, each value in meters)
+        :param n: Near clip distance (meters)
+        :param f: Far clip distance (meters)
+        """
+
         # set defaults
         if pe is None:
-            pe = np.array([0, 0, 0], dtype=float)
+            pe = np.array((0, 0, 0), dtype=float)
 
         # save settings
         self.screen = screen
@@ -14,9 +26,6 @@ class Projection:
 
     @property
     def mat(self):
-        # calculations are based on the following article:
-        # ref: http://csc.lsu.edu/~kooima/articles/genperspective/
-
         # Determine frustum extents
         va = self.screen.pa - self.pe
         vb = self.screen.pb - self.pe

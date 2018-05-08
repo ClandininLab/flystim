@@ -3,17 +3,33 @@ import json
 from threading import Thread
 from queue import Queue, Empty
 
-# simple stream-based remote procedure calls, inspired by this post:
+# This file contains a simple stream-based remote procedure call system
+# The work is inspired by this StackOverflow post:
 # https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
 
-# function that copies a stream to
-# a queue, line by line
 def stream_to_queue(s, q):
+    """
+    Function that copies a stream output into a queue, line by line
+    :param s: Stream
+    :param q: Queue
+    """
+
     while True:
         q.put(s.readline())
 
 class RpcServer:
+    """
+    This class is intended to be scheduled to run inside an event loop such as pyglet.app.run()
+    It launches a thread to store each line of the stream into a queue.  The lines are then processed as remote
+    procedure calls.
+    Users should subclass RpcServer and implement their own application-specific "handle" routine.
+    """
+
     def __init__(self, s=None):
+        """
+        :param s: Stream containing RPCs (defaults to sys.stdin)
+        """
+
         # set defaults
         if s is None:
             s = sys.stdin
@@ -31,6 +47,11 @@ class RpcServer:
         self.t.start()
 
     def update(self):
+        """
+        This is the function that should be scheduled to run in the event loops.  It processes all of the lines in
+        the queue as RPCs before returning.
+        """
+
         while True:
             try:
                 line = self.q.get_nowait()
@@ -48,13 +69,33 @@ class RpcServer:
             self.handle(method=method, args=args)
 
     def handle(self, method, args):
+        """
+        This method dispatches a single RPC.  It should be overridden by child classes.
+        :param method: Name of the method.
+        :param args: Positional arguments of the method.
+        """
+
         pass
 
 class RpcClient:
+    """
+    This class sends commands to an RpcServer via a PIPE.  JSON encoding is used for the RPCs.
+    Users should subclass RpcClient and implement their own application-specific "handle" routine.
+    """
+
     def __init__(self, s):
+        """
+        :param s: Stream to be used to transmitting RPCs
+        """
         self.s = s
 
     def handle(self, method, args):
+        """
+        Sends a single command to the RPC server.
+        :param method: Name of the method.
+        :param args: Positional arguments of the method.
+        """
+
         # generate request string
         request = json.dumps({'method': method, 'args': args})
 

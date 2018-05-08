@@ -284,7 +284,7 @@ class StimControl(RpcServer):
 def main():
     """
     This file is typically run as a command-line program launched as a Subprocess, so the command-line arguments
-    are typically filled by the launching program, rather than explictly by a user.   
+    are typically filled by the launching program, rather than explictly by a user.
     """
 
     # set up command line parser

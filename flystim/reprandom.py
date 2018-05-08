@@ -4,6 +4,18 @@ from scipy.signal import lsim
 from scipy.interpolate import interp1d
 
 def colored_noise(loc, scale, tau, dt, tmax):
+    """
+    Given colored noise process parameters, return a function that can be evaluated at any time to
+    yield the process output.
+    :param loc: Mean of the input white noise process.
+    :param scale: Standard deviation of the input white noise process.
+    :param tau: Time constant of the system filtering the white noise.
+    :param dt: Time resolution used in calculating the effect of filtering the white noise.
+    :param tmax: Maximum time at which output values are calculated.
+    :return: A function that can be evaluated at any time to yield the output of the colored noise processed.  It is
+    deterministic; the same value will be returned given the same time.
+    """
+
     # generate white noise input
     t_in = np.arange(0, tmax+dt, dt)
     v_in = np.random.normal(loc=loc, scale=scale, size=t_in.size)

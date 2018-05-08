@@ -1,7 +1,16 @@
 import pyglet
 
 class Item:
+    """
+    2D or 3D graphics object with RGB floating-point color data.
+    """
+
     def __init__(self, gl_type, dims):
+        """
+        :param gl_type: OpenGL graphics type, such as GL_QUADS.
+        :param dims: Number of dimensions.  Should be 2 or 3 (passed as integers)
+        """
+
         # save settings
         self.gl_type = gl_type
         self.dims = dims
@@ -23,6 +32,9 @@ class Item:
 
     @property
     def num_vertices(self):
+        """
+        Number of vertices in the graphics object.
+        """
         return len(self.vertex_data) // self.dims
 
 class Item2D(Item):
