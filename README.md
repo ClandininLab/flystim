@@ -2,26 +2,7 @@
 
 **flystim** is a software package for generating visual stimuli for fruit fly experiments.  The stimuli are perspective-corrected and can be displayed across multiple screens.
 
-In this software package, a server displays stimuli in response to commands from a client.  This allows users to write relatively concise experimental control programs, such as the following example:
-
-```python
-client = ServerProxy('http://127.0.0.1:' + str(port))
-
-signs = [-1, 1]
-rates = [10, 20, 40, 100, 200, 400, 1000]
-
-for _ in range(num_trials):
-    sign = choice(signs)
-    rate = sign*choice(rates)
-
-    client.load_stim('RotatingBars', {'rate': rate})
-
-    sleep(550e-3)
-    client.start_stim()
-    sleep(250e-3)
-    client.stop_stim()
-    sleep(500e-3)
-```
+In this software package, a server displays stimuli in response to commands from a client.  This allows users to write relatively concise experimental control programs.
 
 The server is a Python program, while the client can be written in any language that supports [XML-RPC](https://en.wikipedia.org/wiki/XML-RPC).  Sample client code is included in the **examples** directory.
 
