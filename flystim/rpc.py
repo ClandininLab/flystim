@@ -3,8 +3,7 @@ import json
 from threading import Thread
 from queue import Queue, Empty
 
-# simple stream-based remote procedure calls
-# inspired by this post:
+# simple stream-based remote procedure calls, inspired by this post:
 # https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
 
 # function that copies a stream to
