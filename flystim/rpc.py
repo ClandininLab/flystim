@@ -3,10 +3,15 @@ import json
 from threading import Thread
 from queue import Queue, Empty
 
-# function to feed lines from a stream to a queue
+# simple stream-based remote procedure calls
+# inspired by this post:
+# https://stackoverflow.com/questions/375427/non-blocking-read-on-a-subprocess-pipe-in-python
+
+# function that copies a stream to
+# a queue, line by line
 def stream_to_queue(s, q):
-    for line in s:
-        q.put(line)
+    while True:
+        q.put(s.readline())
 
 class RpcServer:
     def __init__(self, s=None):
@@ -18,7 +23,12 @@ class RpcServer:
         self.s = s
         self.q = Queue()
         self.t = Thread(target=stream_to_queue, args=(self.s, self.q))
+
+        # the I/O thread is set as a daemon to allow the program to exit cleanly
+        # in general, this flag means "exit program when only daemon threads are left"
         self.t.daemon = True
+
+        # start I/O thread
         self.t.start()
 
     def update(self):
@@ -51,7 +61,5 @@ class RpcClient:
         request = json.dumps({'method': method, 'args': args, 'kwargs': kwargs})
 
         # write request
-        # TODO: is ASCII encoding the right one?
-        # TODO: is flush necessary?
-        self.s.write((request + '\n').encode('ascii'))
+        self.s.write((request + '\n').encode('utf-8'))
         self.s.flush()

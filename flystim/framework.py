@@ -36,7 +36,7 @@ class StimDisplay:
         self.init_text_labels()
 
         # background color
-        self.set_idle_background(0.0, 0.0, 0.0)
+        self.set_idle_background(0.5, 0.5, 0.5)
         self.set_background_color(*self.idle_background)
 
         # draw objects
@@ -160,7 +160,7 @@ class StimDisplay:
         display = pyglet.window.get_platform().get_default_display()
         screen = display.get_screens()[self.screen.id]
 
-        self.window = pyglet.window.Window(screen=screen, fullscreen=False)
+        self.window = pyglet.window.Window(screen=screen, fullscreen=self.screen.fullscreen)
 
     def init_corner_square(self, square_side=0.5e-2):
         # compute upper right corner coordinates
@@ -182,7 +182,6 @@ class StimDisplay:
         self.text_labels = []
 
         # FPS display
-        # TODO: customize its display
         clock_display = pyglet.window.FPSDisplay(self.window)
         self.text_labels.append(clock_display)
 
@@ -221,11 +220,11 @@ class StimArgParser(ArgumentParser):
         super().__init__(*args, **kwargs)
 
         # monitor physical definition
-        # defaults are for MacBook Pro (Retina, 15-inch, Mid 2015)
-        self.add_argument('--id', type=int, default=0)
-        self.add_argument('--pa', type=float, nargs=3, default=[-0.166, -0.1035, -0.3])
-        self.add_argument('--pb', type=float, nargs=3, default=[+0.166, -0.1035, -0.3])
-        self.add_argument('--pc', type=float, nargs=3, default=[-0.166, +0.1035, -0.3])
+        self.add_argument('--id', type=int)
+        self.add_argument('--pa', type=float, nargs=3)
+        self.add_argument('--pb', type=float, nargs=3)
+        self.add_argument('--pc', type=float, nargs=3)
+        self.add_argument('--fullscreen', action='store_true')
 
 def main():
     # parse command line arguments
@@ -233,7 +232,7 @@ def main():
     args = parser.parse_args()
 
     # initialize the display
-    screen = Screen(id=args.id, pa=args.pa, pb=args.pb, pc=args.pc)
+    screen = Screen(id=args.id, pa=args.pa, pb=args.pb, pc=args.pc, fullscreen=args.fullscreen)
     stim_display = StimDisplay(screen=screen)
 
     # initialize the control handler

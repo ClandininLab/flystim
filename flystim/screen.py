@@ -1,7 +1,7 @@
 import numpy as np
 
 class Screen:
-    def __init__(self, id, pa, pb, pc):
+    def __init__(self, id=0, pa=None, pb=None, pc=None, fullscreen=True):
         # initialize input variables
         self._pa = None
         self._pb = None
@@ -18,10 +18,28 @@ class Screen:
         self.stale = True
 
         # save settings
+        # defaults are for MacBook Pro (Retina, 15-inch, Mid 2015)
+
+        # Screen ID
         self.id = id
+
+        # Bottom left corner
+        if pa is None:
+            pa = [-0.166, -0.1035, -0.3]
         self.pa = pa
+
+        # Bottom right corner
+        if pb is None:
+            pb = [+0.166, -0.1035, -0.3]
         self.pb = pb
+
+        # Upper left corner
+        if pc is None:
+            pc = [-0.166, +0.1035, -0.3]
         self.pc = pc
+
+        # Fullscreen indicator
+        self.fullscreen = fullscreen
 
     def refresh(self):
         # ref: http://csc.lsu.edu/~kooima/articles/genperspective/
