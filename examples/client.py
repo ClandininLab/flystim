@@ -8,18 +8,17 @@
 
 from xmlrpc.client import ServerProxy
 from time import sleep
-
 from random import choice
 
 def main(num_trials=15, port=62632):
     client = ServerProxy('http://127.0.0.1:{}'.format(port))
 
-    dirs = [-1, 1]
+    signs = [-1, 1]
     rates = [10, 20, 40, 100, 200, 400, 1000]
 
     for _ in range(num_trials):
-        dir = choice(dirs)
-        rate = dir*choice(rates)
+        sign = choice(signs)
+        rate = sign*choice(rates)
 
         client.load_stim('RotatingBars', {'rate': rate})
 
