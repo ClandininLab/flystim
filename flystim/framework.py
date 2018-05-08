@@ -13,7 +13,18 @@ from flystim.projection import Projection
 from flystim.rpc import RpcServer
 
 class StimDisplay:
+    """
+    Class that controls the stimulus display on one screen.  It contains the pyglet window object for that screen,
+    and also controls rendering of the stimulus, toggling corner square, and/or debug information.
+    """
+
     def __init__(self, screen, draw_text=True):
+        """
+        :param screen: Screen object (from flystim.screen) corresponding to the screen on which the stimulus will
+        be displayed.
+        :param draw_text: Boolean.  If True, draw debug information (FPS, screen ID#, etc.).
+        """
+
         # save settings
         self.screen = screen
         self.draw_text = draw_text
@@ -104,6 +115,13 @@ class StimDisplay:
     # stimulus options
 
     def load_stim(self, name, params):
+        """
+        Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
+        background color is changed to the one specified in the stimulus, and the stimulus is evaluated at time 0.
+        :param name: Name of the stimulus (should be a class name)
+        :param params: Parameters used to instantiate the class (e.g., period, bar width, etc.)
+        """
+
         if name == 'RotatingBars':
             self.stim = cylinder.RotatingBars(**params)
         elif name == 'ExpandingEdges':
@@ -119,10 +137,19 @@ class StimDisplay:
         self.stim.eval_at(0)
 
     def start_stim(self, t):
+        """
+        Starts the stimulus animation, using the given time as t=0
+        :param t: Time corresponding to t=0 of the animation
+        """
+
         self.stim_started = True
         self.stim_start_time = t
 
     def stop_stim(self):
+        """
+        Stops the stimulus animation and removes it from the display.  The background color reverts to idle_background
+        """
+
         self.stim = None
         self.stim_started = False
         self.stim_start_time = None
@@ -130,27 +157,36 @@ class StimDisplay:
         self.set_background_color(*self.idle_background)
 
     def close(self):
+        """
+        Closes the display window, which will cause the pyglet event loop to stop.
+        """
+
         self.window.close()
-
-    # debug options
-
-    def show_text(self):
-        self.draw_text = True
-
-    def hide_text(self):
-        self.draw_text = False
 
     # corner square options
 
     def toggle_corner_square(self):
+        """
+        Flips the color of the corner square from black to white or vice versa.
+        """
+
         self.corner_square.color_data = [1 - elem for elem in self.corner_square.color_data]
 
     # background color
 
     def set_idle_background(self, r, g, b):
+        """
+        Sets the RGB color of the background when there is no stimulus being displayed (sometimes called the
+        interleave period).
+        """
+
         self.idle_background = (r, g, b)
 
     def set_background_color(self, r, g, b):
+        """
+        Sets the background color to the given RGB value.  Takes effect next time the glClear function is called.
+        """
+
         gl.glClearColor(r, g, b, 0)
 
     ###########################################
@@ -158,12 +194,22 @@ class StimDisplay:
     ###########################################
 
     def init_window(self):
+        """
+        Creates a pyglet window on the specified screen.  Can be fullscreen or windowed.
+        """
+
         display = pyglet.window.get_platform().get_default_display()
         screen = display.get_screens()[self.screen.id]
 
         self.window = pyglet.window.Window(screen=screen, fullscreen=self.screen.fullscreen)
 
     def init_corner_square(self, square_side=0.5e-2):
+        """
+        Creates a graphics object for the toggling corner square used to monitor for dropped frames.
+        :param square_side: Side length of the corner square, in meters.  Note that in order for the displayed length
+        to be correct, the dimensions provided in the screen object must be right...
+        """
+
         # compute upper right corner coordinates
         urx = self.window.width
         ury = self.window.height
@@ -180,6 +226,10 @@ class StimDisplay:
         self.corner_square.color_data = [1]*12
 
     def init_text_labels(self):
+        """
+        Creates labels used for debug purposes (e.g., frames per second, the ID # of the screen, etc.)
+        """
+
         self.text_labels = []
 
         # FPS display
@@ -199,7 +249,15 @@ class StimDisplay:
         self.text_labels.append(id_label)
 
 class StimControl(RpcServer):
+    """
+    Class to interpret incoming remote procedure calls from a PIPE and relay them to the StimDisplay class.
+    """
+
     def __init__(self, stim_display):
+        """
+        :param stim_display: StimDisplay object to be controlled by the RPCs.
+        """
+
         # save settings
         self.stim_display = stim_display
 
@@ -207,6 +265,13 @@ class StimControl(RpcServer):
         super().__init__()
 
     def handle(self, method, args):
+        """
+        Mapping from method name to StimDisplay functions.
+        :param method: Name of the method.
+        :param args: List of positional arguments to be passed to the method.
+        :return:
+        """
+
         if method == 'load_stim':
             self.stim_display.load_stim(*args)
         elif method == 'start_stim':
@@ -217,6 +282,11 @@ class StimControl(RpcServer):
             raise ValueError('Invalid method.')
 
 def main():
+    """
+    This file is typically run as a command-line program launched as a Subprocess, so the command-line arguments
+    are typically filled by the launching program, rather than explictly by a user.   
+    """
+
     # set up command line parser
     parser = ArgumentParser()
     parser.add_argument('--id', type=int)
