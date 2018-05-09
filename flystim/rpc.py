@@ -31,7 +31,6 @@ class RpcServer:
     This class is intended to be scheduled to run inside an event loop such as pyglet.app.run()
     It launches a thread to store each line of the stream into a queue.  The lines are then processed as remote
     procedure calls.
-    Users should subclass RpcServer and implement their own application-specific "handle" routine.
     """
 
     def __init__(self, s=None):
@@ -90,7 +89,6 @@ class RpcServer:
 class RpcClient:
     """
     This class sends commands to an RpcServer via a PIPE.  JSON encoding is used for the RPCs.
-    Users should subclass RpcClient and implement their own application-specific "handle" routine.
     """
 
     def __init__(self, s):
