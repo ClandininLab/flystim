@@ -15,7 +15,16 @@ def stream_to_queue(s, q):
     """
 
     while True:
-        q.put(s.readline())
+        # read next line from stream
+        # this is a blocking call, so the line will stall until input is received
+        line = s.readline()
+
+        # strip whitespace from ends and make sure that this isn't an empty line
+        # this is necessary because empty lines are transmitted when Ctrl+C is pressed,
+        # which sometimes causes the JSON decoder to fail.
+        line = line.strip()
+        if line != '':
+            q.put(line)
 
 class RpcServer:
     """

@@ -8,7 +8,28 @@ from xmlrpc.server import SimpleXMLRPCServer
 from flystim.rpc import RpcClient
 from flystim.screen import Screen
 
-def create_stim_process(screen):
+class IdCounter:
+    """
+    Class to keep track of how many screens of each ID have been added.  This is largely for debugging purposes,
+    because usually only one window will be open on each screen.
+    """
+
+    def __init__(self):
+        self.counts = {}
+
+    def add(self, id):
+        """
+        :param id: ID number to be added.
+        :return: Count of this ID registered so far (including the one just added)
+        """
+
+        # increment count of this ID
+        self.counts[id] = self.counts.get(id, 0) + 1
+
+        # return count
+        return self.counts[id]
+
+def create_stim_process(screen, profile=False, counter=None):
     """
     This function launches a subprocess to display stimuli on a given screen.  In general, this function should
     be called once for each screen.
@@ -30,13 +51,20 @@ def create_stim_process(screen):
     python_full_path = os.path.realpath(os.path.expanduser(sys.executable))
 
     # launch the display program
-    args = [python_full_path, server_full_path]
+    args = []
+    args += [python_full_path]
+    if profile:
+        args += ['-m', 'cProfile']
+        args += ['-o', 'id_{}_no_{}.prof'.format(screen.id, counter.add(screen.id))]
+    args += [server_full_path]
     args += ['--id', str(screen.id)]
     args += ['--pa'] + list(str(v) for v in screen.pa)
     args += ['--pb'] + list(str(v) for v in screen.pb)
     args += ['--pc'] + list(str(v) for v in screen.pc)
     if screen.fullscreen:
         args += ['--fullscreen']
+    if screen.vsync:
+        args += ['--vsync']
     p = subprocess.Popen(args, stdin=subprocess.PIPE)
 
     # return the process
@@ -75,7 +103,7 @@ class StimClient(RpcClient):
 
         self.handle(method='stop_stim', args=[])
 
-def launch(screens, port=0):
+def launch(screens, port=0, profile=False):
     """
     Launches separate processes to display synchronized stimuli on all of the given screens.  After that, a
     remote procedure call (RPC) server is launched, which allows the user to send commands to all screens at once.
@@ -86,7 +114,8 @@ def launch(screens, port=0):
     """
 
     # Launch a separate display process for each screen
-    processes = [create_stim_process(screen) for screen in screens]
+    counter = IdCounter()
+    processes = [create_stim_process(screen=screen, profile=profile, counter=counter) for screen in screens]
 
     # Create RPC handlers for each process
     stim_clients = [StimClient(process) for process in processes]
@@ -133,7 +162,7 @@ def launch(screens, port=0):
     # Print the port name (mainly relevant when port=0, meaning that the
     # port number is automatically selected
     port = server.socket.getsockname()[1]
-    print('Stimulus Display Port: {}'.format(port))
+    print('Display server port: {}'.format(port))
 
     # Register stimulus control functions
     server.register_function(load_stim, 'load_stim')
@@ -141,7 +170,7 @@ def launch(screens, port=0):
     server.register_function(stop_stim, 'stop_stim')
 
     # Run server
-    # Use Ctrl+C to exit.
+    print('Press Ctrl+C to exit.')
     try:
         server.serve_forever()
     except KeyboardInterrupt:

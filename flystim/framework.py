@@ -188,7 +188,7 @@ class StimDisplay:
         display = pyglet.window.get_platform().get_default_display()
         screen = display.get_screens()[self.screen.id]
 
-        self.window = pyglet.window.Window(screen=screen, fullscreen=self.screen.fullscreen)
+        self.window = pyglet.window.Window(screen=screen, fullscreen=self.screen.fullscreen, vsync=self.screen.vsync)
 
     def init_corner_square(self, square_side=0.5e-2):
         """
@@ -281,6 +281,7 @@ def main():
     parser.add_argument('--pb', type=float, nargs=3)
     parser.add_argument('--pc', type=float, nargs=3)
     parser.add_argument('--fullscreen', action='store_true')
+    parser.add_argument('--vsync', action='store_true')
 
     # parse command line arguments
     args = parser.parse_args()
@@ -289,7 +290,7 @@ def main():
     pa = np.array(args.pa, dtype=float)
     pb = np.array(args.pb, dtype=float)
     pc = np.array(args.pc, dtype=float)
-    screen = Screen(id=args.id, pa=pa, pb=pb, pc=pc, fullscreen=args.fullscreen)
+    screen = Screen(id=args.id, pa=pa, pb=pb, pc=pc, fullscreen=args.fullscreen, vsync=args.vsync)
     stim_display = StimDisplay(screen=screen)
 
     # initialize the control handler
