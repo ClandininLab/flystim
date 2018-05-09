@@ -43,9 +43,16 @@ class RpcServer:
         if s is None:
             s = sys.stdin
 
-        # create thread to handle I/O
+        # save settings
         self.s = s
+
+        # initialize function mapping
+        self.functions = {}
+
+        # create a queue to hold I/O
         self.q = Queue()
+
+        # create thread to handle I/O
         self.t = Thread(target=stream_to_queue, args=(self.s, self.q))
 
         # the I/O thread is set as a daemon to allow the program to exit cleanly
@@ -75,16 +82,10 @@ class RpcServer:
             args = request.get('args', [])
 
             # run command
-            self.handle(method=method, args=args)
+            self.functions[method](*args)
 
-    def handle(self, method, args):
-        """
-        This method dispatches a single RPC.  It should be overridden by child classes.
-        :param method: Name of the method.
-        :param args: Positional arguments of the method.
-        """
-
-        pass
+    def register_function(self, function, name):
+        self.functions[name] = function
 
 class RpcClient:
     """
@@ -98,16 +99,22 @@ class RpcClient:
         """
         self.s = s
 
-    def handle(self, method, args):
+    def request(self, method, args=None):
         """
         Sends a single command to the RPC server.
         :param method: Name of the method.
         :param args: Positional arguments of the method.
         """
 
-        # generate request string
-        request = json.dumps({'method': method, 'args': args})
+        # build request
+        request = {'method': method}
+
+        if args is not None:
+            request['args'] = args
+
+        # convert request to JSON format
+        request_json = json
 
         # write request
-        self.s.write((request + '\n').encode('utf-8'))
+        self.s.write((json.dumps(request) + '\n').encode('utf-8'))
         self.s.flush()

@@ -70,39 +70,6 @@ def create_stim_process(screen, profile=False, counter=None):
     # return the process
     return p
 
-class StimClient(RpcClient):
-    """
-    Class used to send commands to a single screen display program using a PIPE.
-    """
-
-    def __init__(self, process):
-        super().__init__(s=process.stdin)
-
-    def load_stim(self, name, params):
-        """
-        Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
-        background color is changed to the one specified in the stimulus, and the stimulus is evaluated at time 0.
-        :param name: Name of the stimulus (should be a class name)
-        :param params: Parameters used to instantiate the class (e.g., period, bar width, etc.)
-        """
-
-        self.handle(method='load_stim', args=[name, params])
-
-    def start_stim(self, t):
-        """
-        Starts the stimulus animation, using the given time as t=0
-        :param t: Time corresponding to t=0 of the animation
-        """
-
-        self.handle(method='start_stim', args=[t])
-
-    def stop_stim(self):
-        """
-        Stops the stimulus animation and removes it from the display.  The background color reverts to idle_background
-        """
-
-        self.handle(method='stop_stim', args=[])
-
 def launch(screens, port=0, profile=False):
     """
     Launches separate processes to display synchronized stimuli on all of the given screens.  After that, a
@@ -113,14 +80,20 @@ def launch(screens, port=0, profile=False):
     will be assigned automatically, and the chosen port will be printed out.
     """
 
+    ####################################
+    # launch the display processes
+    ####################################
+
     # Launch a separate display process for each screen
     counter = IdCounter()
     processes = [create_stim_process(screen=screen, profile=profile, counter=counter) for screen in screens]
 
     # Create RPC handlers for each process
-    stim_clients = [StimClient(process) for process in processes]
+    stim_clients = [RpcClient(process.stdin) for process in processes]
 
-    # Define RPC methods used to interact with the ensemble of screens
+    ####################################
+    # define the control functions
+    ####################################
 
     def load_stim(name, params):
         """
@@ -131,7 +104,7 @@ def launch(screens, port=0, profile=False):
         """
 
         for stim_client in stim_clients:
-            stim_client.load_stim(name, params)
+            stim_client.request('load_stim', [name, params])
 
         return 0
 
@@ -142,7 +115,7 @@ def launch(screens, port=0, profile=False):
 
         t = time()
         for stim_client in stim_clients:
-            stim_client.start_stim(t)
+            stim_client.request('start_stim', [t])
 
         return 0
 
@@ -152,22 +125,137 @@ def launch(screens, port=0, profile=False):
         """
 
         for stim_client in stim_clients:
-            stim_client.stop_stim()
+            stim_client.request('stop_stim')
 
         return 0
 
+    def start_corner_square():
+        """
+        Start toggling the corner square.
+        """
+
+        for stim_client in stim_clients:
+            stim_client.request('start_corner_square')
+
+        return 0
+
+    def stop_corner_square():
+        """
+        Stop toggling the corner square.
+        """
+
+        for stim_client in stim_clients:
+            stim_client.request('stop_corner_square')
+
+        return 0
+
+    def white_corner_square():
+        """
+        Make the corner square white.
+        """
+
+        for stim_client in stim_clients:
+            stim_client.request('white_corner_square')
+
+        return 0
+
+    def black_corner_square():
+        """
+        Make the corner square black.
+        """
+
+        for stim_client in stim_clients:
+            stim_client.request('black_corner_square')
+
+        return 0
+
+    def show_debug_text():
+        """
+        Show debug text labels (ID, FPS, etc.)
+        """
+
+        for stim_client in stim_clients:
+            stim_client.request('show_debug_text')
+
+        return 0
+
+    def hide_debug_text():
+        """
+        Hide debug text labels (ID, FPS, etc.)
+        """
+
+        for stim_client in stim_clients:
+            stim_client.request('hide_debug_text')
+
+        return 0
+
+    def show_corner_square():
+        """
+        Show the corner square.
+        """
+
+        for stim_client in stim_clients:
+            stim_client.request('show_corner_square')
+
+        return 0
+
+    def hide_corner_square():
+        """
+        Hide the corner square.  Note that it will continue to toggle if self.should_toggle_square is True,
+        even though nothing will be displayed.
+        """
+
+        for stim_client in stim_clients:
+            stim_client.request('hide_corner_square')
+
+        return 0
+
+    def set_idle_background(r, g, b):
+        """
+        Sets the RGB color of the background when there is no stimulus being displayed (sometimes called the
+        interleave period).
+        """
+
+        for stim_client in stim_clients:
+            stim_client.request('set_idle_background', [r, g, b])
+
+        return 0
+
+    ####################################
+    # set up the server
+    ####################################
+
     # Set up the RPC server
     server = SimpleXMLRPCServer(addr=('127.0.0.1', port), logRequests=False)
-
-    # Print the port name (mainly relevant when port=0, meaning that the
-    # port number is automatically selected
-    port = server.socket.getsockname()[1]
-    print('Display server port: {}'.format(port))
 
     # Register stimulus control functions
     server.register_function(load_stim, 'load_stim')
     server.register_function(start_stim, 'start_stim')
     server.register_function(stop_stim, 'stop_stim')
+
+    # corner square control functions
+    server.register_function(start_corner_square, 'start_corner_square')
+    server.register_function(stop_corner_square, 'stop_corner_square')
+    server.register_function(white_corner_square, 'white_corner_square')
+    server.register_function(black_corner_square, 'black_corner_square')
+    server.register_function(show_corner_square, 'show_corner_square')
+    server.register_function(hide_corner_square, 'hide_corner_square')
+
+    # text display functions
+    server.register_function(show_debug_text, 'show_debug_text')
+    server.register_function(hide_debug_text, 'hide_debug_text')
+
+    # background control functions
+    server.register_function(set_idle_background, 'set_idle_background')
+
+    ####################################
+    # run the application
+    ####################################
+
+    # Print the port name (mainly relevant when port=0, meaning that the
+    # port number is automatically selected
+    port = server.socket.getsockname()[1]
+    print('Display server port: {}'.format(port))
 
     # Run server
     print('Press Ctrl+C to exit.')
@@ -175,10 +263,3 @@ def launch(screens, port=0, profile=False):
         server.serve_forever()
     except KeyboardInterrupt:
         pass
-
-def main():
-    screens = [Screen(fullscreen=False)]
-    launch(screens)
-
-if __name__ == '__main__':
-    main()
