@@ -190,20 +190,37 @@ class StimDisplay:
 
         self.window = pyglet.window.Window(screen=screen, fullscreen=self.screen.fullscreen)
 
-    def init_corner_square(self, square_side=0.5e-2):
+    def init_corner_square(self, square_side=2e-2):
         """
         Creates a graphics object for the toggling corner square used to monitor for dropped frames.
         :param square_side: Side length of the corner square, in meters.  Note that in order for the displayed length
         to be correct, the dimensions provided in the screen object must be right...
         """
 
-        # compute upper right corner coordinates
-        urx = self.window.width
-        ury = self.window.height
+        if self.screen.id == 1:
+        # corner square in bottom right
+            urx = self.window.width
+            ury = self.window.height/self.screen.height * square_side
 
-        # compute lower left corner coordinates
-        llx = urx - self.window.width/self.screen.width * square_side
-        lly = ury - self.window.height/self.screen.height * square_side
+            # compute lower left corner coordinates
+            llx = urx - self.window.width/self.screen.width * square_side
+            lly = 0
+
+        elif self.screen.id == 2:
+        # corner square in bottom left
+            urx = self.window.width/self.screen.width * square_side
+            ury = self.window.height/self.screen.height * square_side
+
+            # compute lower left corner coordinates
+            llx = 0
+            lly = 0
+        else:
+            urx = self.window.width
+            ury = self.window.height/self.screen.height * square_side
+
+            # compute lower left corner coordinates
+            llx = urx - self.window.width/self.screen.width * square_side
+            lly = 0
 
         # create corner square graphics object
         self.corner_square = graphics.Item2D(gl.GL_QUADS)
