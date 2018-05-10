@@ -9,7 +9,7 @@ class Screen:
     Parameters such as screen coordinates and the ID # are represented.
     """
 
-    def __init__(self, id=0, pa=None, pb=None, pc=None, fullscreen=True):
+    def __init__(self, id=0, pa=None, pb=None, pc=None, fullscreen=True, vsync=True):
         """
         :param id: ID # of the screen
         :param pa: 3D coordinates of the bottom left corner of the screen (numpy array with floating point data type)
@@ -42,6 +42,9 @@ class Screen:
 
         # Fullscreen indicator
         self.fullscreen = fullscreen
+
+        # VSYNC indicator
+        self.vsync = vsync
 
     @property
     def vr(self):

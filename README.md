@@ -11,7 +11,7 @@ The server is a Python program, while the client can be written in any language 
 First open a terminal and navigate to a convenient directory.  Then download and install the latest **flystim** codebase:
 
 ```shell
-> git clone https://github.com/sgherbst/flystim.git
+> git clone https://github.com/ClandininLab/flystim.git
 > cd flystim
 > pip3 install -e .
 ```

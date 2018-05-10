@@ -18,7 +18,7 @@ class StimDisplay:
     and also controls rendering of the stimulus, toggling corner square, and/or debug information.
     """
 
-    def __init__(self, screen, draw_text=True):
+    def __init__(self, screen):
         """
         :param screen: Screen object (from flystim.screen) corresponding to the screen on which the stimulus will
         be displayed.
@@ -27,7 +27,14 @@ class StimDisplay:
 
         # save settings
         self.screen = screen
-        self.draw_text = draw_text
+
+        # initialize boolean settings
+        self.draw_debug_text = True
+        self.should_toggle_square = True
+        self.should_draw_square = True
+
+        # stimulus mapping initialization
+        self.stim_mapping = {}
 
         # stimulus initialization
         self.stim = None
@@ -45,7 +52,7 @@ class StimDisplay:
         self.init_corner_square()
 
         # initialize text labels
-        self.init_text_labels()
+        self.init_debug_text_labels()
 
         # background color
         self.set_idle_background(0.5, 0.5, 0.5)
@@ -86,11 +93,15 @@ class StimDisplay:
             gl.glLoadIdentity()
 
             # draw corner square
-            self.corner_square.draw()
-            self.toggle_corner_square()
+            if self.should_draw_square:
+                self.corner_square.draw()
+
+            # toggle corner square
+            if self.should_toggle_square:
+                self.toggle_corner_square()
 
             # draw debug text
-            if self.draw_text:
+            if self.draw_debug_text:
                 for text_label in self.text_labels:
                     text_label.draw()
 
@@ -108,6 +119,15 @@ class StimDisplay:
 
     # stimulus options
 
+    def register_stim(self, name, class_):
+        """
+        Adds a named stimuli to the list of available stimuli.
+        :param name: Name of the stimulus
+        :param class_: Class of the named stimulus (e.g., RotatingBars, ExpandingEdges, etc.)
+        """
+
+        self.stim_mapping[name] = class_
+
     def load_stim(self, name, params):
         """
         Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
@@ -116,16 +136,7 @@ class StimDisplay:
         :param params: Parameters used to instantiate the class (e.g., period, bar width, etc.)
         """
 
-        if name == 'RotatingBars':
-            self.stim = cylinder.RotatingBars(**params)
-        elif name == 'ExpandingEdges':
-            self.stim = cylinder.ExpandingEdges(**params)
-        elif name == 'GaussianNoise':
-            self.stim = cylinder.GaussianNoise(**params)
-        elif name == 'SequentialBars':
-            self.stim = cylinder.SequentialBars(**params)
-        else:
-            raise ValueError('Invalid class name.')
+        self.stim = self.stim_mapping[name](**params)
 
         self.set_background_color(*self.stim.background)
         self.stim.eval_at(0)
@@ -152,12 +163,71 @@ class StimDisplay:
 
     # corner square options
 
+    def start_corner_square(self):
+        """
+        Start toggling the corner square.
+        """
+
+        self.should_toggle_square = True
+
+    def stop_corner_square(self):
+        """
+        Stop toggling the corner square.
+        """
+
+        self.should_toggle_square = False
+
+    def white_corner_square(self):
+        """
+        Make the corner square white.
+        """
+
+        self.corner_square.color_data = [1]*12
+
+    def black_corner_square(self):
+        """
+        Make the corner square black.
+        """
+
+        self.corner_square.color_data = [0]*12
+
+    def show_corner_square(self):
+        """
+        Show the corner square.
+        """
+
+        self.should_draw_square = True
+
+    def hide_corner_square(self):
+        """
+        Hide the corner square.  Note that it will continue to toggle if self.should_toggle_square is True,
+        even though nothing will be displayed.
+        """
+
+        self.should_draw_square = False
+
     def toggle_corner_square(self):
         """
         Flips the color of the corner square from black to white or vice versa.
         """
 
         self.corner_square.color_data = [1 - elem for elem in self.corner_square.color_data]
+
+    # debug text labels
+
+    def show_debug_text(self):
+        """
+        Show debug text labels (ID, FPS, etc.)
+        """
+
+        self.draw_debug_text = True
+
+    def hide_debug_text(self):
+        """
+        Hide debug text labels (ID, FPS, etc.)
+        """
+
+        self.draw_debug_text = False
 
     # background color
 
@@ -188,7 +258,7 @@ class StimDisplay:
         display = pyglet.window.get_platform().get_default_display()
         screen = display.get_screens()[self.screen.id]
 
-        self.window = pyglet.window.Window(screen=screen, fullscreen=self.screen.fullscreen)
+        self.window = pyglet.window.Window(screen=screen, fullscreen=self.screen.fullscreen, vsync=self.screen.vsync)
 
     def init_corner_square(self, square_side=2e-2):
         """
@@ -227,9 +297,10 @@ class StimDisplay:
 
         # fill corner square information
         self.corner_square.vertex_data = [llx, lly, urx, lly, urx, ury, llx, ury]
+
         self.corner_square.color_data = [1]*12
 
-    def init_text_labels(self):
+    def init_debug_text_labels(self):
         """
         Creates labels used for debug purposes (e.g., frames per second, the ID # of the screen, etc.)
         """
@@ -252,44 +323,15 @@ class StimDisplay:
         )
         self.text_labels.append(id_label)
 
-class StimControl(RpcServer):
-    """
-    Class to interpret incoming remote procedure calls from a PIPE and relay them to the StimDisplay class.
-    """
-
-    def __init__(self, stim_display):
-        """
-        :param stim_display: StimDisplay object to be controlled by the RPCs.
-        """
-
-        # save settings
-        self.stim_display = stim_display
-
-        # call super constructor
-        super().__init__()
-
-    def handle(self, method, args):
-        """
-        Mapping from method name to StimDisplay functions.
-        :param method: Name of the method.
-        :param args: List of positional arguments to be passed to the method.
-        :return:
-        """
-
-        if method == 'load_stim':
-            self.stim_display.load_stim(*args)
-        elif method == 'start_stim':
-            self.stim_display.start_stim(*args)
-        elif method == 'stop_stim':
-            self.stim_display.stop_stim(*args)
-        else:
-            raise ValueError('Invalid method.')
-
 def main():
     """
     This file is typically run as a command-line program launched as a Subprocess, so the command-line arguments
     are typically filled by the launching program, rather than explictly by a user.
     """
+
+    ####################################
+    # initialize the stimulus display
+    ####################################
 
     # set up command line parser
     parser = ArgumentParser()
@@ -298,19 +340,56 @@ def main():
     parser.add_argument('--pb', type=float, nargs=3)
     parser.add_argument('--pc', type=float, nargs=3)
     parser.add_argument('--fullscreen', action='store_true')
+    parser.add_argument('--vsync', action='store_true')
 
     # parse command line arguments
     args = parser.parse_args()
 
-    # initialize the display
+    # create the screen object used to pass arguments into StimDisplay constructor
     pa = np.array(args.pa, dtype=float)
     pb = np.array(args.pb, dtype=float)
     pc = np.array(args.pc, dtype=float)
-    screen = Screen(id=args.id, pa=pa, pb=pb, pc=pc, fullscreen=args.fullscreen)
+    screen = Screen(id=args.id, pa=pa, pb=pb, pc=pc, fullscreen=args.fullscreen, vsync=args.vsync)
+
+    # create the StimDisplay object
     stim_display = StimDisplay(screen=screen)
 
+    # register available stimuli
+    stim_display.register_stim('RotatingBars', cylinder.RotatingBars)
+    stim_display.register_stim('ExpandingEdges', cylinder.ExpandingEdges)
+    stim_display.register_stim('GaussianNoise', cylinder.GaussianNoise)
+    stim_display.register_stim('SequentialBars', cylinder.SequentialBars)
+
+    ####################################
     # initialize the control handler
-    stim_control = StimControl(stim_display)
+    ####################################
+
+    # create the RpcServer object
+    stim_control = RpcServer()
+
+    # stimulus control functions
+    stim_control.register_function(stim_display.load_stim, 'load_stim')
+    stim_control.register_function(stim_display.start_stim, 'start_stim')
+    stim_control.register_function(stim_display.stop_stim, 'stop_stim')
+
+    # corner square control functions
+    stim_control.register_function(stim_display.start_corner_square, 'start_corner_square')
+    stim_control.register_function(stim_display.stop_corner_square, 'stop_corner_square')
+    stim_control.register_function(stim_display.white_corner_square, 'white_corner_square')
+    stim_control.register_function(stim_display.black_corner_square, 'black_corner_square')
+    stim_control.register_function(stim_display.show_corner_square, 'show_corner_square')
+    stim_control.register_function(stim_display.hide_corner_square, 'hide_corner_square')
+
+    # text display functions
+    stim_control.register_function(stim_display.show_debug_text, 'show_debug_text')
+    stim_control.register_function(stim_display.hide_debug_text, 'hide_debug_text')
+
+    # background control functions
+    stim_control.register_function(stim_display.set_idle_background, 'set_idle_background')
+
+    ####################################
+    # run the application
+    ####################################
 
     # schedule regular tasks
     # the dt argument is required by pyglet but not used
