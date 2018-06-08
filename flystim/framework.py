@@ -18,15 +18,19 @@ class StimDisplay:
     and also controls rendering of the stimulus, toggling corner square, and/or debug information.
     """
 
-    def __init__(self, screen):
+    def __init__(self, screen, square_pos, square_side):
         """
         :param screen: Screen object (from flystim.screen) corresponding to the screen on which the stimulus will
         be displayed.
-        :param draw_text: Boolean.  If True, draw debug information (FPS, screen ID#, etc.).
+        :param square_pos: Position of the square (lr, ll, ur, ul)
+        :param square_side: Side length of the corner square, in meters.  Note that in order for the displayed length
+        to be correct, the dimensions provided in the screen object must be right...
         """
 
         # save settings
         self.screen = screen
+        self.square_pos = square_pos
+        self.square_side = square_side
 
         # initialize boolean settings
         self.draw_debug_text = True
@@ -260,37 +264,29 @@ class StimDisplay:
 
         self.window = pyglet.window.Window(screen=screen, fullscreen=self.screen.fullscreen, vsync=self.screen.vsync)
 
-    def init_corner_square(self, square_side=2e-2):
+    def init_corner_square(self):
         """
         Creates a graphics object for the toggling corner square used to monitor for dropped frames.
-        :param square_side: Side length of the corner square, in meters.  Note that in order for the displayed length
-        to be correct, the dimensions provided in the screen object must be right...
         """
 
-        if self.screen.id == 1:
-        # corner square in bottom right
+        if self.square_pos == 'lr':
+            # corner square in lower right
             urx = self.window.width
-            ury = self.window.height/self.screen.height * square_side
+            ury = self.window.height/self.screen.height * self.square_side
 
             # compute lower left corner coordinates
-            llx = urx - self.window.width/self.screen.width * square_side
+            llx = urx - self.window.width/self.screen.width * self.square_side
             lly = 0
-
-        elif self.screen.id == 2:
-        # corner square in bottom left
-            urx = self.window.width/self.screen.width * square_side
-            ury = self.window.height/self.screen.height * square_side
+        elif self.square_pos == 'll':
+            # corner square in lower left
+            urx = self.window.width/self.screen.width * self.square_side
+            ury = self.window.height/self.screen.height * self.square_side
 
             # compute lower left corner coordinates
             llx = 0
             lly = 0
         else:
-            urx = self.window.width
-            ury = self.window.height/self.screen.height * square_side
-
-            # compute lower left corner coordinates
-            llx = urx - self.window.width/self.screen.width * square_side
-            lly = 0
+            raise ValueError('Square position not implemented.')
 
         # create corner square graphics object
         self.corner_square = graphics.Item2D(gl.GL_QUADS)
@@ -341,6 +337,8 @@ def main():
     parser.add_argument('--pc', type=float, nargs=3)
     parser.add_argument('--fullscreen', action='store_true')
     parser.add_argument('--vsync', action='store_true')
+    parser.add_argument('--square_pos', type=str, default='ll')
+    parser.add_argument('--square_side', type=float, default=2e-2)
 
     # parse command line arguments
     args = parser.parse_args()
@@ -352,7 +350,7 @@ def main():
     screen = Screen(id=args.id, pa=pa, pb=pb, pc=pc, fullscreen=args.fullscreen, vsync=args.vsync)
 
     # create the StimDisplay object
-    stim_display = StimDisplay(screen=screen)
+    stim_display = StimDisplay(screen=screen, square_pos=args.square_pos, square_side=args.square_side)
 
     # register available stimuli
     stim_display.register_stim('RotatingBars', cylinder.RotatingBars)
