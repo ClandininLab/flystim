@@ -12,7 +12,8 @@ setup(
     install_requires=[
         'scipy',
         'numpy',
-        'pyglet'
+        'pyglet',
+        'moderngl'
     ],
     include_package_data=True,
     zip_safe=False,

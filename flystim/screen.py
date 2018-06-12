@@ -1,7 +1,16 @@
 import numpy as np
 
-# Note: definitions of vr, vu, vn vectors come from the following article
-# http://csc.lsu.edu/~kooima/articles/genperspective/
+from math import sin, cos, atan2, pi
+
+from flystim.interval import AngleInterval
+
+def theta(vec2):
+    """
+    :param vec2: 2-vector
+    :return: polar angle of vec2 (radians)
+    """
+
+    return atan2(vec2[1], vec2[0])
 
 class Screen:
     """
@@ -9,87 +18,68 @@ class Screen:
     Parameters such as screen coordinates and the ID # are represented.
     """
 
-    def __init__(self, id=0, pa=None, pb=None, pc=None, fullscreen=True, vsync=True):
+    def __init__(self, width=None, height=None, rotation=None, offset=None, id=None, fullscreen=None, vsync=None,
+                 square_side=None, square_loc=None):
         """
+        :param width: width of the screen (meters)
+        :param height: height of the screen (meters)
+        :param rotation: rotation of the screen about the z axis (radians).  a value of zero corresponds to the screen
+        width being aligned along the x axis.
+        :param offset: position of the center of the screen (3-vector in meters).
         :param id: ID # of the screen
-        :param pa: 3D coordinates of the bottom left corner of the screen (numpy array with floating point data type)
-        :param pb: 3D coordinates of the bottom right corner of the screen (numpy array with floating point data type)
-        :param pc: 3D coordinates of the upper left corner of the screen (numpy array with floating point data type)
         :param fullscreen: Boolean.  If True, display stimulus fullscreen (default).  Otherwise, display stimulus
         in a window.
+        :param vsync: Boolean.  If True, lock the framerate to the redraw rate of the screen.
+        :param square_side: Length of photodiode synchronization square (meters).
+        :param square_loc: Location of photodiode synchronization square (one of 'll', 'lr', 'ul', 'ur')
         """
+
+        # Set defaults for MacBook Pro (Retina, 15-inch, Mid 2015)
+
+        if width is None:
+            width = 0.332
+        if height is None:
+            height = 0.207
+        if rotation is None:
+            rotation = 0.0
+        if offset is None:
+            offset = (0.0, 0.3, 0.0)
+        if id is None:
+            id = 0
+        if fullscreen is None:
+            fullscreen = True
+        if vsync is None:
+            vsync = True
+        if square_side is None:
+            square_side = 2e-2
+        if square_loc is None:
+            square_loc = 'll'
 
         # Save settings
-        # Defaults are for MacBook Pro (Retina, 15-inch, Mid 2015)
 
-        # Screen ID
+        self.width = width
+        self.height = height
+        self.rotation = rotation
+        self.offset = np.array(offset, dtype=float)
         self.id = id
-
-        # Bottom left corner
-        if pa is None:
-            pa = np.array([-0.166, -0.1035, -0.3], dtype=float)
-        self.pa = pa
-
-        # Bottom right corner
-        if pb is None:
-            pb = np.array([+0.166, -0.1035, -0.3], dtype=float)
-        self.pb = pb
-
-        # Upper left corner
-        if pc is None:
-            pc = np.array([-0.166, +0.1035, -0.3], dtype=float)
-        self.pc = pc
-
-        # Fullscreen indicator
         self.fullscreen = fullscreen
-
-        # VSYNC indicator
         self.vsync = vsync
+        self.square_side = square_side
+        self.square_loc = square_loc
 
-    @property
-    def vr(self):
-        """
-        Unit vector pointing from bottom left corner to bottom right corner
-        """
+        #######################
+        # derived values
+        #######################
 
-        vr = self.pb - self.pa
-        vr /= np.linalg.norm(vr)
-        return vr
+        # compute the vector pointing along the width of the screen
+        self.vector = np.array([0.5*self.width*cos(self.rotation),
+                                0.5*self.width*sin(self.rotation)])
 
-    @property
-    def width(self):
-        """
-        Screen width, in meters.
-        """
+        # compute the angular range of the screen
+        self.interval = AngleInterval(theta(self.offset[:2] - self.vector),
+                                      theta(self.offset[:2] + self.vector))
 
-        width = np.linalg.norm(self.pb - self.pa)
-        return width
-
-    @property
-    def vu(self):
-        """
-        Unit vector pointing from the bottom left corner to the upper left corner.
-        """
-
-        vu = self.pc - self.pa
-        vu /= np.linalg.norm(vu)
-        return vu
-
-    @property
-    def height(self):
-        """
-        Screen height, in meters.
-        """
-
-        height = np.linalg.norm(self.pc - self.pa)
-        return height
-
-    @property
-    def vn(self):
-        """
-        Unit normal vector pointing out of the screen.
-        """
-
-        vn = np.cross(self.vr, self.vu)
-        vn /= np.linalg.norm(vn)
-        return vn
+        # swap the start and end angles if the angular range is obtuse,
+        # since that is impossible for a flat screen
+        if self.interval.size() > pi:
+            self.interval.swap()

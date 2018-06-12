@@ -10,15 +10,7 @@ from flystim.launch import launch
 from flystim.screen import Screen
 
 def main(port=62632):
-    # screens = [Screen(fullscreen=False)]
-    w = 14.2e-2; h = 9e-2; # cm of image at projection plane, screen only shows 9x9 of this
-    zDistToScreen = 5.36e-2; # cm
-
-    pa = [-w/2, -h, -zDistToScreen]; # lower left
-    pb = [ w/2, -h, -zDistToScreen]; # lower right
-    pc = [-w/2, 0, -zDistToScreen]; # upper left
-    # screens = [Screen(fullscreen=True, id = 1, pa=pa, pb=pb, pc=pc),Screen(fullscreen=True, id = 2, pa=pa, pb=pb, pc=pc)]
-    screens = [Screen(fullscreen=True, id = 1, pa=pa, pb=pb, pc=pc)]
+    screens = [Screen()]
     launch(screens=screens, port=port)
 
 if __name__ == '__main__':

@@ -50,7 +50,7 @@ def create_stim_process(screen, profile=False, counter=None):
     # get the path of the python executable
     python_full_path = os.path.realpath(os.path.expanduser(sys.executable))
 
-    # launch the display program
+    # set argument for display program
     args = []
     args += [python_full_path]
     if profile:
@@ -58,13 +58,18 @@ def create_stim_process(screen, profile=False, counter=None):
         args += ['-o', 'id_{}_no_{}.prof'.format(screen.id, counter.add(screen.id))]
     args += [server_full_path]
     args += ['--id', str(screen.id)]
-    args += ['--pa'] + list(str(v) for v in screen.pa)
-    args += ['--pb'] + list(str(v) for v in screen.pb)
-    args += ['--pc'] + list(str(v) for v in screen.pc)
+    args += ['--width', str(screen.width)]
+    args += ['--height', str(screen.height)]
+    args += ['--rotation', str(screen.rotation)]
+    args += ['--offset'] + list(str(v) for v in screen.offset)
+    args += ['--square_loc', str(screen.square_loc)]
+    args += ['--square_side', str(screen.square_side)]
     if screen.fullscreen:
         args += ['--fullscreen']
     if screen.vsync:
         args += ['--vsync']
+
+    # launch display program
     p = subprocess.Popen(args, stdin=subprocess.PIPE)
 
     # return the process
@@ -169,26 +174,6 @@ def launch(screens, port=0, profile=False):
 
         return 0
 
-    def show_debug_text():
-        """
-        Show debug text labels (ID, FPS, etc.)
-        """
-
-        for stim_client in stim_clients:
-            stim_client.request('show_debug_text')
-
-        return 0
-
-    def hide_debug_text():
-        """
-        Hide debug text labels (ID, FPS, etc.)
-        """
-
-        for stim_client in stim_clients:
-            stim_client.request('hide_debug_text')
-
-        return 0
-
     def show_corner_square():
         """
         Show the corner square.
@@ -210,14 +195,14 @@ def launch(screens, port=0, profile=False):
 
         return 0
 
-    def set_idle_background(r, g, b):
+    def set_idle_background_color(r, g, b):
         """
         Sets the RGB color of the background when there is no stimulus being displayed (sometimes called the
         interleave period).
         """
 
         for stim_client in stim_clients:
-            stim_client.request('set_idle_background', [r, g, b])
+            stim_client.request('set_idle_background_color', [r, g, b])
 
         return 0
 
@@ -241,12 +226,8 @@ def launch(screens, port=0, profile=False):
     server.register_function(show_corner_square, 'show_corner_square')
     server.register_function(hide_corner_square, 'hide_corner_square')
 
-    # text display functions
-    server.register_function(show_debug_text, 'show_debug_text')
-    server.register_function(hide_debug_text, 'hide_debug_text')
-
     # background control functions
-    server.register_function(set_idle_background, 'set_idle_background')
+    server.register_function(set_idle_background_color, 'set_idle_background_color')
 
     ####################################
     # run the application
