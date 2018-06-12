@@ -3,12 +3,37 @@ import numpy as np
 from math import pi, radians
 
 from flystim.bars import Bar
+from flystim.sine import Sine
 from flystim.reprandom import colored_noise
 
 class Stimulus:
 
     def eval_at(self, t):
         pass
+
+class SineGrating(Stimulus):
+    def __init__(self, period=20, rate=10, background_color=None):
+        """
+        Stimulus pattern in which bars rotate around the viewer.
+        :param period: Period of the bar pattern, in degrees.
+        :param rate: Counter-clockwise rotation rate of the bars, in degrees per second.  Can be positive or negative.
+        """
+
+        # set background color
+        if background_color is None:
+            background_color = (0.0, 0.0, 0.0)
+
+        self.background_color = background_color
+
+        # save settings
+        self.a_coeff = 0.5
+        self.b_coeff = 360/period
+        self.d_coeff = 0.5
+        self.rate = rate
+
+    def eval_at(self, t):
+        c_coeff = t*radians(self.rate)
+        return Sine(self.a_coeff, self.b_coeff, c_coeff, self.d_coeff)
 
 class RotatingBars(Stimulus):
     def __init__(self, period=20, duty_cycle=0.5, rate=10, background_color=None):

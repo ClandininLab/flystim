@@ -6,7 +6,8 @@ import moderngl
 from argparse import ArgumentParser
 
 from flystim.bars import BarProgram
-from flystim.stimuli import RotatingBars, ExpandingEdges, GaussianNoise, SequentialBars
+from flystim.sine import SineProgram
+from flystim.stimuli import RotatingBars, ExpandingEdges, GaussianNoise, SequentialBars, SineGrating
 
 from flystim.square import SquareProgram
 
@@ -48,6 +49,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # make OpenGL programs
         self.bar_program = BarProgram(screen=screen)
+        self.sine_program = SineProgram(screen=screen)
         self.square_program = SquareProgram(screen=screen)
 
         # background color
@@ -60,6 +62,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # initialize rendering programs
         self.bar_program.initialize(self.ctx)
+        self.sine_program.initialize(self.ctx)
         self.square_program.initialize(self.ctx)
 
     def paintGL(self):
@@ -108,6 +111,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         elif name == 'SequentialBars':
             self.stim_program = self.bar_program
             self.stim_content = SequentialBars(**params)
+        elif name == 'SineGrating':
+            self.stim_program = self.sine_program
+            self.stim_content = SineGrating(**params)
         else:
             raise ValueError('Invalid stimulus.')
 
