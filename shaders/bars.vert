@@ -1,40 +1,36 @@
 #version 330
 
 // vertex inputs
-in vec2 pos;
+in vec3 pos;
 
 // instance inputs
-in float color;
-in float min_phi;
-in float max_phi;
-in float min_theta;
-in float max_theta;
+in float bar_color;
+in float bar_phi_min;
+in float bar_phi_max;
+in float bar_theta_min;
+in float bar_theta_max;
 
 // uniforms
-uniform vec2 screen_vector;
-uniform vec3 screen_offset;
+uniform float screen_phi_min;
+uniform float screen_phi_width;
+uniform float screen_theta_min;
+uniform float screen_theta_width;
 
 // outputs
-out vec2 vert_pos;
 out float vert_color;
-out float min_cos_phi;
-out float max_cos_phi;
 
 void main() {
-    // compute x coordinate of vertex
-    float theta = mix(min_theta, max_theta, pos.x);
-    float tan_theta = tan(theta);
-    float x_coord = (+tan_theta*screen_offset.x-screen_offset.y) / (-tan_theta*screen_vector.x+screen_vector.y);
+    // compute angular coordinates of vertex (in radians)
+    vec2 pos_angular = vec2(mix(bar_theta_min, bar_theta_max, pos.x) + pos.z,
+                            mix(bar_phi_min, bar_phi_max, pos.y));
+
+    // compute 2D position in NDC space
+    vec2 pos_ndc = vec2(2.0*(pos_angular.x - screen_theta_min)/screen_theta_width - 1.0,
+                        2.0*(pos_angular.y - screen_phi_min)/screen_phi_width - 1.0);
 
     // assign gl_Position
-    vert_pos = vec2(x_coord, pos.y);
-    gl_Position = vec4(vert_pos, 0.0, 1.0);
+    gl_Position = vec4(pos_ndc, 0.0, 1.0);
 
-    // pass on color to fragment shader
-    vert_color = color;
-
-    // compute range of cos(phi) values
-    // note that cos(phi) is decreasing on [0, pi]
-    min_cos_phi = cos(max_phi);
-    max_cos_phi = cos(min_phi);
+    // assign output color
+    vert_color = bar_color;
 }

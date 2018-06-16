@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
-# Example client program that randomly cycles through different RotatingBars stimuli.
-# Please launch the server first before starting this program.
+# Example client program that randomly cycles through different rotation rates.
+# The stim_type can be either SineGrating or RotatingBars.
 
-# If you want to try modifying this code, the stimuli currently available RotatingBars, ExpandingEdges, GaussianNoise,
-# and SequentialBars.  Check out flystim/flystim/cylinder.py for more details about the available parameters.
+# Please be sure to launch the server first before starting this program.
 
 from xmlrpc.client import ServerProxy
 from time import sleep
 from random import choice
 
-def main(num_trials=15, port=62632):
+def main(num_trials=15, stim_type='RotatingBars', port=62632):
     client = ServerProxy('http://127.0.0.1:{}'.format(port))
 
     signs = [-1, 1]
@@ -20,7 +19,7 @@ def main(num_trials=15, port=62632):
         sign = choice(signs)
         rate = sign*choice(rates)
 
-        client.load_stim('RotatingBars', {'rate': rate})
+        client.load_stim(stim_type, {'rate': rate})
 
         sleep(550e-3)
         client.start_stim()

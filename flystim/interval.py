@@ -1,5 +1,3 @@
-import numpy as np
-
 from math import pi
 
 # modular interval arithmetic
@@ -7,8 +5,8 @@ from math import pi
 
 class ModuloInterval:
     def __init__(self, start, end, modulus):
-        self.start = start
-        self.end = end
+        self.start   = start
+        self.end     = end
         self.modulus = modulus
 
     def size(self):
@@ -16,6 +14,14 @@ class ModuloInterval:
 
     def swap(self):
         self.start, self.end = self.end, self.start
+
+    def normalize(self):
+        # compute new start and end
+        start = self.start % self.modulus
+        end   = start + self.size()
+
+        # assign start and end
+        self.start, self.end = start, end
 
     def __contains__(self, item):
         return (item - self.start) % self.modulus <= (self.end - self.start) % self.modulus

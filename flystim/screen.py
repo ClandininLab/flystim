@@ -1,6 +1,6 @@
 import numpy as np
 
-from math import sin, cos, atan2, pi
+from math import sin, cos, atan2, pi, acos, sqrt
 
 from flystim.interval import AngleInterval
 
@@ -75,11 +75,44 @@ class Screen:
         self.vector = np.array([0.5*self.width*cos(self.rotation),
                                 0.5*self.width*sin(self.rotation)])
 
-        # compute the angular range of the screen
-        self.interval = AngleInterval(theta(self.offset[:2] - self.vector),
-                                      theta(self.offset[:2] + self.vector))
+        # compute longitude interval of screen
 
-        # swap the start and end angles if the angular range is obtuse,
-        # since that is impossible for a flat screen
-        if self.interval.size() > pi:
-            self.interval.swap()
+        self.theta_interval = AngleInterval(theta(self.offset[:2] - self.vector),
+                                            theta(self.offset[:2] + self.vector))
+
+        if self.theta_interval.size() > pi:
+            self.theta_interval.swap()
+
+        self.theta_interval.normalize()
+
+        # compute latitude interval of screen
+        # ref: https://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
+
+        min_z = self.offset[2] - self.height/2
+        max_z = self.offset[2] + self.height/2
+
+        min_t = max(-1.0, min(1.0, -self.offset[:2].dot(self.vector)/(self.vector.dot(self.vector))))
+        min_r = np.linalg.norm(self.offset[:2] + min_t*self.vector)
+
+        max_r = max(np.linalg.norm(self.offset[:2] - self.vector),
+                    np.linalg.norm(self.offset[:2] + self.vector))
+
+        if max_z < 0:
+            phi_start = acos(max_z/sqrt(max_z**2 + max_r**2))
+        else:
+            phi_start = acos(max_z/sqrt(max_z**2 + min_r**2))
+
+        if min_z < 0:
+            phi_end = acos(min_z/sqrt(min_z**2 + min_r**2))
+        else:
+            phi_end = acos(min_z/sqrt(min_z**2 + max_r**2))
+
+        self.phi_interval = AngleInterval(phi_start, phi_end)
+
+def main():
+    screen = Screen(offset=(0.0, +0.3, 0.0), rotation=0)
+    print(screen.theta_interval.start, screen.theta_interval.end)
+    print(screen.phi_interval.start, screen.phi_interval.end)
+
+if __name__ == '__main__':
+    main()

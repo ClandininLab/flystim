@@ -69,9 +69,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # handle RPC input
         self.rpc_server.update()
 
-        # clear the window
-        self.ctx.clear(*self.background_color)
-
         # draw the stimulus
         if self.stim_program is not None and self.stim_content is not None:
             if self.stim_started:
@@ -79,7 +76,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
             else:
                 content = self.stim_content.eval_at(0)
 
-            self.stim_program.paint(content)
+            self.stim_program.paint(content, self.background_color)
+        else:
+            self.ctx.clear(*self.background_color)
 
         # draw the corner square
         self.square_program.paint()
