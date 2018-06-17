@@ -1,144 +1,163 @@
 # ref: https://github.com/cprogrammer1994/ModernGL/blob/master/examples/julia_fractal.py
 
 import moderngl
+
 import numpy as np
 import os.path
 
 from math import pi
 
 class Bar:
-    def __init__(self, min_theta=0, max_theta=0, min_phi=0, max_phi=pi, color=1.0):
-        # save settings
+    def __init__(self, theta_min, theta_max, phi_min=0, phi_max=pi, color=1.0):
+        self.theta_min = theta_min
+        self.theta_max = theta_max
+        self.phi_min = phi_min
+        self.phi_max = phi_max
         self.color = color
-        self.min_phi = min_phi
-        self.max_phi = max_phi
-        self.min_theta = min_theta
-        self.max_theta = max_theta
 
+    def normalized(self):
+        # calculate new theta range
+        new_theta_min = self.theta_min % (2*pi)
+        new_theta_max = new_theta_min + (self.theta_max - self.theta_min)
+
+        # return new bar
+        return Bar(theta_min=new_theta_min, theta_max=new_theta_max, phi_min=self.phi_min, phi_max=self.phi_max,
+                   color=self.color)
+
+    def shift_theta(self, amount):
+        # calculate new theta range
+        new_theta_min = self.theta_min + amount
+        new_theta_max = self.theta_max + amount
+
+        # return new bar
+        return Bar(theta_min=new_theta_min, theta_max=new_theta_max, phi_min=self.phi_min, phi_max=self.phi_max,
+                   color=self.color)
 
 class BarProgram:
-    def __init__(self, screen, max_bars=128):
+    def __init__(self, screen, max_bars=128, text_width=8000, text_height=4000):
         # save settings
         self.screen = screen
         self.max_bars = max_bars
+        self.text_width = text_width
+        self.text_height = text_height
 
     def initialize(self, ctx):
-        # save ctx handle
+        # save context
         self.ctx = ctx
 
+        # set up equirectangular map generator
+        self.setup_equi_prog()
+
+        # set up texture rendering program
+        self.setup_text_prog()
+
+        # set up texture and framebuffer
+        self.setup_texture()
+
+    def setup_equi_prog(self):
         # find path to shader directory
         this_file_path = os.path.realpath(os.path.expanduser(__file__))
         shader_dir = os.path.join(os.path.dirname(os.path.dirname(this_file_path)), 'shaders')
 
         # equirectangular map generator
-        self.equi_prog = self.ctx.program(
-            vertex_shader=open(os.path.join(shader_dir, 'bars.vert'), 'r').read(),
-            fragment_shader=open(os.path.join(shader_dir, 'generic.frag'), 'r').read()
+        equi_prog = self.ctx.program(
+            vertex_shader=open(os.path.join(shader_dir, 'rect.vert'), 'r').read(),
+            fragment_shader=open(os.path.join(shader_dir, 'mono.frag'), 'r').read()
         )
 
-        # texture display program
-        self.text_prog = self.ctx.program(
-            vertex_shader=open(os.path.join(shader_dir, 'texture.vert'), 'r').read(),
-            fragment_shader=open(os.path.join(shader_dir, 'texture.frag'), 'r').read()
-        )
+        # create VBO to represent vertex positions
+        vert_equi_data = np.array([0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0])
+        vert_equi_vbo  = self.ctx.buffer(vert_equi_data.astype('f4').tobytes())
 
-        # create position buffer to represent a single bar
-        equi_vert_data = np.array([0.0, 0.0, -2*pi,
-                                   1.0, 0.0, -2*pi,
-                                   0.0, 1.0, -2*pi,
-                                   1.0, 0.0, -2*pi,
-                                   0.0, 1.0, -2*pi,
-                                   1.0, 1.0, -2*pi,
-
-                                   0.0, 0.0,  0*pi,
-                                   1.0, 0.0,  0*pi,
-                                   0.0, 1.0,  0*pi,
-                                   1.0, 0.0,  0*pi,
-                                   0.0, 1.0,  0*pi,
-                                   1.0, 1.0,  0*pi,
-
-                                   0.0, 0.0, +2*pi,
-                                   1.0, 0.0, +2*pi,
-                                   0.0, 1.0, +2*pi,
-                                   1.0, 0.0, +2*pi,
-                                   0.0, 1.0, +2*pi,
-                                   1.0, 1.0, +2*pi])
-
-
-        self.vbo_equi_vert = self.ctx.buffer(equi_vert_data.astype('f4').tobytes())
-
-        # create instance buffer to represent the configuration of each bar
-        equi_inst_data = np.zeros(5*self.max_bars)
-        self.vbo_equi_inst = self.ctx.buffer(equi_inst_data.astype('f4').tobytes())
+        # create VBO to represent instance data
+        inst_equi_data = np.zeros(5*self.max_bars)
+        self.inst_equi_vbo = self.ctx.buffer(inst_equi_data.astype('f4').tobytes())
 
         # create the layout of input data
         vao_equi_content = [
-            (self.vbo_equi_vert, '3f', 'pos'),
-            (self.vbo_equi_inst, '1f 1f 1f 1f 1f/i',
-             'bar_color', 'bar_phi_min', 'bar_phi_max', 'bar_theta_min', 'bar_theta_max')
+            (vert_equi_vbo, '2f', 'pos'),
+            (self.inst_equi_vbo, '1f 1f 1f 1f 1f/i', 'x_min', 'x_max', 'y_min', 'y_max', 'color')
         ]
 
         # create vertex array object
-        self.vao_equi = self.ctx.vertex_array(self.equi_prog, vao_equi_content)
+        self.vao_equi = self.ctx.vertex_array(equi_prog, vao_equi_content)
 
-        # create position buffer to represent a single bar
-        text_vert_data = np.array([-1.0, -1.0,
-                                   +1.0, -1.0,
-                                   -1.0, +1.0,
-                                   +1.0, -1.0,
-                                   -1.0, +1.0,
-                                   +1.0, +1.0])
+    def setup_text_prog(self):
+        # find path to shader directory
+        this_file_path = os.path.realpath(os.path.expanduser(__file__))
+        shader_dir = os.path.join(os.path.dirname(os.path.dirname(this_file_path)), 'shaders')
 
-        self.vbo_text_vert = self.ctx.buffer(text_vert_data.astype('f4').tobytes())
+        # texture display program
+        text_prog = self.ctx.program(
+            vertex_shader=open(os.path.join(shader_dir, 'rect.vert'), 'r').read(),
+            fragment_shader=open(os.path.join(shader_dir, 'sphere.frag'), 'r').read()
+        )
+
+        # create VBO to represent vertex positions
+        vert_text_data = np.array([0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0])
+        vert_text_vbo = self.ctx.buffer(vert_text_data.astype('f4').tobytes())
+
+        # create VBO to represent instance data
+        inst_text_data = np.array([-1.0, +1.0, -1.0, +1.0, 0.0])
+        inst_text_vbo = self.ctx.buffer(inst_text_data.astype('f4').tobytes())
 
         # create the layout of input data
         vao_text_content = [
-            (self.vbo_text_vert, '2f', 'pos')
+            (vert_text_vbo, '2f', 'pos'),
+            (inst_text_vbo, '1f 1f 1f 1f 1f/i', 'x_min', 'x_max', 'y_min', 'y_max', 'color')
         ]
 
         # create vertex array object
-        self.vao_text = self.ctx.vertex_array(self.text_prog, vao_text_content)
+        self.vao_text = self.ctx.vertex_array(text_prog, vao_text_content)
 
-        # create the texture and framebuffer
-        self.texture = self.ctx.texture(self.ctx.viewport[2:4], 1)
-        self.fbo = self.ctx.framebuffer(self.texture)
+        # set the screen uniforms
+        text_prog['screen_offset'].value = tuple(self.screen.offset)
+        text_prog['screen_vector'].value = tuple(self.screen.vector)
+        text_prog['screen_height'].value = self.screen.height
 
-        # write screen parameters
-        self.equi_prog['screen_phi_min'].value = self.screen.phi_interval.start
-        self.equi_prog['screen_phi_width'].value = self.screen.phi_interval.size()
-        self.equi_prog['screen_theta_min'].value = self.screen.theta_interval.start
-        self.equi_prog['screen_theta_width'].value = self.screen.theta_interval.size()
+    def setup_texture(self):
+        # create the texture
+        texture = self.ctx.texture((self.text_width, self.text_height), 1)
 
-        self.text_prog['screen_offset'].value = tuple(self.screen.offset)
-        self.text_prog['screen_vector'].value = tuple(self.screen.vector)
-        self.text_prog['screen_height'].value = self.screen.height
-        self.text_prog['screen_phi_min'].value = self.screen.phi_interval.start
-        self.text_prog['screen_phi_width'].value = self.screen.phi_interval.size()
-        self.text_prog['screen_theta_min'].value = self.screen.theta_interval.start
-        self.text_prog['screen_theta_width'].value = self.screen.theta_interval.size()
+        # create the framebuffer to render into this texture
+        self.fbo = self.ctx.framebuffer(texture)
+
+        # use the texture
+        texture.use()
 
     def paint(self, bars, background_color):
-        # generate one instance for each bar that is at least partially visible on the screen
-        inst_data = []
-        inst_count = 0
+        # create list of bars to render, which involves normalizing their angles and splitting
+        # bars that cross the 2*pi boundary
+
+        render_bars = []
 
         for bar in bars:
-            min_theta = bar.min_theta % (2*pi)
-            max_theta = min_theta + (bar.max_theta - bar.min_theta)
+            render_bars.append(bar.normalized())
+            if render_bars[-1].theta_max > (2*pi):
+                render_bars.append(render_bars[-1].shift_theta(-2*pi))
 
-            # update instance data
-            inst_data += [bar.color, bar.min_phi, bar.max_phi, min_theta, max_theta]
-            inst_count += 1
+        # write instance data (angular range and color of each bar), which entails scaling the theta and phi
+        # values to the [-1, +1] NDC range
 
-        if inst_count > 0:
-            # write equirectangular data to texture
-            self.fbo.use()
-            self.fbo.clear(*background_color)
-            self.vbo_equi_inst.write(np.array(inst_data).astype('f4').tobytes())
-            self.vao_equi.render(instances=inst_count)
+        inst_equi_data = []
 
-            # display texture
-            self.ctx.screen.use()
-            self.ctx.clear(*background_color)
-            self.texture.use()
-            self.vao_text.render()
+        for bar in render_bars:
+            inst_equi_data += [bar.theta_min/pi - 1.0,
+                               bar.theta_max/pi - 1.0,
+                               2*bar.phi_min/pi - 1.0,
+                               2*bar.phi_max/pi - 1.0,
+                               bar.color]
+
+        self.inst_equi_vbo.write(np.array(inst_equi_data).astype('f4').tobytes())
+
+        # write equirectangular data to texture
+        self.fbo.use()
+        self.fbo.clear(*background_color)
+
+        if len(render_bars) > 0:
+            self.vao_equi.render(mode=moderngl.TRIANGLE_STRIP, instances=len(render_bars))
+
+        # display texture to screen
+        self.ctx.screen.use()
+        self.ctx.clear(*background_color)
+        self.vao_text.render(mode=moderngl.TRIANGLE_STRIP, instances=1)

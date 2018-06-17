@@ -4,7 +4,7 @@ import moderngl
 import numpy as np
 import os.path
 
-class Sine:
+class SineOpts:
     def __init__(self, a_coeff, b_coeff, c_coeff, d_coeff):
         # save settings
         self.a_coeff = a_coeff
@@ -17,13 +17,8 @@ class SineProgram:
         # save settings
         self.screen = screen
 
-        # initialize ModernGL variables
-        self.prog = None
-        self.vbo = None
-        self.vao = None
-
     def initialize(self, ctx):
-        # save handle to context
+        # save context
         self.ctx = ctx
 
         # find path to shader directory
@@ -31,21 +26,23 @@ class SineProgram:
         shader_dir = os.path.join(os.path.dirname(os.path.dirname(this_file_path)), 'shaders')
 
         # load vertex shader
-        vertex_shader = open(os.path.join(shader_dir, 'texture.vert'), 'r').read()
+        self.prog = self.ctx.program(
+            vertex_shader = open(os.path.join(shader_dir, 'rect.vert'), 'r').read(),
+            fragment_shader = open(os.path.join(shader_dir, 'sine.frag'), 'r').read()
+        )
 
-        # load fragment shader
-        fragment_shader = open(os.path.join(shader_dir, 'sine.frag'), 'r').read()
+        # create VBO to represent vertex positions
+        vert_data = np.array([0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0])
+        vbo_vert = self.ctx.buffer(vert_data.astype('f4').tobytes())
 
-        # create OpenGL program
-        self.prog = self.ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
-
-        # create position data to cover entire screen
-        vbo_data = np.array([-1.0, -1.0, +1.0, -1.0, -1.0, +1.0, +1.0, +1.0])
-        self.vbo = self.ctx.buffer(vbo_data.astype('f4').tobytes())
+        # create VBO to represent instance data
+        inst_data = np.array([-1.0, +1.0, -1.0, +1.0, 0.0])
+        vbo_inst = self.ctx.buffer(inst_data.astype('f4').tobytes())
 
         # create the layout of input data
         vao_content = [
-            (self.vbo, '2f', 'pos')
+            (vbo_vert, '2f', 'pos'),
+            (vbo_inst, '1f 1f 1f 1f 1f/i', 'x_min', 'x_max', 'y_min', 'y_max', 'color')
         ]
 
         # create vertex array object
@@ -56,12 +53,12 @@ class SineProgram:
         self.prog['screen_vector'].value = tuple(self.screen.vector)
         self.prog['screen_height'].value = self.screen.height
 
-    def paint(self, content, background_color):
+    def paint(self, sine_opts, background_color):
         self.ctx.clear(*background_color)
 
-        self.prog['a_coeff'].value = content.a_coeff
-        self.prog['b_coeff'].value = content.b_coeff
-        self.prog['c_coeff'].value = content.c_coeff
-        self.prog['d_coeff'].value = content.d_coeff
+        self.prog['a_coeff'].value = sine_opts.a_coeff
+        self.prog['b_coeff'].value = sine_opts.b_coeff
+        self.prog['c_coeff'].value = sine_opts.c_coeff
+        self.prog['d_coeff'].value = sine_opts.d_coeff
 
-        self.vao.render(mode=moderngl.TRIANGLE_STRIP)
+        self.vao.render(mode=moderngl.TRIANGLE_STRIP, instances=1)

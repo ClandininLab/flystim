@@ -4,8 +4,6 @@ import moderngl
 import numpy as np
 import os.path
 
-from flystim.screen import Screen
-
 class SquareProgram:
     def __init__(self, screen):
         # save settings
@@ -16,55 +14,41 @@ class SquareProgram:
         self.toggle = True
         self.draw = True
 
-        # make the vertex data
-        self.vert_data = self.make_vert_data()
-
-        # initialize ModernGL variables
-        self.prog = None
-        self.vbo_vert = None
-        self.vbo_color = None
-        self.vao = None
-
     def initialize(self, ctx):
+        # save context
+        self.ctx = ctx
+
         # find path to shader directory
         this_file_path = os.path.realpath(os.path.expanduser(__file__))
         shader_dir = os.path.join(os.path.dirname(os.path.dirname(this_file_path)), 'shaders')
 
-        # load vertex shader
-        vertex_shader = open(os.path.join(shader_dir, 'generic.vert'), 'r').read()
-
-        # load fragment shader
-        fragment_shader = open(os.path.join(shader_dir, 'generic.frag'), 'r').read()
-
         # create OpenGL program
-        self.prog = ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
+        prog = self.ctx.program(vertex_shader=open(os.path.join(shader_dir, 'rect.vert'), 'r').read(),
+                                     fragment_shader=open(os.path.join(shader_dir, 'mono.frag'), 'r').read())
 
-        # create VBO to represent vertex positions (four vertices, two floats each)
-        self.vbo_vert = ctx.buffer(self.vert_data.astype('f4').tobytes())
+        # create VBO to represent vertex positions
+        vert_data = np.array([0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0])
+        vbo_vert = self.ctx.buffer(vert_data.astype('f4').tobytes())
 
-        # create VBO to represent vertex colors (four vertices, one color each)
-        color_data = np.zeros(4*1)
-        self.vbo_color = ctx.buffer(color_data.astype('f4').tobytes())
+        # create VBO to represent spatial extent of square
+        xy_data = self.make_xy_data()
+        vbo_xy = self.ctx.buffer(xy_data.astype('f4').tobytes())
+
+        # create VBO to represent vertex square color
+        color_data = np.zeros(1)
+        self.vbo_color = self.ctx.buffer(color_data.astype('f4').tobytes())
 
         # create the layout of input data
         vao_content = [
-            (self.vbo_vert, '2f', 'pos'),
-            (self.vbo_color, '1f', 'color')
+            (vbo_vert, '2f', 'pos'),
+            (vbo_xy, '1f 1f 1f 1f/i', 'x_min', 'x_max', 'y_min', 'y_max'),
+            (self.vbo_color, '1f/i', 'color')
         ]
 
         # create vertex array object
-        self.vao = ctx.vertex_array(self.prog, vao_content)
+        self.vao = self.ctx.vertex_array(prog, vao_content)
 
-    def paint(self):
-        if self.draw:
-            color_data = self.color*np.ones(4)
-            self.vbo_color.write(color_data.astype('f4').tobytes())
-            self.vao.render(mode=moderngl.TRIANGLE_STRIP)
-
-        if self.toggle:
-            self.color = 1.0 - self.color
-
-    def make_vert_data(self):
+    def make_xy_data(self):
         # compute width and height in NDC
         w = 2.0*self.screen.square_side/self.screen.width
         h = 2.0*self.screen.square_side/self.screen.height
@@ -85,29 +69,19 @@ class SquareProgram:
         else:
             raise ValueError('Invalid square location.')
 
-        # set 2D offset
-        offset = np.array([offset_x, offset_y])
-
         # create rectangle with appropriate width and height
-        vert_data = np.column_stack(([-w/2, -h/2], [+w/2, -h/2], [-w/2, +h/2], [+w/2, +h/2]))
+        xy_data = np.array([offset_x - w/2, offset_x + w/2, offset_y - h/2, offset_y + h/2])
 
-        # add offset
-        vert_data += offset[:, None]
+        return xy_data
 
-        # flatten using column-major order
-        vert_data = vert_data.flatten('F')
+    def paint(self):
+        if self.draw:
+            # write color data
+            color_data = np.array([self.color])
+            self.vbo_color.write(color_data.astype('f4').tobytes())
 
-        return vert_data
+            # render to screen
+            self.vao.render(mode=moderngl.TRIANGLE_STRIP, instances=1)
 
-
-def main():
-
-    screen = Screen()
-    stim_gl = SquareProgram(screen=screen)
-
-    from flystim.stim_window import run_stim
-    run_stim(stim_gl, width=1280, height=720, title='Square Stimulus')
-
-
-if __name__ == "__main__":
-    main()
+        if self.toggle:
+            self.color = 1.0 - self.color

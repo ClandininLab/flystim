@@ -1,7 +1,10 @@
 #version 330
 
+// inputs
+in vec2 vert_pos;
 in float vert_color;
 
+// outputs
 out vec4 frag_color;
 
 void main() {

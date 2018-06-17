@@ -1,21 +1,20 @@
 #version 330
 
+#define M_PI 3.14159265359
+
 // inputs
 in vec2 vert_pos;
 in float vert_color;
-
-// stimulus uniforms
-uniform float a_coeff;
-uniform float b_coeff;
-uniform float c_coeff;
-uniform float d_coeff;
 
 // screen uniforms
 uniform vec2 screen_vector;
 uniform vec3 screen_offset;
 uniform float screen_height;
 
-// outputs
+// stimulus uniforms
+uniform sampler2D Texture;
+
+// output
 out vec4 frag_color;
 
 void main() {
@@ -28,7 +27,7 @@ void main() {
     float theta = atan(pos_cart.y, pos_cart.x);
 
     // compute monochromatic fragment color
-    float color = a_coeff * sin(b_coeff * (theta - c_coeff)) + d_coeff;
+    float color = texture(Texture, vec2(theta/(2.0*M_PI), phi/(M_PI))).r;
 
     // assign output color
     frag_color = vec4(color, color, color, 1.0);

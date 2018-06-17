@@ -37,8 +37,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.setFixedSize(1280, 720)
 
         # stimulus initialization
-        self.stim_program = None
-        self.stim_content = None
+        self.stim = None
 
         # stimulus state
         self.stim_started = False
@@ -47,14 +46,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # make RPC handler
         self.rpc_server = self.make_rpc_server()
 
-        # make OpenGL programs
+        # make OpenGL programs that are used by stimuli
         self.bar_program = BarProgram(screen=screen)
         self.sine_program = SineProgram(screen=screen)
         self.square_program = SquareProgram(screen=screen)
 
         # background color
         self.set_idle_background_color(0.5, 0.5, 0.5)
-        self.set_background_color(*self.idle_background_color)
 
     def initializeGL(self):
         # get OpenGL context
@@ -70,15 +68,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.rpc_server.update()
 
         # draw the stimulus
-        if self.stim_program is not None and self.stim_content is not None:
+        if self.stim is not None:
             if self.stim_started:
-                content = self.stim_content.eval_at(time.time()-self.stim_start_time)
+                self.stim.paint_at(time.time()-self.stim_start_time)
             else:
-                content = self.stim_content.eval_at(0)
-
-            self.stim_program.paint(content, self.background_color)
+                self.stim.paint_at(0)
         else:
-            self.ctx.clear(*self.background_color)
+            self.ctx.clear(*self.idle_background_color)
 
         # draw the corner square
         self.square_program.paint()
@@ -99,24 +95,17 @@ class StimDisplay(QtOpenGL.QGLWidget):
         """
 
         if name == 'RotatingBars':
-            self.stim_program = self.bar_program
-            self.stim_content = RotatingBars(**params)
+            self.stim = RotatingBars(program=self.bar_program, **params)
         elif name == 'ExpandingEdges':
-            self.stim_program = self.bar_program
-            self.stim_content = ExpandingEdges(**params)
+            self.stim = ExpandingEdges(program=self.bar_program, **params)
         elif name == 'GaussianNoise':
-            self.stim_program = self.bar_program
-            self.stim_content = GaussianNoise(**params)
+            self.stim = GaussianNoise(program=self.bar_program, **params)
         elif name == 'SequentialBars':
-            self.stim_program = self.bar_program
-            self.stim_content = SequentialBars(**params)
+            self.stim = SequentialBars(program=self.bar_program, **params)
         elif name == 'SineGrating':
-            self.stim_program = self.sine_program
-            self.stim_content = SineGrating(**params)
+            self.stim = SineGrating(program=self.sine_program, **params)
         else:
             raise ValueError('Invalid stimulus.')
-
-        self.set_background_color(*self.stim_content.background_color)
 
     def start_stim(self, t):
         """
@@ -132,13 +121,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
         Stops the stimulus animation and removes it from the display.  The background color reverts to idle_background
         """
 
-        self.stim_program = None
-        self.stim_content = None
+        self.stim = None
 
         self.stim_started = False
         self.stim_start_time = None
-
-        self.set_background_color(*self.idle_background_color)
 
     # corner square options
 
@@ -194,13 +180,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         """
 
         self.idle_background_color = (r, g, b)
-
-    def set_background_color(self, r, g, b):
-        """
-        Sets the background color to the given RGB value.  Takes effect next time the paintGL function is called.
-        """
-
-        self.background_color = (r, g, b)
 
     ###########################################
     # initialization functions

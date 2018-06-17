@@ -3,21 +3,20 @@ import numpy as np
 from math import pi, radians
 
 from flystim.bars import Bar
-from flystim.sine import Sine
+from flystim.sine import SineOpts
 from flystim.reprandom import colored_noise
 
-class Stimulus:
-
-    def eval_at(self, t):
-        pass
-
-class SineGrating(Stimulus):
-    def __init__(self, period=20, rate=10, background_color=None):
+class SineGrating:
+    def __init__(self, program, period=20, rate=10, background_color=None):
         """
         Stimulus pattern in which bars rotate around the viewer.
         :param period: Period of the bar pattern, in degrees.
         :param rate: Counter-clockwise rotation rate of the bars, in degrees per second.  Can be positive or negative.
         """
+
+        # save settings
+        self.program = program
+        self.rate = rate
 
         # set background color
         if background_color is None:
@@ -25,18 +24,19 @@ class SineGrating(Stimulus):
 
         self.background_color = background_color
 
-        # save settings
+        # compute parameters
         self.a_coeff = 0.5
         self.b_coeff = 360/period
         self.d_coeff = 0.5
-        self.rate = rate
 
-    def eval_at(self, t):
+    def paint_at(self, t):
         c_coeff = t*radians(self.rate)
-        return Sine(self.a_coeff, self.b_coeff, c_coeff, self.d_coeff)
+        sine_opts = SineOpts(self.a_coeff, self.b_coeff, c_coeff, self.d_coeff)
 
-class RotatingBars(Stimulus):
-    def __init__(self, period=20, duty_cycle=0.5, rate=10, background_color=None):
+        self.program.paint(sine_opts, self.background_color)
+
+class RotatingBars:
+    def __init__(self, program, period=20, duty_cycle=0.5, rate=10, color=1.0, background_color=None):
         """
         Stimulus pattern in which bars rotate around the viewer.
         :param period: Period of the bar pattern, in degrees.
@@ -45,25 +45,30 @@ class RotatingBars(Stimulus):
         :param rate: Counter-clockwise rotation rate of the bars, in degrees per second.  Can be positive or negative.
         """
 
+        # save settings
+        self.program = program
+        self.rate = rate
+        self.color = color
+
         # set background color
         if background_color is None:
             background_color = (0.0, 0.0, 0.0)
 
         self.background_color = background_color
 
-        # save settings
-        self.rate = rate
-
-        # setup
+        # compute parameters
         self.init_starts = np.radians(np.arange(0, 360, period, dtype='float'))
         self.init_stops = self.init_starts + duty_cycle*(self.init_starts[1]-self.init_starts[0])
 
-    def eval_at(self, t):
+    def paint_at(self, t):
         change = t*radians(self.rate)
-        return [Bar(change+start, change+stop) for start, stop in zip(self.init_starts, self.init_stops)]
+        bars = [Bar(change+start, change+stop, color=self.color)
+                for start, stop in zip(self.init_starts, self.init_stops)]
 
-class ExpandingEdges(Stimulus):
-    def __init__(self, period=15, width=2, rate=10, background_color=None):
+        self.program.paint(bars, self.background_color)
+
+class ExpandingEdges:
+    def __init__(self, program, period=15, width=2, rate=10, color=1.0, background_color=None):
         """
         Stimulus pattern in which bars surrounding the viewer get wider or narrower.
         :param period: Period of the bars around the viewer.
@@ -71,25 +76,30 @@ class ExpandingEdges(Stimulus):
         :param rate: The rate at which each bar grows wider in the counter-clockwise direction.  Can be negative.
         """
 
+        # save settings
+        self.program = program
+        self.rate = rate
+        self.color = color
+
         # set background color
         if background_color is None:
             background_color = (0.0, 0.0, 0.0)
 
         self.background_color = background_color
 
-        # save settings
-        self.rate = rate
-
-        # setup
+        # compute parameters
         self.starts = np.radians(np.arange(0, 360, period, dtype='float'))
         self.init_stops = self.starts + radians(width)
 
-    def eval_at(self, t):
+    def paint_at(self, t):
         change = t*radians(self.rate)
-        return [Bar(start, change + stop) for start, stop in zip(self.starts, self.init_stops)]
+        bars = [Bar(start, change + stop, color=self.color)
+                for start, stop in zip(self.starts, self.init_stops)]
 
-class GaussianNoise(Stimulus):
-    def __init__(self, period=15, vert_extent=30, width=2, gauss_mean=0.5, gauss_std=0.5, time_constant=20e-3,
+        self.program.paint(bars, self.background_color)
+
+class GaussianNoise:
+    def __init__(self, program, period=15, vert_extent=30, width=2, gauss_mean=0.5, gauss_std=0.5, time_constant=20e-3,
                  random_seed=0, runtime=3, pts_per_tau=10, background_color=None):
         """
         Bars surrounding the viewer change brightness randomly.
@@ -109,6 +119,9 @@ class GaussianNoise(Stimulus):
         pts_per_tau=10, the time resolution of the calculation is 2e-3.
         """
 
+        # save settings
+        self.program = program
+
         # set background color
         if background_color is None:
             background_color = (0.5, 0.5, 0.5)
@@ -123,10 +136,10 @@ class GaussianNoise(Stimulus):
         stops = starts + radians(width)
 
         # create the bars
-        self.bars = [Bar(min_theta=start,
-                         max_theta=stop,
-                         min_phi=pi/2-radians(vert_extent),
-                         max_phi=pi/2+radians(vert_extent))
+        self.bars = [Bar(theta_min=start,
+                         theta_max=stop,
+                         phi_min=pi/2-radians(vert_extent),
+                         phi_max=pi/2+radians(vert_extent))
                      for start, stop in zip(starts, stops)]
 
         # make pseudo-random generators
@@ -138,17 +151,17 @@ class GaussianNoise(Stimulus):
                                            tmax  = runtime)
                              for _ in range(len(self.bars))]
 
-    def eval_at(self, t):
+    def paint_at(self, t):
         unclipped = np.array([random_func(t) for random_func in self.random_funcs])
         colors = np.clip(unclipped, 0.0, 1.0)
 
         for color, bar in zip(colors, self.bars):
             bar.color = color
 
-        return self.bars
+        self.program.paint(self.bars, self.background_color)
 
-class SequentialBars(Stimulus):
-    def __init__(self, width=5, period=20, offset=0, first_active_bright=True, second_active_bright=True,
+class SequentialBars:
+    def __init__(self, program, width=5, period=20, offset=0, first_active_bright=True, second_active_bright=True,
                  first_active_time=1, second_active_time=2, background_color=None):
         """
         Stimulus in which one set of bars appears first, followed by a second set some time later.
@@ -164,17 +177,18 @@ class SequentialBars(Stimulus):
         :param second_active_time: Time in seconds when the second set of bars become active.
         """
 
+        # save settings
+        self.program = program
+        self.first_active_bright = first_active_bright
+        self.second_active_bright = second_active_bright
+        self.first_active_time = first_active_time
+        self.second_active_time = second_active_time
+
         # set background color
         if background_color is None:
             background_color = (0.5, 0.5, 0.5)
 
         self.background_color = background_color
-
-        # save settings
-        self.first_active_bright = first_active_bright
-        self.second_active_bright = second_active_bright
-        self.first_active_time = first_active_time
-        self.second_active_time = second_active_time
 
         # create starting points (two bars per period, each with given width)
         starts = np.radians(np.arange(0, 360, period, dtype='float'))
@@ -190,7 +204,7 @@ class SequentialBars(Stimulus):
         # create the bars
         self.bars = [Bar(start, stop) for start, stop in zip(starts, stops)]
 
-    def eval_at(self, t):
+    def paint_at(self, t):
         if t < self.first_active_time:
             for bar in self.bars:
                 bar.color = 0.5
@@ -205,4 +219,4 @@ class SequentialBars(Stimulus):
             for bar in self.bars[1::2]:
                 bar.color = 1 if self.second_active_bright else 0
 
-        return self.bars
+        self.program.paint(self.bars, self.background_color)
