@@ -12,7 +12,7 @@ class SineOpts:
         self.c_coeff = c_coeff
         self.d_coeff = d_coeff
 
-class SineProgram:
+class BaseProgram:
     def __init__(self, screen):
         # save settings
         self.screen = screen
@@ -27,26 +27,16 @@ class SineProgram:
 
         # load vertex shader
         self.prog = self.ctx.program(
-            vertex_shader = open(os.path.join(shader_dir, 'rect.vert'), 'r').read(),
+            vertex_shader = open(os.path.join(shader_dir, 'sine.vert'), 'r').read(),
             fragment_shader = open(os.path.join(shader_dir, 'sine.frag'), 'r').read()
         )
 
         # create VBO to represent vertex positions
-        vert_data = np.array([0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0])
-        vbo_vert = self.ctx.buffer(vert_data.astype('f4').tobytes())
-
-        # create VBO to represent instance data
-        inst_data = np.array([-1.0, +1.0, -1.0, +1.0, 0.0])
-        vbo_inst = self.ctx.buffer(inst_data.astype('f4').tobytes())
-
-        # create the layout of input data
-        vao_content = [
-            (vbo_vert, '2f', 'pos'),
-            (vbo_inst, '1f 1f 1f 1f 1f/i', 'x_min', 'x_max', 'y_min', 'y_max', 'color')
-        ]
+        pts = np.array([-1.0, -1.0, +1.0, -1.0, -1.0, +1.0, +1.0, +1.0])
+        vbo = self.ctx.buffer(pts.astype('f4').tobytes())
 
         # create vertex array object
-        self.vao = self.ctx.vertex_array(self.prog, vao_content)
+        self.vao = self.ctx.simple_vertex_array(self.prog, vbo, 'vert_pos')
 
         # write screen parameters
         self.prog['screen_offset'].value = tuple(self.screen.offset)
@@ -61,4 +51,4 @@ class SineProgram:
         self.prog['c_coeff'].value = sine_opts.c_coeff
         self.prog['d_coeff'].value = sine_opts.d_coeff
 
-        self.vao.render(mode=moderngl.TRIANGLE_STRIP, instances=1)
+        self.vao.render(mode=moderngl.TRIANGLE_STRIP)

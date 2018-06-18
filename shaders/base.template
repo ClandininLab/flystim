@@ -1,0 +1,35 @@
+#version 330
+
+////////////////
+// inputs
+////////////////
+
+// from vertex shader
+in vec2 frag_pos;
+
+// screen uniforms
+uniform vec2  screen_vector;
+uniform vec3  screen_offset;
+uniform float screen_height;
+
+// stimulus-specific uniforms
+${uniform_declarations}
+
+////////////////
+// output
+////////////////
+
+out vec4 out_color;
+
+void main() {
+    // compute screen position in cartesian coordinates
+    vec3 pos = screen_offset + frag_pos.xxy*vec3(screen_vector, 0.5*screen_height);
+
+    // compute screen position in spherical coordinates
+    float r     = length(pos);
+    float phi   = acos(pos.z / r);
+    float theta = atan(pos.y, pos.x);
+
+    // compute fragment color
+    ${color_program}
+}

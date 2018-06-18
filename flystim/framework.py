@@ -5,10 +5,7 @@ import moderngl
 
 from argparse import ArgumentParser
 
-from flystim.bars import BarProgram
-from flystim.sine import SineProgram
 from flystim.stimuli import RotatingBars, ExpandingEdges, GaussianNoise, SequentialBars, SineGrating
-
 from flystim.square import SquareProgram
 
 from flystim.screen import Screen
@@ -47,9 +44,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.rpc_server = self.make_rpc_server()
 
         # make OpenGL programs that are used by stimuli
-        self.bar_program = BarProgram(screen=screen)
-        self.sine_program = SineProgram(screen=screen)
-        self.square_program = SquareProgram(screen=screen)
+        self.render_programs = {}
+        self.render_programs['RotatingBars'] = RotatingBars(screen=screen)
+        self.render_programs['ExpandingEdges'] = ExpandingEdges(screen=screen)
+        self.render_programs['GaussianNoise'] = GaussianNoise(screen=screen)
+        self.render_programs['SequentialBars'] = SequentialBars(screen=screen)
+        self.render_programs['SineGrating'] = SineGrating(screen=screen)
+        self.render_programs['SquareProgram'] = SquareProgram(screen=screen)
 
         # background color
         self.set_idle_background_color(0.5, 0.5, 0.5)
@@ -59,9 +60,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.ctx = moderngl.create_context()
 
         # initialize rendering programs
-        self.bar_program.initialize(self.ctx)
-        self.sine_program.initialize(self.ctx)
-        self.square_program.initialize(self.ctx)
+        for render_program in self.render_programs.values():
+            render_program.initialize(self.ctx)
 
     def paintGL(self):
         # handle RPC input
@@ -77,7 +77,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.ctx.clear(*self.idle_background_color)
 
         # draw the corner square
-        self.square_program.paint()
+        self.render_programs['SquareProgram'].paint()
 
         # update the window
         self.update()
@@ -94,18 +94,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         :param params: Parameters used to instantiate the class (e.g., period, bar width, etc.)
         """
 
-        if name == 'RotatingBars':
-            self.stim = RotatingBars(program=self.bar_program, **params)
-        elif name == 'ExpandingEdges':
-            self.stim = ExpandingEdges(program=self.bar_program, **params)
-        elif name == 'GaussianNoise':
-            self.stim = GaussianNoise(program=self.bar_program, **params)
-        elif name == 'SequentialBars':
-            self.stim = SequentialBars(program=self.bar_program, **params)
-        elif name == 'SineGrating':
-            self.stim = SineGrating(program=self.sine_program, **params)
-        else:
-            raise ValueError('Invalid stimulus.')
+        self.stim = self.render_programs[name]
+        self.stim.configure(**params)
 
     def start_stim(self, t):
         """
@@ -133,35 +123,35 @@ class StimDisplay(QtOpenGL.QGLWidget):
         Start toggling the corner square.
         """
 
-        self.square_program.toggle = True
+        self.render_programs['SquareProgram'].toggle = True
 
     def stop_corner_square(self):
         """
         Stop toggling the corner square.
         """
 
-        self.square_program.toggle = False
+        self.render_programs['SquareProgram'].toggle = False
 
     def white_corner_square(self):
         """
         Make the corner square white.
         """
 
-        self.square_program.color = 1.0
+        self.render_programs['SquareProgram'].color = 1.0
 
     def black_corner_square(self):
         """
         Make the corner square black.
         """
 
-        self.square_program.color = 0.0
+        self.render_programs['SquareProgram'].color = 0.0
 
     def show_corner_square(self):
         """
         Show the corner square.
         """
 
-        self.square_program.draw = True
+        self.render_programs['SquareProgram'].draw = True
 
     def hide_corner_square(self):
         """
@@ -169,7 +159,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         even though nothing will be displayed.
         """
 
-        self.square_program.draw = False
+        self.render_programs['SquareProgram'].draw = False
 
     # background color
 
