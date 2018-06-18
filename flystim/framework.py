@@ -5,7 +5,9 @@ import moderngl
 
 from argparse import ArgumentParser
 
-from flystim.stimuli import RotatingBars, ExpandingEdges, GaussianNoise, SequentialBars, SineGrating
+from flystim.stimuli import RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
+from flystim.stimuli import Checkerboard
+
 from flystim.square import SquareProgram
 
 from flystim.screen import Screen
@@ -47,9 +49,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.render_programs = {}
         self.render_programs['RotatingBars'] = RotatingBars(screen=screen)
         self.render_programs['ExpandingEdges'] = ExpandingEdges(screen=screen)
-        self.render_programs['GaussianNoise'] = GaussianNoise(screen=screen)
+        self.render_programs['RandomBars'] = RandomBars(screen=screen)
         self.render_programs['SequentialBars'] = SequentialBars(screen=screen)
         self.render_programs['SineGrating'] = SineGrating(screen=screen)
+        self.render_programs['RandomGrid'] = RandomGrid(screen=screen)
+        self.render_programs['Checkerboard'] = Checkerboard(screen=screen)
         self.render_programs['SquareProgram'] = SquareProgram(screen=screen)
 
         # background color

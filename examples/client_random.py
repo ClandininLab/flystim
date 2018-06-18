@@ -12,8 +12,8 @@ from random import choice
 def main(num_trials=15, port=62632):
     client = ServerProxy('http://127.0.0.1:{}'.format(port))
 
-    #all_stims = ['SineGrating', 'RotatingBars', 'ExpandingEdges', 'SequentialBars', 'GaussianNoise']
-    all_stims = ['GaussianNoise']
+    all_stims = ['SineGrating', 'RotatingBars', 'ExpandingEdges', 'SequentialBars', 'RandomBars', 'RandomGrid',
+                 'Checkerboard']
 
     for _ in range(num_trials):
 

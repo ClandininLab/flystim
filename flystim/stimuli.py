@@ -1,6 +1,6 @@
 import numpy as np
 
-from math import pi, radians
+from math import pi, radians, ceil
 
 from flystim.base import BaseProgram
 
@@ -116,8 +116,8 @@ class ExpandingEdges(PeriodicBars):
     def eval_at(self, t):
         self.prog['theta_duty'].value = (self.width + t*self.rate)/self.period
 
-class GaussianNoise(BaseProgram):
-    def __init__(self, screen, max_face_colors=128):
+class RandomBars(BaseProgram):
+    def __init__(self, screen, max_face_colors=64):
         self.max_face_colors = max_face_colors
 
         uniform_declarations = '#define MAX_FACE_COLORS {}\n'.format(self.max_face_colors)
@@ -174,8 +174,11 @@ class GaussianNoise(BaseProgram):
         self.update_rate = update_rate
 
         # calculate number of bars
-        self.num_bars = 360//period
-        self.padding  = np.zeros(self.max_face_colors - self.num_bars)
+        self.num_faces = 360//period
+        assert self.num_faces <= self.max_face_colors
+
+        # create padding for unused bars
+        self.padding  = np.zeros(self.max_face_colors - self.num_faces)
 
         # create the bars
         self.prog['phi_min'].value = pi/2-radians(vert_extent)
@@ -190,7 +193,7 @@ class GaussianNoise(BaseProgram):
         np.random.seed(seed)
 
         # compute colors
-        face_colors = np.random.uniform(self.rand_min, self.rand_max, self.num_bars)
+        face_colors = np.random.uniform(self.rand_min, self.rand_max, self.num_faces)
 
         # write to GPU
         self.prog['face_colors'].value = list(np.concatenate((face_colors, self.padding)))
@@ -257,3 +260,116 @@ class SequentialBars(BaseProgram):
     def eval_at(self, t):
         self.prog['enable_first'].value = (t >= self.first_active_time)
         self.prog['enable_second'].value = (t >= self.second_active_time)
+
+class GridStim(BaseProgram):
+    def __init__(self, screen, max_face_colors=512):
+        self.max_face_colors = max_face_colors
+
+        uniform_declarations = '#define MAX_FACE_COLORS {}\n'.format(self.max_face_colors)
+        uniform_declarations += '''
+        #define M_TWO_PI 6.2831853072
+            
+        uniform int num_theta;
+        uniform float phi_period;
+        uniform float theta_period;
+        uniform float face_colors[MAX_FACE_COLORS];
+        '''
+
+        color_program = '''
+        if (theta < 0) {
+            theta += M_TWO_PI;
+        } 
+        
+        int theta_int = int(theta/theta_period);
+        int phi_int = int(phi/phi_period);
+        
+        float face_color = face_colors[theta_int + num_theta*phi_int]; 
+        out_color = vec4(face_color, face_color, face_color, 1.0);
+        '''
+
+        super().__init__(screen=screen, uniform_declarations=uniform_declarations, color_program=color_program)
+
+
+class RandomGrid(GridStim):
+    def configure(self, theta_period=15, phi_period=15, rand_min=0.0, rand_max=1.0, start_seed=0,
+                  update_rate=60.0, background_color=None):
+        """
+        Patches surrounding the viewer change brightness randomly.
+        :param theta_period: Longitude period of the checkerboard patches (degrees)
+        :param phi_period: Latitude period of the checkerboard patches (degrees)
+        :param rand_min: Minimum output of random number generator
+        :param rand_max: Maximum output of random number generator
+        :param start_seed: Starting seed for the random number generator
+        :param update_rate: Rate at which color is updated
+        """
+
+        # set background color
+        if background_color is None:
+            background_color = (0.5, 0.5, 0.5)
+        self.background_color = background_color
+
+        # save settings
+        self.rand_min = rand_min
+        self.rand_max = rand_max
+        self.start_seed = start_seed
+        self.update_rate = update_rate
+
+        # calculate number of bars
+        num_theta = 360 // theta_period
+        num_phi = 180 // phi_period
+        self.num_faces = num_theta * num_phi
+        assert self.num_faces <= self.max_face_colors
+
+        # create padding for unused bars
+        self.padding = np.zeros(self.max_face_colors - self.num_faces)
+
+        # write program settings
+        self.prog['num_theta'].value = num_theta
+        self.prog['phi_period'].value = radians(phi_period)
+        self.prog['theta_period'].value = radians(theta_period)
+
+    def eval_at(self, t):
+        # set the seed
+        seed = int(round(self.start_seed + t * self.update_rate))
+        np.random.seed(seed)
+
+        # compute colors
+        face_colors = np.random.uniform(self.rand_min, self.rand_max, self.num_faces)
+
+        # write to GPU
+        self.prog['face_colors'].value = list(np.concatenate((face_colors, self.padding)))
+
+class Checkerboard(GridStim):
+    def configure(self, theta_period=15, phi_period=15, background_color=None):
+        """
+        Patches surrounding the viewer are arranged in a periodic checkerboard.
+        :param theta_period: Longitude period of the checkerboard patches (degrees)
+        :param phi_period: Latitude period of the checkerboard patches (degrees)
+        """
+
+        # set background color
+        if background_color is None:
+            background_color = (0.5, 0.5, 0.5)
+        self.background_color = background_color
+
+        # calculate number of bars
+        num_theta = 360 // theta_period
+        num_phi = 180 // phi_period
+        num_faces = num_theta * num_phi
+        assert num_faces <= self.max_face_colors
+
+        # write program settings
+        self.prog['num_theta'].value = num_theta
+        self.prog['phi_period'].value = radians(phi_period)
+        self.prog['theta_period'].value = radians(theta_period)
+
+        # create the pattern
+        face_colors = np.tile(np.array([0.0, 1.0]), int(ceil(num_theta/2)))
+        face_colors = face_colors[:num_theta]
+        face_colors = np.concatenate((1.0 - face_colors, face_colors))
+        face_colors = np.tile(face_colors, int(ceil(num_phi/2)))
+        face_colors = face_colors[:num_faces]
+
+        # write the pattern
+        self.padding = np.zeros(self.max_face_colors - num_faces)
+        self.prog['face_colors'].value = list(np.concatenate((face_colors, self.padding)))
