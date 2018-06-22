@@ -13,5 +13,6 @@ uniform float color;
 out vec4 out_color;
 
 void main() {
+    // assign output color based on uniform input
     out_color = vec4(color, color, color, 1.0);
 }

@@ -195,14 +195,14 @@ def launch(screens, port=0, profile=False):
 
         return 0
 
-    def set_idle_background_color(r, g, b):
+    def set_idle_background(color):
         """
         Sets the RGB color of the background when there is no stimulus being displayed (sometimes called the
         interleave period).
         """
 
         for stim_client in stim_clients:
-            stim_client.request('set_idle_background_color', [r, g, b])
+            stim_client.request('set_idle_background', [color])
 
         return 0
 
@@ -227,7 +227,7 @@ def launch(screens, port=0, profile=False):
     server.register_function(hide_corner_square, 'hide_corner_square')
 
     # background control functions
-    server.register_function(set_idle_background_color, 'set_idle_background_color')
+    server.register_function(set_idle_background, 'set_idle_background')
 
     ####################################
     # run the application

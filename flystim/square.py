@@ -15,6 +15,10 @@ class SquareProgram:
         self.draw = True
 
     def initialize(self, ctx):
+        """
+        :param ctx: ModernGL context
+        """
+
         # save context
         self.ctx = ctx
 
@@ -34,6 +38,10 @@ class SquareProgram:
         self.vao = self.ctx.simple_vertex_array(self.prog, vbo, 'pos')
 
     def make_vert_pts(self):
+        """
+        Returns a numpy array of the vertex coordinates in NDC space of the photodiode square
+        """
+
         # compute width and height in NDC
         w = 2.0*self.screen.square_side/self.screen.width
         h = 2.0*self.screen.square_side/self.screen.height

@@ -9,15 +9,17 @@ from xmlrpc.client import ServerProxy
 from time import sleep
 from random import choice
 
-def main(num_trials=15, port=62632):
+def main(port=62632):
     client = ServerProxy('http://127.0.0.1:{}'.format(port))
 
-    all_stims = ['SineGrating', 'RotatingBars', 'ExpandingEdges', 'SequentialBars', 'RandomBars', 'RandomGrid',
-                 'Checkerboard']
+    stims = ['SineGrating', 'RotatingBars', 'ExpandingEdges', 'SequentialBars', 'RandomBars',
+             'RandomGrid', 'Checkerboard']
 
-    for _ in range(num_trials):
+    sleep(1.0)
 
-        client.load_stim(choice(all_stims), {})
+    for stim in stims:
+
+        client.load_stim(stim, {})
 
         sleep(500e-3)
         client.start_stim()

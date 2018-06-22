@@ -13,7 +13,7 @@ in vec2 vert_pos;
 out vec2 frag_pos;
 
 void main() {
-    // assign output
+    // pass along (interpolated) vertex position to the fragment shader
     frag_pos = vert_pos;
 
     // assign gl_Position

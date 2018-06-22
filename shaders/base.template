@@ -13,7 +13,7 @@ uniform vec3  screen_offset;
 uniform float screen_height;
 
 // stimulus-specific uniforms
-${uniform_declarations}
+${decl_uniforms}
 
 ////////////////
 // output
@@ -30,6 +30,12 @@ void main() {
     float phi   = acos(pos.z / r);
     float theta = atan(pos.y, pos.x);
 
-    // compute fragment color
-    ${color_program}
+    // declare fragment color variable (monochromatic)
+    float color;
+
+    // calculated fragment color
+    ${calc_color}
+
+    // assign the output color
+    out_color = vec4(color, color, color, 1.0);
 }

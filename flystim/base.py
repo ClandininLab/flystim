@@ -1,4 +1,4 @@
-# ref: https://github.com/cprogrammer1994/ModernGL/blob/master/examples/julia_fractal.py
+# note: the starting point for this code was the examples directory of the ModernGL project
 
 import moderngl
 import numpy as np
@@ -6,21 +6,32 @@ import os.path
 from string import Template
 
 class BaseProgram:
-    def __init__(self, screen, uniform_declarations=None, color_program=None):
+    def __init__(self, screen, uniforms=None, calc_color=None):
+        """
+        :param screen: Object containing screen size information
+        :param uniforms: List of glsl.Uniform objects representing the uniform variables used in the shader
+        :param calc_color: GLSL shader code used to compute the monochromatic color of each pixel as a function
+        of spherical coordinates (r, theta, phi), which should be assumed to have been calculated before the calc_color
+        code has run (see base.template)
+        """
         # set screen
         self.screen = screen
 
         # set uniform declarations
-        if uniform_declarations is None:
-            uniform_declarations = ''
-        self.uniform_declarations = uniform_declarations
+        if uniforms is None:
+            uniforms = []
+        self.uniforms = uniforms
 
         # set color program
-        if color_program is None:
-            color_program = 'out_color = vec4(0.0, 0.0, 0.0, 1.0);'
-        self.color_program = color_program
+        if calc_color is None:
+            calc_color = 'color = 0.0;'
+        self.calc_color = calc_color
 
     def initialize(self, ctx):
+        """
+        :param ctx: ModernGL context
+        """
+
         # save context
         self.ctx = ctx
 
@@ -31,11 +42,14 @@ class BaseProgram:
         # load the vertex shader
         vertex_shader = open(os.path.join(shader_dir, 'base.vert'), 'r').read()
 
+        # convert list of uniforms to GLSL code
+        decl_uniforms = ''.join(str(uniform)+';\n' for uniform in self.uniforms)
+
         # load the fragment shader
         fragment_shader_template = Template(open(os.path.join(shader_dir, 'base.template'), 'r').read())
         fragment_shader = fragment_shader_template.substitute(
-            uniform_declarations=self.uniform_declarations,
-            color_program=self.color_program
+            decl_uniforms=decl_uniforms,
+            calc_color=self.calc_color
         )
 
         self.prog = self.ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
@@ -52,18 +66,18 @@ class BaseProgram:
         self.prog['screen_vector'].value = tuple(self.screen.vector)
         self.prog['screen_height'].value = self.screen.height
 
-    def configure(self, background_color=None):
-        # set background color
-        if background_color is None:
-            background_color = (0.0, 0.0, 0.0)
-        self.background_color = background_color
+    def paint_at(self, t):
+        """
+        :param t: current time in seconds
+        """
+
+        self.ctx.clear()
+        self.eval_at(t)
+        self.vao.render(mode=moderngl.TRIANGLE_STRIP)
 
     def eval_at(self, t):
+        """
+        :param t: current time in seconds
+        """
+
         pass
-
-    def paint_at(self, t):
-        self.ctx.clear(*self.background_color)
-
-        self.eval_at(t)
-
-        self.vao.render(mode=moderngl.TRIANGLE_STRIP)

@@ -1,6 +1,8 @@
 from PyQt5 import QtOpenGL, QtWidgets
 
 import time
+import sys
+import signal
 import moderngl
 
 from argparse import ArgumentParser
@@ -23,9 +25,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         """
         :param screen: Screen object (from flystim.screen) corresponding to the screen on which the stimulus will
         be displayed.
-        :param square_pos: Position of the square (lr, ll, ur, ul)
-        :param square_side: Side length of the corner square, in meters.  Note that in order for the displayed length
-        to be correct, the dimensions provided in the screen object must be right...
         """
 
         # call super constructor
@@ -49,26 +48,25 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.rpc_server = self.make_rpc_server()
 
         # make OpenGL programs that are used by stimuli
-        self.render_programs = {}
-        self.render_programs['RotatingBars'] = RotatingBars(screen=screen)
-        self.render_programs['ExpandingEdges'] = ExpandingEdges(screen=screen)
-        self.render_programs['RandomBars'] = RandomBars(screen=screen)
-        self.render_programs['SequentialBars'] = SequentialBars(screen=screen)
-        self.render_programs['SineGrating'] = SineGrating(screen=screen)
-        self.render_programs['RandomGrid'] = RandomGrid(screen=screen)
-        self.render_programs['Checkerboard'] = Checkerboard(screen=screen)
-        self.render_programs['SquareProgram'] = SquareProgram(screen=screen)
+        cls_list = [RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid, Checkerboard]
+        self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
 
-        # background color
-        self.set_idle_background_color(0.5, 0.5, 0.5)
+        # make program for rendering the corner square
+        self.square_program = SquareProgram(screen=screen)
+
+        # initialize background color
+        self.idle_background = 0.5
 
     def initializeGL(self):
         # get OpenGL context
         self.ctx = moderngl.create_context()
 
-        # initialize rendering programs
+        # initialize stimuli programs
         for render_program in self.render_programs.values():
             render_program.initialize(self.ctx)
+
+        # initialize square program
+        self.square_program.initialize(self.ctx)
 
     def paintGL(self):
         # handle RPC input
@@ -81,10 +79,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
             else:
                 self.stim.paint_at(0)
         else:
-            self.ctx.clear(*self.idle_background_color)
+            self.ctx.clear(self.idle_background, self.idle_background, self.idle_background)
 
         # draw the corner square
-        self.render_programs['SquareProgram'].paint()
+        self.square_program.paint()
 
         # update the window
         self.update()
@@ -115,7 +113,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def stop_stim(self):
         """
-        Stops the stimulus animation and removes it from the display.  The background color reverts to idle_background
+        Stops the stimulus animation and removes it from the display.
         """
 
         self.stim = None
@@ -123,42 +121,40 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_started = False
         self.stim_start_time = None
 
-    # corner square options
-
     def start_corner_square(self):
         """
         Start toggling the corner square.
         """
 
-        self.render_programs['SquareProgram'].toggle = True
+        self.square_program.toggle = True
 
     def stop_corner_square(self):
         """
         Stop toggling the corner square.
         """
 
-        self.render_programs['SquareProgram'].toggle = False
+        self.square_program.toggle = False
 
     def white_corner_square(self):
         """
         Make the corner square white.
         """
 
-        self.render_programs['SquareProgram'].color = 1.0
+        self.square_program.color = 1.0
 
     def black_corner_square(self):
         """
         Make the corner square black.
         """
 
-        self.render_programs['SquareProgram'].color = 0.0
+        self.square_program.color = 0.0
 
     def show_corner_square(self):
         """
         Show the corner square.
         """
 
-        self.render_programs['SquareProgram'].draw = True
+        self.square_program.draw = True
 
     def hide_corner_square(self):
         """
@@ -166,17 +162,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
         even though nothing will be displayed.
         """
 
-        self.render_programs['SquareProgram'].draw = False
+        self.square_program.draw = False
 
-    # background color
-
-    def set_idle_background_color(self, r, g, b):
+    def set_idle_background(self, color):
         """
-        Sets the RGB color of the background when there is no stimulus being displayed (sometimes called the
+        Sets the monochrome color of the background when there is no stimulus being displayed (sometimes called the
         interleave period).
         """
 
-        self.idle_background_color = (r, g, b)
+        self.idle_background = color
 
     ###########################################
     # initialization functions
@@ -200,7 +194,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         rpc_server.register_function(self.hide_corner_square, 'hide_corner_square')
 
         # background control functions
-        rpc_server.register_function(self.set_idle_background_color, 'set_idle_background_color')
+        rpc_server.register_function(self.set_idle_background, 'set_idle_background')
 
         return rpc_server
 
@@ -280,10 +274,9 @@ def main():
     ####################################
 
     # Use Ctrl+C to exit.
-    try:
-        app.exec_()
-    except KeyboardInterrupt:
-        pass
+    # ref: https://stackoverflow.com/questions/2300401/qapplication-how-to-shutdown-gracefully-on-ctrl-c
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    sys.exit(app.exec_())
 
 if __name__ == '__main__':
     main()
