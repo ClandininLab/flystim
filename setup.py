@@ -13,7 +13,8 @@ setup(
         'scipy',
         'numpy',
         'pyglet',
-        'moderngl'
+        'moderngl',
+        'hidapi'
     ],
     include_package_data=True,
     zip_safe=False,

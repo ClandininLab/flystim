@@ -10,7 +10,7 @@ from flystim.launch import launch
 from flystim.screen import Screen
 
 def main(port=62632):
-    screens = [Screen()]
+    screens = [Screen(id=1)]
     launch(screens=screens, port=port)
 
 if __name__ == '__main__':

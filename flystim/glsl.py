@@ -1,7 +1,6 @@
 class Uniform:
     def __init__(self, name, type, size=1, is_array=None):
         """
-
         :param name: Name of the uniform variable.
         :param type: Type of the uniform variable (not a string).  int, bool, and float are currently supported.
         :param size: Array length.  Ignored if is_array is False

@@ -69,6 +69,7 @@ class RotatingBars(PeriodicBars):
         :param duty_cycle: Duty cycle of each bar, which should be between 0 and 1.  A value of "0" means the bar has
         zero width, and a value of "1" means that it occupies the entire period.
         :param rate: Counter-clockwise rotation rate of the bars, in degrees per second.  Can be positive or negative.
+        :param color: Monochromatic bar color (0.0 is black, 1.0 is white)
         :param background: Monochromatic background color (0.0 is black, 1.0 is white)
         """
 
