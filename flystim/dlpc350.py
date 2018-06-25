@@ -5,6 +5,10 @@ import hid
 from math import floor
 
 def make_dlpc350_objects():
+    """
+    Returns a list of DLPC350 objects corresponding to the connected Lightcrafter 4500 units.
+    """
+
     dlpc350_objects = []
 
     for d in hid.enumerate():
@@ -23,6 +27,12 @@ def make_dlpc350_objects():
 
 class DLPC350:
     def __init__(self, device, timeout=10, poll_period=0.1):
+        """
+        :param device: HIDAPI device corresponding to the Lightcrafter unit
+        :param timeout: Time to wait (in seconds) when polling a register status
+        :param poll_period: Delay (in seconds) between polls of a register status
+        """
+
         # save settings
         self.device = device
         self.timeout = timeout
@@ -78,9 +88,6 @@ class DLPC350:
         # return data
         bytes = resp[2]
         return resp[4:(4+bytes)]
-
-    def reset(self):
-        self.command(mode=0x40, cmd2=0x08, cmd3=0x02, data=[0x00])
 
     def play_sequence(self):
         self.write(cmd2=0x1a, cmd3=0x24, data=[0x02])
