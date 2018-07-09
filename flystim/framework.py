@@ -72,6 +72,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # handle RPC input
         self.rpc_server.update()
 
+        # set the viewport to fill the window
+        # ref: https://github.com/pyqtgraph/pyqtgraph/issues/422
+        self.ctx.viewport = (0, 0, self.width()*self.devicePixelRatio(), self.height()*self.devicePixelRatio())
+
         # draw the stimulus
         if self.stim is not None:
             if self.stim_started:
