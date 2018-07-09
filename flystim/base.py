@@ -62,9 +62,12 @@ class BaseProgram:
         self.vao = self.ctx.simple_vertex_array(self.prog, vbo, 'vert_pos')
 
         # write screen parameters
-        self.prog['screen_offset'].value = tuple(self.screen.offset)
-        self.prog['screen_vector'].value = tuple(self.screen.vector)
-        self.prog['screen_height'].value = self.screen.height
+        if self.prog.get('screen_offset', None) is not None:
+            self.prog['screen_offset'].value = tuple(self.screen.offset)
+        if self.prog.get('screen_vector', None) is not None:
+            self.prog['screen_vector'].value = tuple(self.screen.vector)
+        if self.prog.get('screen_height', None) is not None:
+            self.prog['screen_height'].value = self.screen.height
 
     def paint_at(self, t):
         """
