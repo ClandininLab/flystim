@@ -8,7 +8,7 @@ import moderngl
 from argparse import ArgumentParser
 
 from flystim.stimuli import RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
-from flystim.stimuli import Checkerboard
+from flystim.stimuli import Checkerboard, MovingPatch
 
 from flystim.square import SquareProgram
 
@@ -48,7 +48,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.rpc_server = self.make_rpc_server()
 
         # make OpenGL programs that are used by stimuli
-        cls_list = [RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid, Checkerboard]
+        cls_list = [RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid,
+                    MovingPatch, Checkerboard]
         self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
 
         # make program for rendering the corner square

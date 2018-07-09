@@ -1,6 +1,8 @@
 import random
+import numpy as np
 
 from math import pi, radians, ceil
+from scipy.interpolate import interp1d
 
 from flystim.base import BaseProgram
 from flystim.glsl import Uniform
@@ -85,6 +87,74 @@ class RotatingBars(PeriodicBars):
     def eval_at(self, t):
         self.prog['theta_offset'].value = t*radians(self.rate)
 
+class MovingPatch(BaseProgram):
+    def __init__(self, screen):
+        uniforms = [
+            Uniform('theta_center', float),
+            Uniform('phi_center', float),
+            Uniform('theta_width', float),
+            Uniform('phi_width', float),
+            Uniform('face_color', float),
+            Uniform('background', float)
+        ]
+
+        # reference for modular arithmetic: https://fgiesen.wordpress.com/2015/09/24/intervals-in-modular-arithmetic/
+
+        calc_color = '''
+            // original longitude / latitude coordinates of this pixel 
+            float t1 = theta;
+            float p1 = phi;
+            
+            // equivalent representation of the pixel coordinates
+            float t2 = theta + M_PI;
+            float p2 = -phi;
+            
+            // minimum longitude / latitude coordinates of the patch
+            float min_t = theta_center - theta_width/2.0;
+            float min_p = phi_center - phi_width/2.0;
+                   
+            // check if either representation of the pixel coordinates lies inside the patch        
+            if (((mod(t1 - min_t, 2*M_PI) <= theta_width)  && 
+                 (mod(p1 - min_p, 2*M_PI) <= phi_width)) ||
+                ((mod(t2 - min_t, 2*M_PI) <= theta_width)  && 
+                 (mod(p2 - min_p, 2*M_PI) <= phi_width))) {
+                color = face_color;
+            } else {
+                color = background;
+            }
+        '''
+
+        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
+
+    def configure(self, theta_width=5, phi_width=5, color=1.0, background=0.0, trajectory=None, method='linear'):
+        """
+        Stimulus consisting of a patch that moves along an arbitrary trajectory.
+        :param theta_width: Longitude width of the patch (degrees)
+        :param phi_width: Latitude width of the patch (degrees)
+        :param color: Color of the patch (0.0 to 1.0)
+        :param background: Background color (0.0 to 1.0)
+        :param trajectory: List of 3-tuples (time, longitude, latitude) to specify the waypoints of the patch
+        trajectory.  Longitude and latitude are specified in degrees.
+        :param method: Interpolation method used to compute patch position at times in between waypoints.  Allowed
+        values are those accepted by scipy.interpolate.interp1d (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’,
+        ‘cubic’, ‘previous’, ‘next’)
+        """
+
+        # create interpolators for longitude and latitude
+        times, lons, lats = zip(*trajectory)
+        self.lon_interp = interp1d(times, np.radians(lons), kind=method, fill_value='extrapolate')
+        self.lat_interp = interp1d(times, np.radians(lats), kind=method, fill_value='extrapolate')
+
+        # set uniforms
+        self.prog['theta_width'].value = radians(theta_width)
+        self.prog['phi_width'].value = radians(phi_width)
+        self.prog['face_color'].value = color
+        self.prog['background'].value = background
+
+    def eval_at(self, t):
+        self.prog['theta_center'].value = self.lon_interp(t)
+        self.prog['phi_center'].value   = self.lat_interp(t)
+
 class ExpandingEdges(PeriodicBars):
     def configure(self, period=15, width=2, rate=10, color=1.0, background=0.0):
         """
@@ -129,7 +199,7 @@ class RandomBars(BaseProgram):
             float theta_rel = theta - theta_offset;
             if ((phi_min <= phi) && (phi <= phi_max) && (fract(theta_rel/theta_period) <= theta_duty)){
                 if (theta_rel < 0) {
-                    theta_rel += 6.2831853072;
+                    theta_rel += 2*M_PI;
                 }
                 color = face_colors[int(theta_rel/theta_period)];
             } else {
@@ -253,7 +323,7 @@ class GridStim(BaseProgram):
 
         calc_color = '''
             if (theta < 0) {
-                theta += 6.2831853072;
+                theta += 2*M_PI;
             } 
             
             int theta_int = int(theta/theta_period);
