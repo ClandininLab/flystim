@@ -3,7 +3,7 @@
 # Example client program that walks through all available stimuli
 # Please be sure to launch the server first before starting this program.
 
-from xmlrpc.client import ServerProxy
+from xmlrpc.client import ServerProxy, MultiCall
 from time import sleep
 from random import choice
 
@@ -17,13 +17,20 @@ def main(port=62632):
 
     for stim in stims:
 
-        client.load_stim(stim, {})
+        multi = MultiCall(client)
+        multi.load_stim(stim, {})
+        multi.start_stim()
+        multi.start_corner_square()
+        multi()
 
-        sleep(500e-3)
-        client.start_stim()
         sleep(2.5)
-        client.stop_stim()
-        sleep(500e-3)
+
+        multi = MultiCall(client)
+        multi.stop_stim()
+        multi.black_corner_square()
+        multi()
+
+        sleep(1)
 
 if __name__ == '__main__':
     main()

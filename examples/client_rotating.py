@@ -9,7 +9,7 @@ from xmlrpc.client import ServerProxy
 from time import sleep
 from random import choice
 
-def main(num_trials=15, stim_type='RotatingBars', port=62632):
+def main(num_trials=15, stim_type='SineGrating', port=62632):
     client = ServerProxy('http://127.0.0.1:{}'.format(port))
 
     signs = [-1, 1]
@@ -19,7 +19,7 @@ def main(num_trials=15, stim_type='RotatingBars', port=62632):
         sign = choice(signs)
         rate = sign*choice(rates)
 
-        client.load_stim(stim_type, {'rate': rate})
+        client.load_stim(stim_type, {'rate': rate, 'angle': 45})
 
         sleep(550e-3)
         client.start_stim()

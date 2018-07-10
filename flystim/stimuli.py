@@ -1,91 +1,121 @@
 import random
 import numpy as np
 
-from math import pi, radians, ceil
+from math import pi, radians, ceil, cos, sin
 from scipy.interpolate import interp1d
 
 from flystim.base import BaseProgram
-from flystim.glsl import Uniform
+from flystim.glsl import Uniform, Function, Variable
 
-class SineGrating(BaseProgram):
-    def __init__(self, screen):
+class PeriodicGrating(BaseProgram):
+    def __init__(self, screen, grating):
         uniforms = [
-            Uniform('min_color', float),
-            Uniform('max_color', float),
-            Uniform('num_period', int),
-            Uniform('offset', float)
-        ]
-
-        calc_color = '''
-            color = 0.5*(max_color-min_color)*sin(num_period*(theta-offset)) + 0.5*(min_color+max_color);
-        '''
-
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-
-    def configure(self, period=20, rate=10, min_color=0.0, max_color=1.0):
-        """
-        Stimulus pattern in which bars rotate around the viewer.
-        :param period: Period of the bar pattern, in degrees.
-        :param rate: Counter-clockwise rotation rate of the bars, in degrees per second.  Can be positive or negative.
-        :param min_color: Minimum color to be displayed
-        :param max_color: Minimum color to be displayed
-        """
-
-        # save settings
-        self.rate = rate
-
-        # set uniforms
-        self.prog['min_color'].value = min_color
-        self.prog['max_color'].value = max_color
-        self.prog['num_period'].value = 360//period
-
-    def eval_at(self, t):
-        self.prog['offset'].value = t*radians(self.rate)
-
-class PeriodicBars(BaseProgram):
-    def __init__(self, screen):
-        uniforms = [
-            Uniform('theta_offset', float),
-            Uniform('theta_period', float),
-            Uniform('theta_duty', float),
             Uniform('face_color', float),
-            Uniform('background', float)
+            Uniform('background', float),
+            Uniform('k_theta', float),
+            Uniform('k_phi', float),
+            Uniform('omega', float),
+            Uniform('t', float)
         ]
 
-        calc_color = '''
-            float theta_fract = fract((theta - theta_offset)/theta_period);
-            if (theta_fract <= theta_duty) {
-                color = face_color;
-            } else {
-                color = background;
-            }
-        '''
+        calc_color = ''
+        calc_color += 'float intensity = {}(k_theta*theta + k_phi*phi - omega*t);\n'.format(grating.name)
+        calc_color += 'color = mix(background, face_color, intensity);\n'
 
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
+        super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
 
-class RotatingBars(PeriodicBars):
-    def configure(self, period=20, duty_cycle=0.5, rate=10, color=1.0, background=0.0):
+    def configure(self, period=20, rate=10, color=1.0, background=0.0, angle=45.0):
         """
-        Stimulus pattern in which bars rotate around the viewer.
-        :param period: Period of the bar pattern, in degrees.
-        :param duty_cycle: Duty cycle of each bar, which should be between 0 and 1.  A value of "0" means the bar has
-        zero width, and a value of "1" means that it occupies the entire period.
-        :param rate: Counter-clockwise rotation rate of the bars, in degrees per second.  Can be positive or negative.
-        :param color: Monochromatic bar color (0.0 is black, 1.0 is white)
-        :param background: Monochromatic background color (0.0 is black, 1.0 is white)
+        Stimulus pattern in which a periodic grating moves as a wavefront
+        :param period: Spatial period of the grating, in degrees.
+        :param rate: Velocity of the grating movement, in degrees per second.  Can be positive or negative.
+        :param color: Color shown at peak intensity.
+        :param background: Color shown at minimum intensity.
+        :param angle: Tilt angle (in degrees) of the grating.  0 degrees will align the grating with a line of
+        longitude.
         """
 
-        # save settings
-        self.rate = rate
+        # compute wavevector
+        k = 2*pi/radians(period)
+        self.prog['k_theta'].value = k*cos(radians(angle))
+        self.prog['k_phi'].value   = k*sin(radians(angle))
 
-        # set uniforms
-        self.prog['theta_period'].value = radians(period)
-        self.prog['theta_duty'].value = duty_cycle
+        # compute the angular frequency
+        self.prog['omega'].value = radians(rate) * k
+
+        # set color uniforms
         self.prog['face_color'].value = color
         self.prog['background'].value = background
 
     def eval_at(self, t):
-        self.prog['theta_offset'].value = t*radians(self.rate)
+        self.prog['t'].value = t
+
+
+class SineGrating(PeriodicGrating):
+    def __init__(self, screen):
+        # define grating function
+        grating = Function(name='sine_grating',
+                           in_vars=[Variable('phase', float)],
+                           out_type=float,
+                           code='return 0.5*sin(phase) + 0.5;')
+
+        # call super constructor
+        super().__init__(screen=screen, grating=grating)
+
+
+class RectGrating(PeriodicGrating):
+    def __init__(self, screen):
+        # define grating function
+        grating = Function(name='rect_grating',
+                           in_vars=[Variable('phase', float)],
+                           out_type=float,
+                           uniforms=[Uniform('duty_cycle', float)],
+                           code='return (fract(phase/(2.0*M_PI)) <= duty_cycle) ? 1.0 : 0.0;')
+
+        # call super constructor
+        super().__init__(screen=screen, grating=grating)
+
+
+class RotatingBars(RectGrating):
+    def configure(self, duty_cycle=0.5, **kwargs):
+        """
+        Stimulus pattern in which rectangular bars rotate around the viewer.
+        :param duty_cycle: Duty cycle of each bar, which should be between 0 and 1.  A value of "0" means the bar has
+        zero width, and a value of "1" means that it occupies the entire period.
+        """
+
+        # set uniform
+        self.prog['duty_cycle'].value = duty_cycle
+
+        # call configuration method from parent class
+        super().configure(**kwargs)
+
+
+class ExpandingEdges(RectGrating):
+    def configure(self, init_width=2, expand_rate=10, period=15, rate=0, **kwargs):
+        """
+        Stimulus pattern in which bars surrounding the viewer get wider or narrower.
+        :param width: Starting angular width of each bar.
+        :param expand_rate: The rate at which each bar grows wider in the counter-clockwise direction.  Can be negative.
+        :param period: Spatial period of the grating, in degrees.
+        :param rate: Velocity of the grating movement, in degrees per second.  Typically left at zero for this stimulus.
+        """
+
+        # save settings
+        self.init_width = init_width
+        self.expand_rate = expand_rate
+        self.period = period
+
+        # call configuration method from parent class
+        super().configure(period=period, rate=rate, **kwargs)
+
+    def eval_at(self, t):
+        # adjust duty cycle
+        self.prog['duty_cycle'].value = (self.init_width + t*self.expand_rate)/self.period
+
+        # call evaluation method of the parent class
+        super().eval_at(t)
+
 
 class MovingPatch(BaseProgram):
     def __init__(self, screen):
@@ -140,6 +170,10 @@ class MovingPatch(BaseProgram):
         ‘cubic’, ‘previous’, ‘next’)
         """
 
+        # set default
+        if trajectory is None:
+            trajectory = [(0, 90, 90), (1, 92, 90), (2, 92, 92), (3, 90, 92), (4, 90, 90), (5, 90, 90)]
+
         # create interpolators for longitude and latitude
         times, lons, lats = zip(*trajectory)
         self.lon_interp = interp1d(times, np.radians(lons), kind=method, fill_value='extrapolate')
@@ -155,29 +189,6 @@ class MovingPatch(BaseProgram):
         self.prog['theta_center'].value = self.lon_interp(t)
         self.prog['phi_center'].value   = self.lat_interp(t)
 
-class ExpandingEdges(PeriodicBars):
-    def configure(self, period=15, width=2, rate=10, color=1.0, background=0.0):
-        """
-        Stimulus pattern in which bars surrounding the viewer get wider or narrower.
-        :param period: Period of the bars around the viewer.
-        :param width: Starting angular width of each bar.
-        :param rate: The rate at which each bar grows wider in the counter-clockwise direction.  Can be negative.
-        :param background: Monochromatic background color (0.0 is black, 1.0 is white)
-        """
-
-        # save settings
-        self.rate = rate
-        self.width = width
-        self.period = period
-
-        # set uniforms
-        self.prog['theta_period'].value = radians(period)
-        self.prog['theta_offset'].value = 0.0
-        self.prog['face_color'].value = color
-        self.prog['background'].value = background
-
-    def eval_at(self, t):
-        self.prog['theta_duty'].value = (self.width + t*self.rate)/self.period
 
 class RandomBars(BaseProgram):
     def __init__(self, screen, max_face_colors=64):

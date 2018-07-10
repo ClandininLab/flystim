@@ -6,7 +6,7 @@ import os.path
 from string import Template
 
 class BaseProgram:
-    def __init__(self, screen, uniforms=None, calc_color=None):
+    def __init__(self, screen, uniforms=None, functions=None, calc_color=None):
         """
         :param screen: Object containing screen size information
         :param uniforms: List of glsl.Uniform objects representing the uniform variables used in the shader
@@ -21,6 +21,11 @@ class BaseProgram:
         if uniforms is None:
             uniforms = []
         self.uniforms = uniforms
+
+        # set function declarations
+        if functions is None:
+            functions = []
+        self.functions = functions
 
         # set color program
         if calc_color is None:
@@ -45,10 +50,14 @@ class BaseProgram:
         # convert list of uniforms to GLSL code
         decl_uniforms = ''.join(str(uniform)+';\n' for uniform in self.uniforms)
 
+        # convert list of functions to GLSL code
+        decl_functions = ''.join(str(function)+'\n' for function in self.functions)
+
         # load the fragment shader
         fragment_shader_template = Template(open(os.path.join(shader_dir, 'base.template'), 'r').read())
         fragment_shader = fragment_shader_template.substitute(
             decl_uniforms=decl_uniforms,
+            decl_functions=decl_functions,
             calc_color=self.calc_color
         )
 

@@ -142,17 +142,25 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def white_corner_square(self):
         """
-        Make the corner square white.
+        Stop the corner square from toggling, then make it white.
         """
 
-        self.square_program.color = 1.0
+        self.set_corner_square(1.0)
 
     def black_corner_square(self):
         """
-        Make the corner square black.
+        Stop the corner square from toggling, then make it black.
         """
 
-        self.square_program.color = 0.0
+        self.set_corner_square(0.0)
+
+    def set_corner_square(self, color):
+        """
+        Stop the corner square from toggling, then set it to the desired color.
+        """
+
+        self.stop_corner_square()
+        self.square_program.color = color
 
     def show_corner_square(self):
         """

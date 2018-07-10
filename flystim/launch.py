@@ -229,6 +229,9 @@ def launch(screens, port=0, profile=False):
     # background control functions
     server.register_function(set_idle_background, 'set_idle_background')
 
+    # allow for multicall functions
+    server.register_multicall_functions()
+
     ####################################
     # run the application
     ####################################
