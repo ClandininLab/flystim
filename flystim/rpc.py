@@ -1,7 +1,9 @@
 import sys
-import json
 from threading import Thread
 from queue import Queue, Empty
+
+from jsonrpc import JSONRPCResponseManager
+from jsonrpc.jsonrpc2 import JSONRPC20Request, JSONRPC20BatchRequest
 
 # This file contains a simple stream-based remote procedure call system
 # The work is inspired by this StackOverflow post:
@@ -9,50 +11,51 @@ from queue import Queue, Empty
 
 def stream_to_queue(s, q):
     """
-    Function that copies a stream output into a queue, line by line
+    Function that copies a stream output into a queue, line by line.
     :param s: Stream
     :param q: Queue
     """
 
     while True:
-        # read next line from stream
-        # this is a blocking call, so the line will stall until input is received
+        # read next line from stream (blocking call)
         line = s.readline()
 
-        # strip whitespace from ends and make sure that this isn't an empty line
-        # this is necessary because empty lines are transmitted when Ctrl+C is pressed,
-        # which sometimes causes the JSON decoder to fail.
-        line = line.strip()
-        if line != '':
-            q.put(line)
+        # put the line into the queue
+        q.put(line)
 
-class RpcServer:
+def request(method, *args, **kwargs):
     """
-    This class is intended to be scheduled to run inside an event loop such as pyglet.app.run()
-    It launches a thread to store each line of the stream into a queue.  The lines are then processed as remote
-    procedure calls.
+    Returns a single JSON RPC 2.0 request.
+    :param method: Name of the method.
+    :param params: Positional or keyword arguments of the method
     """
 
-    def __init__(self, s=None):
-        """
-        :param s: Stream containing RPCs (defaults to sys.stdin)
-        """
+    if args:
+        if kwargs:
+            raise ValueError('Cannot use both positional and keyword arguments.')
+        else:
+            params = args
+    else:
+        params = kwargs
 
-        # set defaults
-        if s is None:
-            s = sys.stdin
+    return JSONRPC20Request(method=method, params=params, is_notification=True)
 
-        # save settings
-        self.s = s
+class Server:
+    """
+    This class is intended to be scheduled to run inside an event loop.  It launches a thread to store each line of
+    the stream into a queue.  The lines are then processed as remote procedure calls according to the JSON RPC
+    specification.
+    """
 
-        # initialize function mapping
-        self.functions = {}
+    def __init__(self, dispatcher):
+        # save dispatcher
+        self.dispatcher = dispatcher
 
         # create a queue to hold I/O
         self.q = Queue()
 
         # create thread to handle I/O
-        self.t = Thread(target=stream_to_queue, args=(self.s, self.q))
+        self.t = Thread(target=stream_to_queue, args=(sys.stdin, self.q))
 
         # the I/O thread is set as a daemon to allow the program to exit cleanly
         # in general, this flag means "exit program when only daemon threads are left"
@@ -61,7 +64,7 @@ class RpcServer:
         # start I/O thread
         self.t.start()
 
-    def update(self):
+    def process(self):
         """
         This is the function that should be scheduled to run in the event loops.  It processes all of the lines in
         the queue as RPCs before returning.
@@ -69,50 +72,39 @@ class RpcServer:
 
         while True:
             try:
-                line = self.q.get_nowait()
+                request_str = self.q.get_nowait()
             except Empty:
                 break
 
-            # parse request
-            request = json.loads(line)
+            # strip whitespace from the request
+            request_str = request_str.strip()
 
-            # extract method name and arguments
-            method = request['method']
-            args = request.get('args', [])
+            # if line is now empty (i.e., it was all whitespace), skip to the next line
+            if request_str == '':
+                continue
 
-            # run command
-            self.functions[method](*args)
+            # handle the request(s)
+            JSONRPCResponseManager.handle(request_str, self.dispatcher)
 
-    def register_function(self, function, name):
-        self.functions[name] = function
-
-class RpcClient:
+class Client:
     """
-    This class sends commands to an RpcServer via a PIPE.  JSON encoding is used for the RPCs.
+    This class sends commands to an Server via a PIPE.  The JSON 2.0 specification is used.
     """
 
     def __init__(self, s):
         """
         :param s: Stream to be used to transmitting RPCs
         """
+
         self.s = s
 
-    def request(self, method, args=None):
+    def batch(self, *requests):
         """
-        Sends a single command to the RPC server.
-        :param method: Name of the method.
-        :param args: Positional arguments of the method.
+        Sends a batch of requests to the server.
         """
 
-        # build request
-        request = {'method': method}
+        self.write(JSONRPC20BatchRequest(*requests))
 
-        if args is not None:
-            request['args'] = args
-
-        # convert request to JSON format
-        request_json = json
-
-        # write request
-        self.s.write((json.dumps(request) + '\n').encode('utf-8'))
+    def write(self, request):
+        self.s.write((request.json + '\n').encode('utf-8'))
         self.s.flush()

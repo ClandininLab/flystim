@@ -6,6 +6,7 @@ import signal
 import moderngl
 
 from argparse import ArgumentParser
+from jsonrpc import Dispatcher
 
 from flystim.stimuli import RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
 from flystim.stimuli import Checkerboard, MovingPatch
@@ -13,7 +14,7 @@ from flystim.stimuli import Checkerboard, MovingPatch
 from flystim.square import SquareProgram
 
 from flystim.screen import Screen
-from flystim.rpc import RpcServer
+from flystim.rpc import Server
 
 class StimDisplay(QtOpenGL.QGLWidget):
     """
@@ -21,7 +22,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
     and also controls rendering of the stimulus, toggling corner square, and/or debug information.
     """
 
-    def __init__(self, screen):
+    def __init__(self, screen, server):
         """
         :param screen: Screen object (from flystim.screen) corresponding to the screen on which the stimulus will
         be displayed.
@@ -44,8 +45,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_started = False
         self.stim_start_time = None
 
-        # make RPC handler
-        self.rpc_server = self.make_rpc_server()
+        # save handle to server
+        self.server = server
 
         # make OpenGL programs that are used by stimuli
         cls_list = [RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid,
@@ -71,7 +72,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def paintGL(self):
         # handle RPC input
-        self.rpc_server.update()
+        self.server.process()
 
         # set the viewport to fill the window
         # ref: https://github.com/pyqtgraph/pyqtgraph/issues/422
@@ -96,16 +97,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
     # control functions
     ###########################################
 
-    def load_stim(self, name, params):
+    def load_stim(self, name, *args, **kwargs):
         """
         Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
         background color is changed to the one specified in the stimulus, and the stimulus is evaluated at time 0.
         :param name: Name of the stimulus (should be a class name)
-        :param params: Parameters used to instantiate the class (e.g., period, bar width, etc.)
         """
 
         self.stim = self.render_programs[name]
-        self.stim.configure(**params)
+        self.stim.configure(*args, **kwargs)
 
     def start_stim(self, t):
         """
@@ -185,32 +185,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.idle_background = color
 
-    ###########################################
-    # initialization functions
-    ###########################################
-
-    def make_rpc_server(self):
-        # create the RpcServer object
-        rpc_server = RpcServer()
-
-        # stimulus control functions
-        rpc_server.register_function(self.load_stim, 'load_stim')
-        rpc_server.register_function(self.start_stim, 'start_stim')
-        rpc_server.register_function(self.stop_stim, 'stop_stim')
-
-        # corner square control functions
-        rpc_server.register_function(self.start_corner_square, 'start_corner_square')
-        rpc_server.register_function(self.stop_corner_square, 'stop_corner_square')
-        rpc_server.register_function(self.white_corner_square, 'white_corner_square')
-        rpc_server.register_function(self.black_corner_square, 'black_corner_square')
-        rpc_server.register_function(self.show_corner_square, 'show_corner_square')
-        rpc_server.register_function(self.hide_corner_square, 'hide_corner_square')
-
-        # background control functions
-        rpc_server.register_function(self.set_idle_background, 'set_idle_background')
-
-        return rpc_server
-
 
 def make_qt_format(vsync):
     """
@@ -274,9 +248,26 @@ def main():
                     offset=args.offset, fullscreen=args.fullscreen, vsync=args.vsync,
                     square_side=args.square_side, square_loc=args.square_loc)
 
-    # create the StimDisplay object
-    stim_display = StimDisplay(screen=screen)
+    # create a dispatcher to keep track of RPC methods
+    dispatcher = Dispatcher()
 
+    # create the StimDisplay object
+    stim_display = StimDisplay(screen=screen, server=Server(dispatcher))
+
+    # register functions
+    dispatcher.add_method(stim_display.load_stim)
+    dispatcher.add_method(stim_display.start_stim)
+    dispatcher.add_method(stim_display.stop_stim)
+    dispatcher.add_method(stim_display.start_corner_square)
+    dispatcher.add_method(stim_display.stop_corner_square)
+    dispatcher.add_method(stim_display.white_corner_square)
+    dispatcher.add_method(stim_display.black_corner_square)
+    dispatcher.add_method(stim_display.set_corner_square)
+    dispatcher.add_method(stim_display.show_corner_square)
+    dispatcher.add_method(stim_display.hide_corner_square)
+    dispatcher.add_method(stim_display.set_idle_background)
+
+    # display the stimulus
     if screen.fullscreen:
         stim_display.showFullScreen()
     else:

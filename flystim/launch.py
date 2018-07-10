@@ -3,10 +3,8 @@ import os.path
 import sys
 
 from time import time
-from xmlrpc.server import SimpleXMLRPCServer
 
-from flystim.rpc import RpcClient
-from flystim.screen import Screen
+from flystim.rpc import Client, request
 
 class IdCounter:
     """
@@ -75,175 +73,53 @@ def create_stim_process(screen, profile=False, counter=None):
     # return the process
     return p
 
-def launch(screens, port=0, profile=False):
-    """
-    Launches separate processes to display synchronized stimuli on all of the given screens.  After that, a
-    remote procedure call (RPC) server is launched, which allows the user to send commands to all screens at once.
-    :param screens: List of screens on which the stimuli should be displayed.  Each should be a Screen object defining
-    the screen coordinates, id #, etc.
-    :param port: Socket port number to be used for sending stimulus commands.  The default value (0) means that a port
-    will be assigned automatically, and the chosen port will be printed out.
-    """
-
-    ####################################
-    # launch the display processes
-    ####################################
-
-    # Launch a separate display process for each screen
-    counter = IdCounter()
-    processes = [create_stim_process(screen=screen, profile=profile, counter=counter) for screen in screens]
-
-    # Create RPC handlers for each process
-    stim_clients = [RpcClient(process.stdin) for process in processes]
-
-    ####################################
-    # define the control functions
-    ####################################
-
-    def load_stim(name, params):
+class StimManager:
+    def __init__(self, screens, profile=False):
         """
-        Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
-        background color is changed to the one specified in the stimulus, and the stimulus is evaluated at time 0.
-        :param name: Name of the stimulus (should be a class name)
-        :param params: Parameters used to instantiate the class (e.g., period, bar width, etc.)
+        Launches separate processes to display synchronized stimuli on all of the given screens.  After that, a
+        remote procedure call (RPC) server is launched, which allows the user to send commands to all screens at once.
+        :param screens: List of screens on which the stimuli should be displayed.  Each should be a Screen object defining
+        the screen coordinates, id #, etc.
         """
 
-        for stim_client in stim_clients:
-            stim_client.request('load_stim', [name, params])
+        # Launch a separate display process for each screen
+        counter = IdCounter()
+        self.processes = [create_stim_process(screen=screen, profile=profile, counter=counter) for screen in screens]
 
-        return 0
+        # Create RPC handlers for each process
+        self.clients = [Client(process.stdin) for process in self.processes]
 
-    def start_stim():
+    def batch(self, *requests):
+        # preprocess requests as necessary
+        for request in requests:
+            if request.method == 'start_stim':
+                assert not request.params, 'start_stim should not be called with arguments'
+                request.params = [time()]
+
+        # run the batch on each client
+        for client in self.clients:
+            client.batch(*requests)
+
+    def __getattr__(self, method):
         """
-        Starts the stimulus animation, using exactly the same start time for all screens.
-        """
-
-        t = time()
-        for stim_client in stim_clients:
-            stim_client.request('start_stim', [t])
-
-        return 0
-
-    def stop_stim():
-        """
-        Stops the stimulus animation and removes it from the displays.  The background color reverts to idle_background.
-        """
-
-        for stim_client in stim_clients:
-            stim_client.request('stop_stim')
-
-        return 0
-
-    def start_corner_square():
-        """
-        Start toggling the corner square.
+        Generic handling for RPC methods.
         """
 
-        for stim_client in stim_clients:
-            stim_client.request('start_corner_square')
+        def f(*args, **kwargs):
+            self.batch(request(method, *args, **kwargs))
 
-        return 0
+        return f
 
-    def stop_corner_square():
-        """
-        Stop toggling the corner square.
-        """
+class MultiCall:
+    def __init__(self, manager: StimManager):
+        self.manager = manager
+        self.requests = []
 
-        for stim_client in stim_clients:
-            stim_client.request('stop_corner_square')
+    def __getattr__(self, method):
+        def f(*args, **kwargs):
+            self.requests.append(request(method, *args, **kwargs))
 
-        return 0
+        return f
 
-    def white_corner_square():
-        """
-        Make the corner square white.
-        """
-
-        for stim_client in stim_clients:
-            stim_client.request('white_corner_square')
-
-        return 0
-
-    def black_corner_square():
-        """
-        Make the corner square black.
-        """
-
-        for stim_client in stim_clients:
-            stim_client.request('black_corner_square')
-
-        return 0
-
-    def show_corner_square():
-        """
-        Show the corner square.
-        """
-
-        for stim_client in stim_clients:
-            stim_client.request('show_corner_square')
-
-        return 0
-
-    def hide_corner_square():
-        """
-        Hide the corner square.  Note that it will continue to toggle if self.should_toggle_square is True,
-        even though nothing will be displayed.
-        """
-
-        for stim_client in stim_clients:
-            stim_client.request('hide_corner_square')
-
-        return 0
-
-    def set_idle_background(color):
-        """
-        Sets the RGB color of the background when there is no stimulus being displayed (sometimes called the
-        interleave period).
-        """
-
-        for stim_client in stim_clients:
-            stim_client.request('set_idle_background', [color])
-
-        return 0
-
-    ####################################
-    # set up the server
-    ####################################
-
-    # Set up the RPC server
-    server = SimpleXMLRPCServer(addr=('127.0.0.1', port), logRequests=False)
-
-    # Register stimulus control functions
-    server.register_function(load_stim, 'load_stim')
-    server.register_function(start_stim, 'start_stim')
-    server.register_function(stop_stim, 'stop_stim')
-
-    # corner square control functions
-    server.register_function(start_corner_square, 'start_corner_square')
-    server.register_function(stop_corner_square, 'stop_corner_square')
-    server.register_function(white_corner_square, 'white_corner_square')
-    server.register_function(black_corner_square, 'black_corner_square')
-    server.register_function(show_corner_square, 'show_corner_square')
-    server.register_function(hide_corner_square, 'hide_corner_square')
-
-    # background control functions
-    server.register_function(set_idle_background, 'set_idle_background')
-
-    # allow for multicall functions
-    server.register_multicall_functions()
-
-    ####################################
-    # run the application
-    ####################################
-
-    # Print the port name (mainly relevant when port=0, meaning that the
-    # port number is automatically selected
-    port = server.socket.getsockname()[1]
-    print('Display server port: {}'.format(port))
-
-    # Run server
-    print('Press Ctrl+C to exit.')
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
+    def __call__(self):
+        self.manager.batch(*self.requests)
