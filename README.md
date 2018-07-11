@@ -1,10 +1,6 @@
 # Introduction
 
-**flystim** is a software package for generating visual stimuli for fruit fly experiments.  The stimuli are perspective-corrected and can be displayed across multiple screens.
-
-In this software package, a server displays stimuli in response to commands from a client.  This allows users to write relatively concise experimental control programs.
-
-The server is a Python program, while the client can be written in any language that supports [XML-RPC](https://en.wikipedia.org/wiki/XML-RPC).  Sample client code is included in the **examples** directory.
+**flystim** is a software package for generating visual stimuli for fruit fly experiments.  The stimuli are perspective-corrected and can be displayed across multiple screens.  Sample code, illustrating various use cases, is included in the **examples** directory.
 
 # Installation
 
@@ -16,22 +12,15 @@ First open a terminal and navigate to a convenient directory.  Then download and
 > pip3 install -e .
 ```
 
-This should install the Python package dependencies (pyglet, numpy, and scipy) if you don't already have them.
+This should install the Python package dependencies if you don't already have them.
 
 # Running the Example Code
 
-In one terminal tab, launch the server:
+In a terminal tab, navigate to the examples directory and run one of the sample programs, such as **show_all.py**.
 
 ```shell
 > cd flystim/examples
-> python3 server.py
+> python3 show_all.py
 ```
 
-Then, in a second terminal tab, launch the client:
-
-```shell
-> cd flystim/examples
-> python3 client.py
-```
-
-The client program should run for about 20 seconds before completing.  However, the server will still be active and ready to accept further commands at that point.  When you are ready to exit the server, go back to the server's terminal tab and press Ctrl+C.
+Each example can be exited at any time by pressing Ctrl+C.
