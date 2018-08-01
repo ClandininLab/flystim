@@ -5,12 +5,15 @@
 
 from time import sleep
 
-from flystim.launch import StimManager, MultiCall
+from flystim.launch import StimManager, MultiCall, StimClient
 from flystim.screen import Screen
 
-def main():
-    screens = [Screen()]
-    manager = StimManager(screens)
+def main(use_server=True):
+    if use_server:
+        manager = StimClient()
+    else:
+        screens = [Screen()]
+        manager = StimManager(screens)
 
     stims = ['SineGrating', 'RotatingBars', 'ExpandingEdges', 'SequentialBars', 'RandomBars',
              'RandomGrid', 'Checkerboard', 'MovingPatch']

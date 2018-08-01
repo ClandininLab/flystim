@@ -6,12 +6,15 @@
 from time import sleep
 from random import choice
 
-from flystim.launch import StimManager
+from flystim.launch import StimManager, StimClient
 from flystim.screen import Screen
 
-def main(num_trials=15, stim_type='SineGrating'):
-    screens = [Screen()]
-    manager = StimManager(screens)
+def main(num_trials=5, stim_type='SineGrating', use_server=True):
+    if use_server:
+        manager = StimClient()
+    else:
+        screens = [Screen()]
+        manager = StimManager(screens)
 
     signs = [-1, 1]
     rates = [10, 20, 40, 100, 200, 400, 1000]

@@ -4,12 +4,15 @@
 
 from time import sleep
 
-from flystim.launch import StimManager
+from flystim.launch import StimManager, StimClient
 from flystim.screen import Screen
 
-def main(num_trials=15):
-    screens = [Screen()]
-    manager = StimManager(screens)
+def main(num_trials=3, use_server=True):
+    if use_server:
+        manager = StimClient()
+    else:
+        screens = [Screen()]
+        manager = StimManager(screens)
 
     for _ in range(num_trials):
         manager.load_stim('MovingPatch')

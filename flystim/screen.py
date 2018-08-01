@@ -9,7 +9,7 @@ class Screen:
     """
 
     def __init__(self, width=None, height=None, rotation=None, offset=None, id=None, fullscreen=None, vsync=None,
-                 square_side=None, square_loc=None):
+                 square_side=None, square_loc=None, name=None):
         """
         :param width: width of the screen (meters)
         :param height: height of the screen (meters)
@@ -22,6 +22,7 @@ class Screen:
         :param vsync: Boolean.  If True, lock the framerate to the redraw rate of the screen.
         :param square_side: Length of photodiode synchronization square (meters).
         :param square_loc: Location of photodiode synchronization square (one of 'll', 'lr', 'ul', 'ur')
+        :param name: descriptive name to associate with this screen
         """
 
         # Set defaults for MacBook Pro (Retina, 15-inch, Mid 2015)
@@ -44,6 +45,8 @@ class Screen:
             square_side = 2e-2
         if square_loc is None:
             square_loc = 'll'
+        if name is None:
+            name = 'Screen' + str(id)
 
         # Save settings
 
@@ -56,6 +59,7 @@ class Screen:
         self.vsync = vsync
         self.square_side = square_side
         self.square_loc = square_loc
+        self.name = name
 
         #######################
         # derived values

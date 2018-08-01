@@ -1,33 +1,15 @@
 import subprocess
 import os.path
 import sys
+import socket
+import logging
+from jsonrpc.jsonrpc2 import JSONRPC20BatchRequest, JSONRPC20Request
 
 from time import time
 
 from flystim.rpc import Client, request
 
-class IdCounter:
-    """
-    Class to keep track of how many screens of each ID have been added.  This is largely for debugging purposes,
-    because usually only one window will be open on each screen.
-    """
-
-    def __init__(self):
-        self.counts = {}
-
-    def add(self, id):
-        """
-        :param id: ID number to be added.
-        :return: Count of this ID registered so far (including the one just added)
-        """
-
-        # increment count of this ID
-        self.counts[id] = self.counts.get(id, 0) + 1
-
-        # return count
-        return self.counts[id]
-
-def create_stim_process(screen, profile=False, counter=None):
+def create_stim_process(screen, profile=False):
     """
     This function launches a subprocess to display stimuli on a given screen.  In general, this function should
     be called once for each screen.
@@ -53,9 +35,10 @@ def create_stim_process(screen, profile=False, counter=None):
     args += [python_full_path]
     if profile:
         args += ['-m', 'cProfile']
-        args += ['-o', 'id_{}_no_{}.prof'.format(screen.id, counter.add(screen.id))]
+        args += ['-o', screen.name + '.prof']
     args += [server_full_path]
     args += ['--id', str(screen.id)]
+    args += ['--name', str(screen.name)]
     args += ['--width', str(screen.width)]
     args += ['--height', str(screen.height)]
     args += ['--rotation', str(screen.rotation)]
@@ -73,18 +56,76 @@ def create_stim_process(screen, profile=False, counter=None):
     # return the process
     return p
 
+# ref: https://stackoverflow.com/questions/6946629/can-i-get-a-socket-makefile-to-have-the-same-read-semantics-as-a-regular-file
+
+class StimClient:
+    def __init__(self, addr=None):
+        # set defaults
+        if addr is None:
+            addr = ('127.0.0.1', 60629)
+
+        connection = socket.create_connection(addr)
+        self.file = connection.makefile('w')
+
+    def batch(self, *requests):
+        self.file.write(JSONRPC20BatchRequest(*requests).json + '\n')
+        self.file.flush()
+
+    def __getattr__(self, method):
+        def f(*args, **kwargs):
+            self.batch(request(method, *args, **kwargs))
+
+        return f
+
+# ref: https://stackoverflow.com/questions/11815852/how-do-i-make-my-tcp-server-run-forever
+
+def stim_server (manager, addr=None):
+    # set defaults
+    if addr is None:
+        addr = ('127.0.0.1', 60629)
+
+    # configure logging
+    logging.basicConfig(level=logging.DEBUG)
+
+    # configure the socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(addr)
+    s.listen(1)
+
+    while True:
+        connection, addr = s.accept()
+        logging.info('StimServer accepted connection.')
+
+        f = connection.makefile('r')
+        for line in f:
+            # trim whitespace and skip if the line is now empty
+            request_str = line.strip()
+            if request_str == '':
+                continue
+
+            # parse request string
+            request = JSONRPC20Request.from_json(request_str)
+
+            # process request(s)
+            if isinstance(request, JSONRPC20BatchRequest):
+                manager.batch(*request.requests)
+            else:
+                manager.batch(request)
+
+        logging.info('StimServer dropped connection.')
+
 class StimManager:
     def __init__(self, screens, profile=False):
         """
         Launches separate processes to display synchronized stimuli on all of the given screens.  After that, a
         remote procedure call (RPC) server is launched, which allows the user to send commands to all screens at once.
-        :param screens: List of screens on which the stimuli should be displayed.  Each should be a Screen object defining
-        the screen coordinates, id #, etc.
+        :param screens: List of screens on which the stimuli should be displayed.  Each should be a Screen object
+        defining the screen coordinates, id #, etc.
         """
 
         # Launch a separate display process for each screen
-        counter = IdCounter()
-        self.processes = [create_stim_process(screen=screen, profile=profile, counter=counter) for screen in screens]
+        self.processes = [create_stim_process(screen=screen, profile=profile) for screen in screens]
 
         # Create RPC handlers for each process
         self.clients = [Client(process.stdin) for process in self.processes]
@@ -111,7 +152,7 @@ class StimManager:
         return f
 
 class MultiCall:
-    def __init__(self, manager: StimManager):
+    def __init__(self, manager):
         self.manager = manager
         self.requests = []
 

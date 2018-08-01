@@ -4,6 +4,7 @@ import time
 import sys
 import signal
 import moderngl
+import logging
 
 from argparse import ArgumentParser
 from jsonrpc import Dispatcher
@@ -45,7 +46,12 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_started = False
         self.stim_start_time = None
 
-        # save handle to server
+        # profiling information
+        self.profile_frame_count = None
+        self.profile_start_time = None
+
+        # save handles to screen and server
+        self.screen = screen
         self.server = server
 
         # make OpenGL programs that are used by stimuli
@@ -82,6 +88,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         if self.stim is not None:
             if self.stim_started:
                 self.stim.paint_at(time.time()-self.stim_start_time)
+                self.profile_frame_count += 1
             else:
                 self.stim.paint_at(0)
         else:
@@ -116,15 +123,35 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_started = True
         self.stim_start_time = t
 
+        self.profile_frame_count = 0
+        self.profile_start_time = time.time()
+
     def stop_stim(self):
         """
         Stops the stimulus animation and removes it from the display.
         """
 
+        # print profiling information if applicable
+
+        if ((self.profile_frame_count is not None) and
+            (self.profile_start_time is not None) and
+            (self.stim is not None)):
+
+            profile_duration = time.time() - self.profile_start_time
+            if profile_duration > 0:
+                logging.info('{} ({}): {:0.1f} fps'.format(self.stim.__class__.__name__,
+                                                           self.screen.name,
+                                                           self.profile_frame_count / profile_duration))
+
+        # reset stim variables
+
         self.stim = None
 
         self.stim_started = False
         self.stim_start_time = None
+
+        self.profile_frame_count = None
+        self.profile_start_time = None
 
     def start_corner_square(self):
         """
@@ -219,6 +246,12 @@ def main():
     """
 
     ####################################
+    # Set up logging
+    ####################################
+
+    logging.basicConfig(level=logging.DEBUG)
+
+    ####################################
     # Create QApplication
     ####################################
 
@@ -231,6 +264,7 @@ def main():
     # set up command line parser
     parser = ArgumentParser()
     parser.add_argument('--id', type=int)
+    parser.add_argument('--name', type=str)
     parser.add_argument('--width', type=float)
     parser.add_argument('--height', type=float)
     parser.add_argument('--rotation', type=float)
@@ -244,9 +278,9 @@ def main():
     args = parser.parse_args()
 
     # create the screen object used to pass arguments into StimDisplay constructor
-    screen = Screen(id=args.id, width=args.width, height=args.height, rotation=args.rotation,
-                    offset=args.offset, fullscreen=args.fullscreen, vsync=args.vsync,
-                    square_side=args.square_side, square_loc=args.square_loc)
+    screen = Screen(id=args.id, name=args.name, width=args.width, height=args.height, rotation=args.rotation,
+                    offset=args.offset, fullscreen=args.fullscreen, vsync=args.vsync, square_side=args.square_side,
+                    square_loc=args.square_loc)
 
     # create a dispatcher to keep track of RPC methods
     dispatcher = Dispatcher()
