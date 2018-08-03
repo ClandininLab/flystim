@@ -322,7 +322,7 @@ class SequentialBars(BaseProgram):
         self.prog['enable_second'].value = (t >= self.second_active_time)
 
 class GridStim(BaseProgram):
-    def __init__(self, screen, max_face_colors=512):
+    def __init__(self, screen, max_face_colors=4000):
         self.max_face_colors = max_face_colors
 
         uniforms = [

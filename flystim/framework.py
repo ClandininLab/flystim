@@ -49,6 +49,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # profiling information
         self.profile_frame_count = None
         self.profile_start_time = None
+        self.profile_last_time = None
+        self.profile_frame_times = None
 
         # save handles to screen and server
         self.screen = screen
@@ -87,8 +89,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # draw the stimulus
         if self.stim is not None:
             if self.stim_started:
-                self.stim.paint_at(time.time()-self.stim_start_time)
+                t = time.time()
+                self.stim.paint_at(t-self.stim_start_time)
                 self.profile_frame_count += 1
+
+                if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
+                    self.profile_frame_times.append(t - self.profile_last_time)
+
+                self.profile_last_time = t
             else:
                 self.stim.paint_at(0)
         else:
@@ -126,6 +134,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.profile_frame_count = 0
         self.profile_start_time = time.time()
 
+        self.profile_last_time = None
+        self.profile_frame_times = []
+
     def stop_stim(self):
         """
         Stops the stimulus animation and removes it from the display.
@@ -139,9 +150,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             profile_duration = time.time() - self.profile_start_time
             if profile_duration > 0:
-                logging.info('{} ({}): {:0.1f} fps'.format(self.stim.__class__.__name__,
-                                                           self.screen.name,
-                                                           self.profile_frame_count / profile_duration))
+                logging.info('{} ({}): ave {:0.1f}, min {:0.1f}, max {:0.1f} fps'.format(
+                    self.stim.__class__.__name__,
+                    self.screen.name,
+                    self.profile_frame_count / profile_duration,
+                    1.0 / max(self.profile_frame_times),
+                    1.0 / min(self.profile_frame_times) if min(self.profile_frame_times) != 0 else -1,
+                    )
+                )
 
         # reset stim variables
 
@@ -152,6 +168,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.profile_frame_count = None
         self.profile_start_time = None
+
+        self.profile_last_time = None
+        self.profile_frame_times = None
 
     def start_corner_square(self):
         """
