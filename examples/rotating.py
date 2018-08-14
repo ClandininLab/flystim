@@ -9,7 +9,7 @@ from random import choice
 from flystim.launch import StimManager, StimClient
 from flystim.screen import Screen
 
-def main(num_trials=5, stim_type='SineGrating', use_server=True):
+def main(num_trials=5, stim_type='SineGrating', use_server=False):
     if use_server:
         manager = StimClient()
     else:

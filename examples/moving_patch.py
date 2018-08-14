@@ -6,16 +6,21 @@ from time import sleep
 
 from flystim.launch import StimManager, StimClient
 from flystim.screen import Screen
+from flystim.trajectory import RectangleTrajectory, Trajectory
 
-def main(num_trials=3, use_server=True):
+def main(num_trials=3, use_server=False):
     if use_server:
         manager = StimClient()
     else:
         screens = [Screen()]
         manager = StimManager(screens)
 
+    trajectory = RectangleTrajectory(x=[(0,90),(1,95),(2,95),(3,90),(4,90),(5,90)],
+                                     y=[(0,90),(1,90),(2,95),(3,95),(4,90),(5,90)],
+                                     angle=Trajectory([(0,45),(2,-45),(4,45),(5,45)], 'zero'))
+
     for _ in range(num_trials):
-        manager.load_stim('MovingPatch')
+        manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
         sleep(550e-3)
 
         manager.start_stim()

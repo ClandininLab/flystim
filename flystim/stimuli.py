@@ -6,6 +6,7 @@ from scipy.interpolate import interp1d
 
 from flystim.base import BaseProgram
 from flystim.glsl import Uniform, Function, Variable
+from flystim.trajectory import RectangleTrajectory
 
 class PeriodicGrating(BaseProgram):
     def __init__(self, screen, grating):
@@ -125,29 +126,31 @@ class MovingPatch(BaseProgram):
             Uniform('theta_width', float),
             Uniform('phi_width', float),
             Uniform('face_color', float),
+            Uniform('angle', float),
             Uniform('background', float)
         ]
 
         # reference for modular arithmetic: https://fgiesen.wordpress.com/2015/09/24/intervals-in-modular-arithmetic/
 
         calc_color = '''
-            // original longitude / latitude coordinates of this pixel 
-            float t1 = theta;
-            float p1 = phi;
+            // compute relative x coordinates of pixel
+            float rx = mod(theta-theta_center, 2*M_PI);
+            if (rx >= M_PI) {
+                rx -= 2*M_PI;
+            }
             
-            // equivalent representation of the pixel coordinates
-            float t2 = theta + M_PI;
-            float p2 = -phi;
+            // compute relative y coordinates of pixel
+            float ry = mod(phi-phi_center, 2*M_PI);
+            if (ry >= M_PI) {
+                ry -= 2*M_PI;
+            }
             
-            // minimum longitude / latitude coordinates of the patch
-            float min_t = theta_center - theta_width/2.0;
-            float min_p = phi_center - phi_width/2.0;
-                   
-            // check if either representation of the pixel coordinates lies inside the patch        
-            if (((mod(t1 - min_t, 2*M_PI) <= theta_width)  && 
-                 (mod(p1 - min_p, 2*M_PI) <= phi_width)) ||
-                ((mod(t2 - min_t, 2*M_PI) <= theta_width)  && 
-                 (mod(p2 - min_p, 2*M_PI) <= phi_width))) {
+            // compute displacement from center
+            float dx = dot(vec2(+cos(angle), +sin(angle)), vec2(rx, ry));
+            float dy = dot(vec2(-sin(angle), +cos(angle)), vec2(rx, ry));
+               
+            // check if pixel is within face        
+            if ((abs(dx) <= (0.5*theta_width)) && (abs(dy) <= (0.5*phi_width))){
                 color = face_color;
             } else {
                 color = background;
@@ -156,39 +159,30 @@ class MovingPatch(BaseProgram):
 
         super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
 
-    def configure(self, theta_width=5, phi_width=5, color=1.0, background=0.0, trajectory=None, method='linear'):
+    def configure(self, trajectory=None, background=0.0):
         """
         Stimulus consisting of a patch that moves along an arbitrary trajectory.
-        :param theta_width: Longitude width of the patch (degrees)
-        :param phi_width: Latitude width of the patch (degrees)
-        :param color: Color of the patch (0.0 to 1.0)
         :param background: Background color (0.0 to 1.0)
-        :param trajectory: List of 3-tuples (time, longitude, latitude) to specify the waypoints of the patch
-        trajectory.  Longitude and latitude are specified in degrees.
-        :param method: Interpolation method used to compute patch position at times in between waypoints.  Allowed
-        values are those accepted by scipy.interpolate.interp1d (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’,
-        ‘cubic’, ‘previous’, ‘next’)
+        :param trajectory: RectangleTrajectory converted to dictionary (to_dict method)
         """
 
         # set default
         if trajectory is None:
-            trajectory = [(0, 90, 90), (1, 92, 90), (2, 92, 92), (3, 90, 92), (4, 90, 90), (5, 90, 90)]
+            trajectory = RectangleTrajectory().to_dict()
 
-        # create interpolators for longitude and latitude
-        times, lons, lats = zip(*trajectory)
-        self.lon_interp = interp1d(times, np.radians(lons), kind=method, fill_value='extrapolate')
-        self.lat_interp = interp1d(times, np.radians(lats), kind=method, fill_value='extrapolate')
+        # convert the input dictionary to a trajectory object
+        self.trajectory = RectangleTrajectory.from_dict(trajectory)
 
         # set uniforms
-        self.prog['theta_width'].value = radians(theta_width)
-        self.prog['phi_width'].value = radians(phi_width)
-        self.prog['face_color'].value = color
         self.prog['background'].value = background
 
     def eval_at(self, t):
-        self.prog['theta_center'].value = self.lon_interp(t)
-        self.prog['phi_center'].value   = self.lat_interp(t)
-
+        self.prog['theta_center'].value = radians(self.trajectory.x.eval_at(t))
+        self.prog['phi_center'].value = radians(self.trajectory.y.eval_at(t))
+        self.prog['theta_width'].value = radians(self.trajectory.w.eval_at(t))
+        self.prog['phi_width'].value = radians(self.trajectory.h.eval_at(t))
+        self.prog['angle'].value = radians(self.trajectory.angle.eval_at(t))
+        self.prog['face_color'].value = self.trajectory.color.eval_at(t)
 
 class RandomBars(BaseProgram):
     def __init__(self, screen, max_face_colors=64):
@@ -322,7 +316,7 @@ class SequentialBars(BaseProgram):
         self.prog['enable_second'].value = (t >= self.second_active_time)
 
 class GridStim(BaseProgram):
-    def __init__(self, screen, max_face_colors=4000):
+    def __init__(self, screen, max_face_colors=500):
         self.max_face_colors = max_face_colors
 
         uniforms = [

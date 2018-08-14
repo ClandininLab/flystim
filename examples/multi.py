@@ -8,7 +8,7 @@ from time import sleep
 from flystim.launch import StimManager, MultiCall, StimClient
 from flystim.screen import Screen
 
-def main(use_server=True):
+def main(use_server=False):
     if use_server:
         manager = StimClient()
     else:
