@@ -1,5 +1,6 @@
 # ref: https://github.com/SivyerLab/pyCrafter4500
 
+import platform
 import time
 import hid
 from math import floor
@@ -14,10 +15,16 @@ def make_dlpc350_objects():
     for d in hid.enumerate():
         if d['product_string'] != 'DLPC350':
             continue
-        if d['usage'] != 65280:
-            continue
-        if d['usage_page'] != 65280:
-            continue
+
+        if platform.system() == 'Windows':
+            if d['usage'] != 65280:
+                continue
+            if d['usage_page'] != 65280:
+                continue
+        elif platform.system() == 'Linux':
+            path = d['path'].decode('utf-8')
+            if path[-2:] != '00':
+                continue
 
         device = hid.device()
         device.open_path(d['path'])

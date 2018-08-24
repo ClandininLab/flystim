@@ -14,7 +14,8 @@ setup(
         'numpy',
         'pyglet',
         'moderngl',
-        'hidapi',
+	'PyQt5',
+	'hidapi',
         'json-rpc'
     ],
     include_package_data=True,
