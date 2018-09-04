@@ -341,7 +341,7 @@ class GridStim(BaseProgram):
 
 class RandomGrid(GridStim):
     def configure(self, theta_period=15, phi_period=15, rand_min=0.0, rand_max=1.0, start_seed=0,
-                  update_rate=60.0):
+                  update_rate=60.0, binary_distribution = True):
         """
         Patches surrounding the viewer change brightness randomly.
         :param theta_period: Longitude period of the checkerboard patches (degrees)
@@ -357,6 +357,7 @@ class RandomGrid(GridStim):
         self.rand_max = rand_max
         self.start_seed = start_seed
         self.update_rate = update_rate
+        self.binary_distribution = binary_distribution
 
         # write program settings
         self.prog['num_theta'].value = 360 // theta_period
@@ -369,7 +370,11 @@ class RandomGrid(GridStim):
         random.seed(seed)
 
         # compute random values
-        rand_values = [random.uniform(self.rand_min, self.rand_max) for _ in range(self.max_face_colors)]
+        if self.binary_distribution:
+            rand_values = [random.choice([self.rand_min, self.rand_max]) for _ in range(self.max_face_colors)]
+        else:
+            rand_values = [random.uniform(self.rand_min, self.rand_max) for _ in range(self.max_face_colors)]
+        
 
         # write to GPU
         self.prog['face_colors'].value = rand_values
