@@ -5,6 +5,8 @@ import sys
 import signal
 import moderngl
 import logging
+import numpy as np
+import pandas as pd
 
 from argparse import ArgumentParser
 from jsonrpc import Dispatcher
@@ -149,15 +151,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
             (self.stim is not None)):
 
             profile_duration = time.time() - self.profile_start_time
-            if profile_duration > 0:
-                logging.info('{} ({}): ave {:0.1f}, min {:0.1f}, max {:0.1f} fps'.format(
-                    self.stim.__class__.__name__,
-                    self.screen.name,
-                    self.profile_frame_count / profile_duration,
-                    1.0 / max(self.profile_frame_times),
-                    1.0 / min(self.profile_frame_times) if min(self.profile_frame_times) != 0 else -1,
-                    )
-                )
+
+            # filter out frame times of duration zero
+            fps_data = np.array(self.profile_frame_times)
+            fps_data = fps_data[fps_data != 0]
+
+            if len(fps_data) > 0:
+                fps_data = pd.Series(1.0/fps_data)
+                print('*** ' + type(self.stim).__name__ + ' ***')
+                print(fps_data.describe(percentiles=[0.01, 0.05, 0.1, 0.9, 0.95, 0.99]))
+                print()
 
         # reset stim variables
 
