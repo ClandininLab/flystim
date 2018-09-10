@@ -316,7 +316,7 @@ class SequentialBars(BaseProgram):
         self.prog['enable_second'].value = (t >= self.second_active_time)
 
 class GridStim(BaseProgram):
-    def __init__(self, screen, max_theta=360, max_phi=180):
+    def __init__(self, screen, max_theta=256, max_phi=128):
         # initialize the random map
         self.max_theta = max_theta
         self.max_phi = max_phi
@@ -352,7 +352,7 @@ class GridStim(BaseProgram):
 
 
 class RandomGrid(GridStim):
-    def configure(self, theta_period=1, phi_period=1, rand_min=0.0, rand_max=1.0, start_seed=0,
+    def configure(self, theta_period=2, phi_period=2, rand_min=0.0, rand_max=1.0, start_seed=0,
                   update_rate=60.0):
         """
         Patches surrounding the viewer change brightness randomly.
@@ -387,7 +387,7 @@ class RandomGrid(GridStim):
         self.texture.use()
 
 class Checkerboard(GridStim):
-    def configure(self, theta_period=1, phi_period=1):
+    def configure(self, theta_period=2, phi_period=2):
         """
         Patches surrounding the viewer are arranged in a periodic checkerboard.
         :param theta_period: Longitude period of the checkerboard patches (degrees)
