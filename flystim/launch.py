@@ -1,4 +1,5 @@
 import subprocess
+import os
 import os.path
 import sys
 import socket
@@ -51,7 +52,9 @@ def create_stim_process(screen, profile=False):
         args += ['--vsync']
 
     # launch display program
-    p = subprocess.Popen(args, stdin=subprocess.PIPE)
+    env = os.environ.copy()
+    env['DISPLAY'] = ':0.' + str(screen.id)
+    p = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
 
     # return the process
     return p

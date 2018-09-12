@@ -14,10 +14,10 @@ def get_screens(setup_name):
 
         zDistToScreen = 5.36e-2  # meters
 
-        return [Screen(width=w, height=h, rotation=None, offset=(0, zDistToScreen, 0), id=2, fullscreen=True,
-                       vsync=None, square_side=5e-2, square_loc='lr'),
-                Screen(width=w, height=h, rotation=None, offset=(0, zDistToScreen, 0), id=1, fullscreen=True,
-                       vsync=None, square_side=5e-2, square_loc='ll')]
+        screen = Screen(id=1, width=w, height=h, offset=(0, zDistToScreen, 0), fullscreen=True, square_side=5e-2, square_loc='lr')
+
+        # TODO set back to two screens
+        return [screen]
     elif setup_name.lower() in ['bigrig']:
         w = 43 * 2.54e-2
         h = 24 * 2.54e-2

@@ -34,13 +34,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # call super constructor
         super().__init__(make_qt_format(vsync=screen.vsync))
 
-        # configure window to reside on a specific screen
-        # re: https://stackoverflow.com/questions/6854947/how-to-display-a-window-on-a-secondary-display-in-pyqt
-        desktop = QtWidgets.QDesktopWidget()
-        rectScreen = desktop.screenGeometry(screen.id)
-        self.move(rectScreen.left(), rectScreen.top())
-        self.resize(rectScreen.width(), rectScreen.height())
-
         # stimulus initialization
         self.stim = None
 
