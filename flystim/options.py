@@ -5,19 +5,20 @@ from flystim.launch import StimManager, StimClient, stim_server
 from flystim.screen import Screen
 
 def get_screens(setup_name):
+    # TODO: check offset and rotation
+    w = 14.2e-2
+    h = 9e-2
+    bruker_left_screen = Screen(id=2, rotation=pi/4, width=w, height=h, offset=(-w/2, w/2, -h/2), square_loc='ll', fullscreen=True, square_side=5e-2)
+    bruker_right_screen = Screen(id=1, rotation=-pi/4, width=w, height=h, offset=(w/2, w/2, -h/2), square_loc='lr', fullscreen=True, square_side=5e-2)
+
     if setup_name.lower() in ['macbook']:
         return [Screen(fullscreen=False)]
+    elif setup_name.lower() in ['bruker_right']:
+        return [bruker_right_screen]
+    elif setup_name.lower() in ['bruker_left']:
+        return [bruker_left_screen]
     elif setup_name.lower() in ['bruker']:
-        # meters of image at projection plane, screen only shows 9x9 of this
-        w = 14.2e-2
-        h = 9e-2
-
-        zDistToScreen = 5.36e-2  # meters
-
-        screen = Screen(id=1, width=w, height=h, offset=(0, zDistToScreen, 0), fullscreen=True, square_side=5e-2, square_loc='lr')
-
-        # TODO set back to two screens
-        return [screen]
+        return [bruker_right_screen, bruker_left_screen]
     elif setup_name.lower() in ['bigrig']:
         w = 43 * 2.54e-2
         h = 24 * 2.54e-2

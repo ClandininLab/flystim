@@ -7,7 +7,7 @@ def main():
     dlpc350_objects = make_dlpc350_objects()
 
     for dlpc350_object in dlpc350_objects:
-        dlpc350_object.pattern_mode(fps=90)
+        dlpc350_object.pattern_mode(fps=115.06)
 
 if __name__ == "__main__":
     main()
