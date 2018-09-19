@@ -7,6 +7,9 @@ class vec3:
 class vec4:
     pass
 
+class sampler2D:
+    pass
+
 def type2str(cls):
     if cls is bool:
         return 'bool'
@@ -20,6 +23,8 @@ def type2str(cls):
         return 'vec3'
     elif cls is vec4:
         return 'vec4'
+    elif cls is sampler2D:
+        return 'sampler2D'
     else:
         raise ValueError('Invalid GLSL type.')
 
@@ -94,6 +99,12 @@ class Variable:
 
         return retval
 
+
 class Uniform(Variable):
     def __str__(self):
         return 'uniform ' + super().__str__()
+
+
+class Texture(Uniform):
+    def __init__(self, name):
+        super().__init__(name=name, type=sampler2D)

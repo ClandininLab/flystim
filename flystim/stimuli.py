@@ -1,11 +1,11 @@
 import random
 import numpy as np
+import moderngl
 
 from math import pi, radians, ceil, cos, sin
-from scipy.interpolate import interp1d
 
 from flystim.base import BaseProgram
-from flystim.glsl import Uniform, Function, Variable
+from flystim.glsl import Uniform, Function, Variable, Texture
 from flystim.trajectory import RectangleTrajectory
 
 class PeriodicGrating(BaseProgram):
@@ -316,14 +316,15 @@ class SequentialBars(BaseProgram):
         self.prog['enable_second'].value = (t >= self.second_active_time)
 
 class GridStim(BaseProgram):
-    def __init__(self, screen, max_face_colors=500):
-        self.max_face_colors = max_face_colors
+    def __init__(self, screen, max_theta=256, max_phi=128):
+        # initialize the random map
+        self.max_theta = max_theta
+        self.max_phi = max_phi
 
         uniforms = [
-            Uniform('num_theta', int),
             Uniform('phi_period', float),
             Uniform('theta_period', float),
-            Uniform('face_colors', float, max_face_colors)
+            Texture('grid_values')
         ]
 
         calc_color = '''
@@ -333,15 +334,31 @@ class GridStim(BaseProgram):
             
             int theta_int = int(theta/theta_period);
             int phi_int = int(phi/phi_period);
-            
-            color = face_colors[theta_int + num_theta*phi_int]; 
+        
+            color = texelFetch(grid_values, ivec2(theta_int, phi_int), 0).r;
         '''
 
         super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
 
+    def initialize(self, ctx):
+        # ref: https://github.com/cprogrammer1994/ModernGL/blob/6b0f5851539da4170596f62456bac0c22024e754/examples/conways_game_of_life.py
+        patches = np.zeros((self.max_phi, self.max_theta)).astype('f4')
+        self.texture = ctx.texture((self.max_theta, self.max_phi), 1, patches.tobytes(), dtype='f4')
+        self.texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
+        self.texture.swizzle = 'RRR1'
+        self.texture.use()
+
+        super().initialize(ctx)
+
+
 class RandomGrid(GridStim):
+<<<<<<< HEAD
     def configure(self, theta_period=15, phi_period=15, rand_min=0.0, rand_max=1.0, start_seed=0,
                   update_rate=60.0, binary_distribution = True):
+=======
+    def configure(self, theta_period=2, phi_period=2, rand_min=0.0, rand_max=1.0, start_seed=0,
+                  update_rate=60.0):
+>>>>>>> master
         """
         Patches surrounding the viewer change brightness randomly.
         :param theta_period: Longitude period of the checkerboard patches (degrees)
@@ -360,7 +377,6 @@ class RandomGrid(GridStim):
         self.binary_distribution = binary_distribution
 
         # write program settings
-        self.prog['num_theta'].value = 360 // theta_period
         self.prog['phi_period'].value = radians(phi_period)
         self.prog['theta_period'].value = radians(theta_period)
 
@@ -370,40 +386,41 @@ class RandomGrid(GridStim):
         random.seed(seed)
 
         # compute random values
+<<<<<<< HEAD
         if self.binary_distribution:
             rand_values = [random.choice([self.rand_min, self.rand_max]) for _ in range(self.max_face_colors)]
         else:
             rand_values = [random.uniform(self.rand_min, self.rand_max) for _ in range(self.max_face_colors)]
         
+=======
+        face_colors = np.random.uniform(self.rand_min, self.rand_max, (self.max_phi, self.max_theta))
+>>>>>>> master
 
         # write to GPU
-        self.prog['face_colors'].value = rand_values
+        self.texture.write(face_colors.astype('f4'))
+        self.texture.use()
 
 class Checkerboard(GridStim):
-    def configure(self, theta_period=15, phi_period=15):
+    def configure(self, theta_period=2, phi_period=2):
         """
         Patches surrounding the viewer are arranged in a periodic checkerboard.
         :param theta_period: Longitude period of the checkerboard patches (degrees)
         :param phi_period: Latitude period of the checkerboard patches (degrees)
         """
 
-        # calculate number of bars
-        num_theta = 360 // theta_period
-        num_phi = 180 // phi_period
-        num_faces = num_theta * num_phi
-        assert num_faces <= self.max_face_colors
-
         # write program settings
-        self.prog['num_theta'].value = num_theta
         self.prog['phi_period'].value = radians(phi_period)
         self.prog['theta_period'].value = radians(theta_period)
 
         # create the pattern
-        face_colors  = ([0.0, 1.0] * int(ceil(num_theta/2)))[:num_theta]
-        face_colors += ([1.0, 0.0] * int(ceil(num_theta/2)))[:num_theta]
-        face_colors *= int(ceil(num_phi/2))
-        face_colors  = face_colors[:num_faces]
-        face_colors += [0.0]*(self.max_face_colors - num_faces)
+        # row = y (phi) coord
+        # col = x (theta) coord
+        face_colors  = np.zeros((self.max_phi, self.max_theta))
+        face_colors[0::2, 0::2] = 1
+        face_colors[1::2, 1::2] = 1
 
         # write the pattern
-        self.prog['face_colors'].value = face_colors
+        self.texture.write(face_colors.astype('f4'))
+
+    def eval_at(self, t):
+        self.texture.use()
