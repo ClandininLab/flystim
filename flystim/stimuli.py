@@ -375,19 +375,19 @@ class RandomGrid(GridStim):
         # write program settings
         self.prog['phi_period'].value = radians(phi_period)
         self.prog['theta_period'].value = radians(theta_period)
-
+        
     def eval_at(self, t):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
-        random.seed(seed)
+        np.random.seed(seed)
 
         # compute random values
         if self.distribution_type == 'binary':
-            face_colors = [random.choice([self.rand_min, self.rand_max]) for _ in range(self.max_face_colors)]
+            face_colors = np.random.choice([self.rand_min, self.rand_max], (self.max_phi, self.max_theta))
         elif self.distribution_type == 'ternary':
-            face_colors = [random.choice([self.rand_min, (self.rand_min + self.rand_max)/2 , self.rand_max]) for _ in range(self.max_face_colors)]
+            face_colors = np.random.choice([self.rand_min, (self.rand_min + self.rand_max)/2 , self.rand_max], (self.max_phi, self.max_theta))
         elif self.distribution_type == 'uniform':
-            face_colors = [random.uniform(self.rand_min, self.rand_max) for _ in range(self.max_face_colors)]
+            face_colors = np.random.uniform(self.rand_min, self.rand_max, (self.max_phi, self.max_theta))
 
         # write to GPU
         self.texture.write(face_colors.astype('f4'))
