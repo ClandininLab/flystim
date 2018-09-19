@@ -352,13 +352,8 @@ class GridStim(BaseProgram):
 
 
 class RandomGrid(GridStim):
-<<<<<<< HEAD
     def configure(self, theta_period=15, phi_period=15, rand_min=0.0, rand_max=1.0, start_seed=0,
-                  update_rate=60.0, binary_distribution = True):
-=======
-    def configure(self, theta_period=2, phi_period=2, rand_min=0.0, rand_max=1.0, start_seed=0,
-                  update_rate=60.0):
->>>>>>> master
+                  update_rate=60.0, distribution_type = 'binary'):
         """
         Patches surrounding the viewer change brightness randomly.
         :param theta_period: Longitude period of the checkerboard patches (degrees)
@@ -367,6 +362,7 @@ class RandomGrid(GridStim):
         :param rand_max: Maximum output of random number generator
         :param start_seed: Starting seed for the random number generator
         :param update_rate: Rate at which color is updated
+        :param distribution_type: 'binary', 'ternary', 'uniform'
         """
 
         # save settings
@@ -374,7 +370,7 @@ class RandomGrid(GridStim):
         self.rand_max = rand_max
         self.start_seed = start_seed
         self.update_rate = update_rate
-        self.binary_distribution = binary_distribution
+        self.distribution_type = distribution_type
 
         # write program settings
         self.prog['phi_period'].value = radians(phi_period)
@@ -386,15 +382,12 @@ class RandomGrid(GridStim):
         random.seed(seed)
 
         # compute random values
-<<<<<<< HEAD
-        if self.binary_distribution:
-            rand_values = [random.choice([self.rand_min, self.rand_max]) for _ in range(self.max_face_colors)]
-        else:
-            rand_values = [random.uniform(self.rand_min, self.rand_max) for _ in range(self.max_face_colors)]
-        
-=======
-        face_colors = np.random.uniform(self.rand_min, self.rand_max, (self.max_phi, self.max_theta))
->>>>>>> master
+        if self.distribution_type == 'binary':
+            face_colors = [random.choice([self.rand_min, self.rand_max]) for _ in range(self.max_face_colors)]
+        elif self.distribution_type == 'ternary':
+            face_colors = [random.choice([self.rand_min, (self.rand_min + self.rand_max)/2 , self.rand_max]) for _ in range(self.max_face_colors)]
+        elif self.distribution_type == 'uniform':
+            face_colors = [random.uniform(self.rand_min, self.rand_max) for _ in range(self.max_face_colors)]
 
         # write to GPU
         self.texture.write(face_colors.astype('f4'))
