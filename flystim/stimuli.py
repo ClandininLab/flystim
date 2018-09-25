@@ -352,8 +352,8 @@ class GridStim(BaseProgram):
 
 
 class RandomGrid(GridStim):
-    def configure(self, theta_period=2, phi_period=2, rand_min=0.0, rand_max=1.0, start_seed=0,
-                  update_rate=60.0):
+    def configure(self, theta_period=15, phi_period=15, rand_min=0.0, rand_max=1.0, start_seed=0,
+                  update_rate=60.0, distribution_type = 'binary'):
         """
         Patches surrounding the viewer change brightness randomly.
         :param theta_period: Longitude period of the checkerboard patches (degrees)
@@ -362,6 +362,7 @@ class RandomGrid(GridStim):
         :param rand_max: Maximum output of random number generator
         :param start_seed: Starting seed for the random number generator
         :param update_rate: Rate at which color is updated
+        :param distribution_type: 'binary', 'ternary', 'uniform'
         """
 
         # save settings
@@ -369,18 +370,24 @@ class RandomGrid(GridStim):
         self.rand_max = rand_max
         self.start_seed = start_seed
         self.update_rate = update_rate
+        self.distribution_type = distribution_type
 
         # write program settings
         self.prog['phi_period'].value = radians(phi_period)
         self.prog['theta_period'].value = radians(theta_period)
-
+        
     def eval_at(self, t):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
-        random.seed(seed)
+        np.random.seed(seed)
 
         # compute random values
-        face_colors = np.random.uniform(self.rand_min, self.rand_max, (self.max_phi, self.max_theta))
+        if self.distribution_type == 'binary':
+            face_colors = np.random.choice([self.rand_min, self.rand_max], (self.max_phi, self.max_theta))
+        elif self.distribution_type == 'ternary':
+            face_colors = np.random.choice([self.rand_min, (self.rand_min + self.rand_max)/2 , self.rand_max], (self.max_phi, self.max_theta))
+        elif self.distribution_type == 'uniform':
+            face_colors = np.random.uniform(self.rand_min, self.rand_max, (self.max_phi, self.max_theta))
 
         # write to GPU
         self.texture.write(face_colors.astype('f4'))
