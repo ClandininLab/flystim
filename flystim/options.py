@@ -31,11 +31,15 @@ def get_screens(setup_name):
         raise ValueError('Invalid setup name.')
 
 class OptionParser(ArgumentParser):
-    def __init__(self, description='Stimulus options.'):
+    def __init__(self, description='Stimulus options.', default_setup_name='macbook', default_use_server=False):
         super().__init__(description=description)
 
-        self.add_argument('--use_server', action='store_true', help='Connect to existing display server.')
-        self.add_argument('--setup_name', type=str, default='macbook', help='Name of the setup configuration.')
+        if not default_use_server:
+            self.add_argument('--use_server', action='store_true', help='Connect to existing display server.')
+        else:
+            # Very bad, fix soon!
+            self.add_argument('--use_server', action='store_false', help='Connect to existing display server.')
+        self.add_argument('--setup_name', type=str, default=default_setup_name, help='Name of the setup configuration.')
 
         self._args = None
 

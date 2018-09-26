@@ -5,6 +5,7 @@ import sys
 import socket
 import logging
 from jsonrpc.jsonrpc2 import JSONRPC20BatchRequest, JSONRPC20Request
+import platform
 
 from time import time
 
@@ -53,7 +54,8 @@ def create_stim_process(screen, profile=False):
 
     # launch display program
     env = os.environ.copy()
-    env['DISPLAY'] = ':0.' + str(screen.id)
+    if platform.system() == 'Linux':
+        env['DISPLAY'] = ':0.' + str(screen.id)
     p = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
 
     # return the process

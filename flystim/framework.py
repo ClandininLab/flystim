@@ -7,6 +7,7 @@ import moderngl
 import logging
 import numpy as np
 import pandas as pd
+import platform
 
 from argparse import ArgumentParser
 from jsonrpc import Dispatcher
@@ -33,6 +34,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # call super constructor
         super().__init__(make_qt_format(vsync=screen.vsync))
+
+        # configure window to reside on a specific screen
+        # re: https://stackoverflow.com/questions/6854947/how-to-display-a-window-on-a-secondary-display-in-pyqt
+        if platform.system() == 'Windows':
+            desktop = QtWidgets.QDesktopWidget()
+            rectScreen = desktop.screenGeometry(screen.id)
+            self.move(rectScreen.left(), rectScreen.top())
+            self.resize(rectScreen.width(), rectScreen.height())
 
         # stimulus initialization
         self.stim = None
