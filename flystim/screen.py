@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from math import sin, cos
 
@@ -68,6 +69,20 @@ class Screen:
         # compute the vector pointing along the width of the screen
         self.vector = np.array([0.5*self.width*cos(self.rotation),
                                 0.5*self.width*sin(self.rotation)])
+
+    def draw(self):
+        xl = self.offset[0] - self.vector[0]
+        yl = self.offset[1] - self.vector[1]
+        xr = self.offset[0] + self.vector[0]
+        yr = self.offset[1] + self.vector[1]
+
+        plt.plot([xl, xr], [yl, yr])
+
+        # draw surface normal
+        r = 0.05*self.width
+        dx = +r*sin(self.rotation)
+        dy = -r*cos(self.rotation)
+        plt.arrow(self.offset[0], self.offset[1], dx, dy, head_width=0.5*r, head_length=r)
 
 def main():
     screen = Screen(offset=(0.0, +0.3, 0.0), rotation=0)
