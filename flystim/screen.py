@@ -84,6 +84,21 @@ class Screen:
         dy = -r*cos(self.rotation)
         plt.arrow(self.offset[0], self.offset[1], dx, dy, head_width=0.5*r, head_length=r)
 
+    def serialize(self):
+        # get all variables needed to reconstruct the screen object
+        vars = ['width', 'height', 'rotation', 'offset', 'id', 'fullscreen', 'vsync', 'square_side', 'square_loc',
+                'name']
+        data = {var: getattr(self, var) for var in vars}
+
+        # post-process as necessary
+        data['offset'] = tuple(float(v) for v in data['offset'])
+
+        return data
+
+    @staticmethod
+    def deserialize(data):
+        return Screen(**data)
+
 def main():
     screen = Screen(offset=(0.0, +0.3, 0.0), rotation=0)
 

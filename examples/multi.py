@@ -5,18 +5,20 @@
 
 from time import sleep
 
-from flystim.options import OptionParser
-from flystim.launch import MultiCall
+import flystim.stim_server
+
+from flyrpc.launch import launch_server
+from flyrpc.multicall import MyMultiCall
 
 def main():
-    manager = OptionParser('Demonstrate functionality of multiple simultaneous actions.').create_manager()
+    manager = launch_server(flystim.stim_server, setup_name='macbook')
 
     stims = ['SineGrating', 'RotatingBars', 'ExpandingEdges', 'SequentialBars', 'RandomBars',
              'RandomGrid', 'Checkerboard', 'MovingPatch']
 
     for stim in stims:
 
-        multicall = MultiCall(manager)
+        multicall = MyMultiCall(manager)
         multicall.load_stim(stim)
         multicall.start_stim()
         multicall.start_corner_square()
@@ -24,7 +26,7 @@ def main():
 
         sleep(2.5)
 
-        multicall = MultiCall(manager)
+        multicall = MyMultiCall(manager)
         multicall.stop_stim()
         multicall.black_corner_square()
         multicall()

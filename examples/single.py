@@ -4,25 +4,26 @@
 # The stim_type can be either SineGrating or RotatingBars.
 
 from time import sleep
-from flystim.options import OptionParser
+
+from flyrpc.launch import launch_server
+import flystim.stim_server
 
 def main():
-    parser = OptionParser('Show a specific stimulus type.')
-    parser.add_argument('--stim_type', type=str, default='Checkerboard', help='Name of the stimulus type.')
-    parser.add_argument('--freeze', action='store_true', help="Don't run the stimulus, just freeze at the first frame.")
-    parser.add_argument('--duration', type=float, default=4.0, help='Length of each trial.')
+    stim_type = 'Checkerboard'
+    should_freeze = False
+    duration = 4.0
 
-    manager = parser.create_manager()
+    manager = launch_server(flystim.stim_server, setup_name='macbook')
 
     print('Press Ctrl-C to quit the program...')
     while True:
-        manager.load_stim(name=parser.args.stim_type)
+        manager.load_stim(name=stim_type)
         manager.start_stim()
 
-        if parser.args.freeze:
+        if should_freeze:
             freeze()
         else:
-            sleep(parser.args.duration)
+            sleep(duration)
             manager.stop_stim()
 
 def freeze():

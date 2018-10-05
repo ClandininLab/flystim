@@ -2,15 +2,18 @@
 
 import matplotlib.pyplot as plt
 
-from flystim.options import OptionParser
-from flystim.options import get_screens
+from argparse import ArgumentParser
+from flystim.rigs import get_screens
 
 def main():
-    parser = OptionParser('Draw screen setup.')
+    parser = ArgumentParser('Draw screen setup.')
+    parser.add_argument('--setup_name', type=str, default='bigrig', help='Name of the stimulus configuration.')
     parser.add_argument('--title', type=str, default=None, help='Optional title for the plot.')
     parser.add_argument('--output', type=str, default=None, help='Optional output file name for the plot.')
 
-    screens = get_screens(parser.args.setup_name)
+    args = parser.parse_args()
+
+    screens = get_screens(args.setup_name)
 
     legend = []
     for screen in screens:
@@ -25,13 +28,13 @@ def main():
     plt.xlabel('x (meters)')
     plt.ylabel('y (meters)')
 
-    if parser.args.title is not None:
-        plt.title(parser.args.title)
+    if args.title is not None:
+        plt.title(args.title)
 
-    if parser.args.output is None:
+    if args.output is None:
         plt.show()
     else:
-        plt.savefig(parser.args.output, bbox_inches='tight')
+        plt.savefig(args.output, bbox_inches='tight')
 
 if __name__=='__main__':
     main()

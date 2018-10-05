@@ -2,11 +2,13 @@
 
 # Example client program that walks through all available stimuli.
 
+from flyrpc.launch import launch_server
+import flystim.stim_server
+
 from time import sleep
-from flystim.options import OptionParser
 
 def main():
-    manager = OptionParser('Show all stimuli.').create_manager()
+    manager = launch_server(flystim.stim_server, setup_name='macbook')
 
     stims = ['SineGrating', 'RotatingBars', 'ExpandingEdges', 'SequentialBars', 'RandomBars',
              'RandomGrid', 'Checkerboard', 'MovingPatch']
