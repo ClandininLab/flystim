@@ -186,3 +186,5 @@ class DLPC350:
 
         # start pattern mode
         self.play_sequence()
+        time.sleep(0.1)
+        self.play_sequence()
