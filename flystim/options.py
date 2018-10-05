@@ -1,32 +1,51 @@
 from argparse import ArgumentParser
-from math import pi
+from math import pi, sqrt
 
 from flystim.launch import StimManager, StimClient, stim_server
 from flystim.screen import Screen
 
-def get_screens(setup_name):
-    # TODO: check offset and rotation
+def get_bruker_screen(dir):
+    # display geometry
     w = 14.2e-2
     h = 9e-2
-    bruker_left_screen = Screen(id=2, rotation=pi/4, width=w, height=h, offset=(-w/2, w/2, -h/2), square_loc='ll', fullscreen=True, square_side=5e-2)
-    bruker_right_screen = Screen(id=1, rotation=-pi/4, width=w, height=h, offset=(w/2, w/2, -h/2), square_loc='lr', fullscreen=True, square_side=5e-2)
+    d = (w/2) * sqrt(2)
 
+    # derived parameters
+    s = (w/2) / sqrt(2)
+
+    if dir=='left':
+        id=2
+        rotation = -pi/4
+        offset = (-s, -d + s, -h / 2)
+        square_loc = 'll'
+    elif dir=='right':
+        id=1
+        rotation = +pi/4
+        offset = (+s, -d + s, -h / 2)
+        square_loc = 'lr'
+    else:
+        raise ValueError('Invalid direction.')
+
+    return Screen(id=id, rotation=rotation, width=w, height=h, offset=offset, square_loc=square_loc,
+           fullscreen=True, square_side=5e-2, name='Bruker '+dir)
+
+def get_screens(setup_name):
     if setup_name.lower() in ['macbook']:
-        return [Screen(fullscreen=False)]
+        return [Screen(fullscreen=False, name='MacBook')]
     elif setup_name.lower() in ['bruker_right']:
-        return [bruker_right_screen]
+        return [get_bruker_screen('right')]
     elif setup_name.lower() in ['bruker_left']:
-        return [bruker_left_screen]
+        return [get_bruker_screen('left')]
     elif setup_name.lower() in ['bruker']:
-        return [bruker_right_screen, bruker_left_screen]
+        return [get_bruker_screen('right'), get_bruker_screen('left')]
     elif setup_name.lower() in ['bigrig']:
         w = 43 * 2.54e-2
         h = 24 * 2.54e-2
 
-        return [Screen(id=1, rotation=pi / 2, width=w, height=h, offset=(-w / 2, 0, h / 2)),
-                Screen(id=2, rotation=0, width=w, height=h, offset=(0, w / 2, h / 2)),
-                Screen(id=3, rotation=pi, width=w, height=h, offset=(0, -w / 2, h / 2)),
-                Screen(id=4, rotation=-pi / 2, width=w, height=h, offset=(w / 2, 0, h / 2))]
+        return [Screen(id=1, rotation=pi / 2, width=w, height=h, offset=(-w / 2, 0, h / 2), name='West'),
+                Screen(id=2, rotation=0, width=w, height=h, offset=(0, w / 2, h / 2), name='North'),
+                Screen(id=3, rotation=pi, width=w, height=h, offset=(0, -w / 2, h / 2), name='South'),
+                Screen(id=4, rotation=-pi / 2, width=w, height=h, offset=(w / 2, 0, h / 2), name='East')]
     else:
         raise ValueError('Invalid setup name.')
 
