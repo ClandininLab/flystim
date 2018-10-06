@@ -4,21 +4,17 @@ import time
 import sys
 import signal
 import moderngl
-import logging
 import numpy as np
 import pandas as pd
 import platform
 
-from argparse import ArgumentParser
-from jsonrpc import Dispatcher
-
 from flystim.stimuli import RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
-from flystim.stimuli import Checkerboard, MovingPatch
-
+from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground
 from flystim.square import SquareProgram
-
 from flystim.screen import Screen
-from flystim.rpc import Server
+
+from flyrpc.transceiver import MySocketServer
+from flyrpc.util import get_kwargs
 
 class StimDisplay(QtOpenGL.QGLWidget):
     """
@@ -26,7 +22,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
     and also controls rendering of the stimulus, toggling corner square, and/or debug information.
     """
 
-    def __init__(self, screen, server):
+    def __init__(self, screen, server, app):
         """
         :param screen: Screen object (from flystim.screen) corresponding to the screen on which the stimulus will
         be displayed.
@@ -47,8 +43,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim = None
 
         # stimulus state
-        self.stim_started = False
+        self.stim_paused = True
         self.stim_start_time = None
+        self.stim_offset_time = 0
 
         # profiling information
         self.profile_frame_count = None
@@ -59,10 +56,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # save handles to screen and server
         self.screen = screen
         self.server = server
+        self.app = app
 
         # make OpenGL programs that are used by stimuli
         cls_list = [RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid,
-                    MovingPatch, Checkerboard]
+                    MovingPatch, Checkerboard, ConstantBackground]
         self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
 
         # make program for rendering the corner square
@@ -82,9 +80,21 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # initialize square program
         self.square_program.initialize(self.ctx)
 
+    def get_stim_time(self, t):
+        stim_time = self.stim_offset_time
+
+        if not self.stim_paused:
+            stim_time += t - self.stim_start_time
+
+        return stim_time
+
     def paintGL(self):
+        # quit if desired
+        if self.server.shutdown_flag.is_set():
+            self.app.quit()
+
         # handle RPC input
-        self.server.process()
+        self.server.process_queue()
 
         # set the viewport to fill the window
         # ref: https://github.com/pyqtgraph/pyqtgraph/issues/422
@@ -92,17 +102,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # draw the stimulus
         if self.stim is not None:
-            if self.stim_started:
-                t = time.time()
-                self.stim.paint_at(t-self.stim_start_time)
-                self.profile_frame_count += 1
+            t = time.time()
 
-                if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
-                    self.profile_frame_times.append(t - self.profile_last_time)
+            self.stim.paint_at(self.get_stim_time(t))
 
-                self.profile_last_time = t
-            else:
-                self.stim.paint_at(0)
+            self.profile_frame_count += 1
+
+            if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
+                self.profile_frame_times.append(t - self.profile_last_time)
+
+            self.profile_last_time = t
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background)
 
@@ -116,6 +125,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
     # control functions
     ###########################################
 
+    def update_stim(self, rate, t):
+        if self.stim is not None:
+            self.stim.update_stim(rate=rate, t=self.get_stim_time(t))
+
     def load_stim(self, name, *args, **kwargs):
         """
         Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
@@ -125,6 +138,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.stim = self.render_programs[name]
         self.stim.configure(*args, **kwargs)
+        self.stim_offset_time = 0
+
+        self.profile_frame_count = 0
+        self.profile_start_time = time.time()
+
+        self.profile_last_time = None
+        self.profile_frame_times = []
 
     def start_stim(self, t):
         """
@@ -132,14 +152,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
         :param t: Time corresponding to t=0 of the animation
         """
 
-        self.stim_started = True
+        self.stim_paused = False
         self.stim_start_time = t
 
-        self.profile_frame_count = 0
-        self.profile_start_time = time.time()
-
-        self.profile_last_time = None
-        self.profile_frame_times = []
+    def pause_stim(self, t):
+        self.stim_paused = True
+        self.stim_offset_time = t - self.stim_start_time + self.stim_offset_time
+        self.stim_start_time = t
 
     def stop_stim(self):
         """
@@ -167,8 +186,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # reset stim variables
 
         self.stim = None
+        self.stim_offset_time = 0
 
-        self.stim_started = False
+        self.stim_paused = True
         self.stim_start_time = None
 
         self.profile_frame_count = None
@@ -264,66 +284,36 @@ def make_qt_format(vsync):
 
 
 def main():
-    """
-    This file is typically run as a command-line program launched as a Subprocess, so the command-line arguments
-    are typically filled by the launching program, rather than explictly by a user.
-    """
+    # get the configuration parameters
+    kwargs = get_kwargs()
 
-    ####################################
-    # Set up logging
-    ####################################
+    # get the screen
+    screen = Screen.deserialize(kwargs.get('screen', {}))
 
-    logging.basicConfig(level=logging.DEBUG)
+    # launch the server
+    server = MySocketServer(host=kwargs['host'], port=kwargs['port'], threaded=True, auto_stop=True, name=screen.name)
 
-    ####################################
-    # Create QApplication
-    ####################################
-
+    # launch application
     app = QtWidgets.QApplication([])
 
-    ####################################
-    # initialize the stimulus display
-    ####################################
-
-    # set up command line parser
-    parser = ArgumentParser()
-    parser.add_argument('--id', type=int)
-    parser.add_argument('--name', type=str)
-    parser.add_argument('--width', type=float)
-    parser.add_argument('--height', type=float)
-    parser.add_argument('--rotation', type=float)
-    parser.add_argument('--offset', type=float, nargs=3)
-    parser.add_argument('--square_loc', type=str)
-    parser.add_argument('--square_side', type=float)
-    parser.add_argument('--fullscreen', action='store_true')
-    parser.add_argument('--vsync', action='store_true')
-
-    # parse command line arguments
-    args = parser.parse_args()
-
-    # create the screen object used to pass arguments into StimDisplay constructor
-    screen = Screen(id=args.id, name=args.name, width=args.width, height=args.height, rotation=args.rotation,
-                    offset=args.offset, fullscreen=args.fullscreen, vsync=args.vsync, square_side=args.square_side,
-                    square_loc=args.square_loc)
-
-    # create a dispatcher to keep track of RPC methods
-    dispatcher = Dispatcher()
-
     # create the StimDisplay object
-    stim_display = StimDisplay(screen=screen, server=Server(dispatcher))
+    screen = Screen.deserialize(kwargs.get('screen', {}))
+    stim_display = StimDisplay(screen=screen, server=server, app=app)
 
     # register functions
-    dispatcher.add_method(stim_display.load_stim)
-    dispatcher.add_method(stim_display.start_stim)
-    dispatcher.add_method(stim_display.stop_stim)
-    dispatcher.add_method(stim_display.start_corner_square)
-    dispatcher.add_method(stim_display.stop_corner_square)
-    dispatcher.add_method(stim_display.white_corner_square)
-    dispatcher.add_method(stim_display.black_corner_square)
-    dispatcher.add_method(stim_display.set_corner_square)
-    dispatcher.add_method(stim_display.show_corner_square)
-    dispatcher.add_method(stim_display.hide_corner_square)
-    dispatcher.add_method(stim_display.set_idle_background)
+    server.register_function(stim_display.load_stim)
+    server.register_function(stim_display.start_stim)
+    server.register_function(stim_display.stop_stim)
+    server.register_function(stim_display.pause_stim)
+    server.register_function(stim_display.update_stim)
+    server.register_function(stim_display.start_corner_square)
+    server.register_function(stim_display.stop_corner_square)
+    server.register_function(stim_display.white_corner_square)
+    server.register_function(stim_display.black_corner_square)
+    server.register_function(stim_display.set_corner_square)
+    server.register_function(stim_display.show_corner_square)
+    server.register_function(stim_display.hide_corner_square)
+    server.register_function(stim_display.set_idle_background)
 
     # display the stimulus
     if screen.fullscreen:

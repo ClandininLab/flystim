@@ -9,6 +9,27 @@ from flystim.glsl import Uniform, Function, Variable, Texture
 from flystim.trajectory import RectangleTrajectory
 import flystim.distribution as distribution
 
+class ConstantBackground(BaseProgram):
+    def __init__(self, screen):
+        uniforms = [
+            Uniform('background', float)
+        ]
+
+        calc_color = 'color = background;\n'
+
+        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
+
+    def configure(self, background=0.0):
+        """
+        :param background
+        """
+
+        self.prog['background'].value = background
+
+    def eval_at(self, t):
+        pass
+
+
 class PeriodicGrating(BaseProgram):
     def __init__(self, screen, grating):
         uniforms = [
@@ -17,11 +38,12 @@ class PeriodicGrating(BaseProgram):
             Uniform('k_theta', float),
             Uniform('k_phi', float),
             Uniform('omega', float),
+            Uniform('offset', float),
             Uniform('t', float)
         ]
 
         calc_color = ''
-        calc_color += 'float intensity = {}(k_theta*theta + k_phi*phi - omega*t);\n'.format(grating.name)
+        calc_color += 'float intensity = {}(k_theta*theta + k_phi*phi - omega*t + offset);\n'.format(grating.name)
         calc_color += 'color = mix(background, face_color, intensity);\n'
 
         super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
@@ -37,17 +59,37 @@ class PeriodicGrating(BaseProgram):
         longitude.
         """
 
-        # compute wavevector
-        k = 2*pi/radians(period)
-        self.prog['k_theta'].value = k*cos(radians(angle))
-        self.prog['k_phi'].value   = k*sin(radians(angle))
+        # save settings
+        self.rate = radians(rate)
+        self.offset = 0.0
 
-        # compute the angular frequency
-        self.prog['omega'].value = radians(rate) * k
+        # compute wavevector
+        self.k = 2*pi/radians(period)
+        self.prog['k_theta'].value = self.k*cos(radians(angle))
+        self.prog['k_phi'].value   = self.k*sin(radians(angle))
+
+        # push omega and offset to graphics card
+        self.push_changes()
 
         # set color uniforms
         self.prog['face_color'].value = color
         self.prog['background'].value = background
+
+    def push_changes(self):
+        self.prog['omega'].value = self.rate * self.k
+        self.prog['offset'].value = self.offset
+
+    def update_stim(self, rate, t):
+        old_rate = self.rate
+        new_rate = radians(rate)
+
+        old_offset = self.offset
+        new_offset = (new_rate - old_rate)*self.k*t + old_offset
+
+        self.rate = new_rate
+        self.offset = new_offset
+
+        self.push_changes()
 
     def eval_at(self, t):
         self.prog['t'].value = t
