@@ -7,6 +7,7 @@ from math import pi, radians, ceil, cos, sin
 from flystim.base import BaseProgram
 from flystim.glsl import Uniform, Function, Variable, Texture
 from flystim.trajectory import RectangleTrajectory
+import flystim.distribution as distribution
 
 class PeriodicGrating(BaseProgram):
     def __init__(self, screen, grating):
@@ -352,42 +353,39 @@ class GridStim(BaseProgram):
 
 
 class RandomGrid(GridStim):
-    def configure(self, theta_period=15, phi_period=15, rand_min=0.0, rand_max=1.0, start_seed=0,
-                  update_rate=60.0, distribution_type = 'binary'):
+    def configure(self, theta_period=15, phi_period=15, start_seed=0, update_rate=60.0,
+                  distribution_data = None):
         """
         Patches surrounding the viewer change brightness randomly.
         :param theta_period: Longitude period of the checkerboard patches (degrees)
         :param phi_period: Latitude period of the checkerboard patches (degrees)
-        :param rand_min: Minimum output of random number generator
-        :param rand_max: Maximum output of random number generator
         :param start_seed: Starting seed for the random number generator
         :param update_rate: Rate at which color is updated
-        :param distribution_type: 'binary', 'ternary', 'uniform'
+        :param distribution_data: dict of distribution type and args, see flystim.distribution method
         """
+        if distribution_data is None:
+            distribution_data = {'name':'Uniform',
+                                 'args':[0, 1],
+                                 'kwargs':{}}
 
         # save settings
-        self.rand_min = rand_min
-        self.rand_max = rand_max
+        self.distribution_data = distribution_data
         self.start_seed = start_seed
         self.update_rate = update_rate
-        self.distribution_type = distribution_type
 
         # write program settings
         self.prog['phi_period'].value = radians(phi_period)
         self.prog['theta_period'].value = radians(theta_period)
         
+        # get the noise distribution
+        self.noise_distribution = getattr(distribution,distribution_data['name'])(*distribution_data.get('args',[]), **distribution_data.get('kwargs',{}))
+        
     def eval_at(self, t):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
-
-        # compute random values
-        if self.distribution_type == 'binary':
-            face_colors = np.random.choice([self.rand_min, self.rand_max], (self.max_phi, self.max_theta))
-        elif self.distribution_type == 'ternary':
-            face_colors = np.random.choice([self.rand_min, (self.rand_min + self.rand_max)/2 , self.rand_max], (self.max_phi, self.max_theta))
-        elif self.distribution_type == 'uniform':
-            face_colors = np.random.uniform(self.rand_min, self.rand_max, (self.max_phi, self.max_theta))
+        
+        face_colors = self.noise_distribution.get_random_values((self.max_phi, self.max_theta))
 
         # write to GPU
         self.texture.write(face_colors.astype('f4'))
