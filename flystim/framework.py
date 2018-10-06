@@ -9,7 +9,7 @@ import pandas as pd
 import platform
 
 from flystim.stimuli import RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
-from flystim.stimuli import Checkerboard, MovingPatch
+from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground
 from flystim.square import SquareProgram
 from flystim.screen import Screen
 
@@ -43,8 +43,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim = None
 
         # stimulus state
-        self.stim_started = False
+        self.stim_paused = True
         self.stim_start_time = None
+        self.stim_offset_time = 0
 
         # profiling information
         self.profile_frame_count = None
@@ -59,7 +60,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # make OpenGL programs that are used by stimuli
         cls_list = [RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid,
-                    MovingPatch, Checkerboard]
+                    MovingPatch, Checkerboard, ConstantBackground]
         self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
 
         # make program for rendering the corner square
@@ -79,6 +80,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # initialize square program
         self.square_program.initialize(self.ctx)
 
+    def get_stim_time(self, t):
+        stim_time = self.stim_offset_time
+
+        if not self.stim_paused:
+            stim_time += t - self.stim_start_time
+
+        return stim_time
+
     def paintGL(self):
         # quit if desired
         if self.server.shutdown_flag.is_set():
@@ -93,17 +102,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # draw the stimulus
         if self.stim is not None:
-            if self.stim_started:
-                t = time.time()
-                self.stim.paint_at(t-self.stim_start_time)
-                self.profile_frame_count += 1
+            t = time.time()
 
-                if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
-                    self.profile_frame_times.append(t - self.profile_last_time)
+            self.stim.paint_at(self.get_stim_time(t))
 
-                self.profile_last_time = t
-            else:
-                self.stim.paint_at(0)
+            self.profile_frame_count += 1
+
+            if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
+                self.profile_frame_times.append(t - self.profile_last_time)
+
+            self.profile_last_time = t
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background)
 
@@ -117,6 +125,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
     # control functions
     ###########################################
 
+    def update_stim(self, rate, t):
+        if self.stim is not None:
+            self.stim.update_stim(rate=rate, t=self.get_stim_time(t))
+
     def load_stim(self, name, *args, **kwargs):
         """
         Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
@@ -126,6 +138,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.stim = self.render_programs[name]
         self.stim.configure(*args, **kwargs)
+        self.stim_offset_time = 0
+
+        self.profile_frame_count = 0
+        self.profile_start_time = time.time()
+
+        self.profile_last_time = None
+        self.profile_frame_times = []
 
     def start_stim(self, t):
         """
@@ -133,14 +152,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
         :param t: Time corresponding to t=0 of the animation
         """
 
-        self.stim_started = True
+        self.stim_paused = False
         self.stim_start_time = t
 
-        self.profile_frame_count = 0
-        self.profile_start_time = time.time()
-
-        self.profile_last_time = None
-        self.profile_frame_times = []
+    def pause_stim(self, t):
+        self.stim_paused = True
+        self.stim_offset_time = t - self.stim_start_time + self.stim_offset_time
+        self.stim_start_time = t
 
     def stop_stim(self):
         """
@@ -168,8 +186,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # reset stim variables
 
         self.stim = None
+        self.stim_offset_time = 0
 
-        self.stim_started = False
+        self.stim_paused = True
         self.stim_start_time = None
 
         self.profile_frame_count = None
@@ -285,6 +304,8 @@ def main():
     server.register_function(stim_display.load_stim)
     server.register_function(stim_display.start_stim)
     server.register_function(stim_display.stop_stim)
+    server.register_function(stim_display.pause_stim)
+    server.register_function(stim_display.update_stim)
     server.register_function(stim_display.start_corner_square)
     server.register_function(stim_display.stop_corner_square)
     server.register_function(stim_display.white_corner_square)

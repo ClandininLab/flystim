@@ -29,6 +29,8 @@ def launch_screen(screen):
 
 
 class StimServer(MySocketServer):
+    time_stamp_commands = ['start_stim', 'pause_stim', 'update_stim']
+
     def __init__(self, screens, host=None, port=None, auto_stop=None):
         # call super constructor
         super().__init__(host=host, port=port, threaded=False, auto_stop=auto_stop)
@@ -43,9 +45,10 @@ class StimServer(MySocketServer):
 
         # pre-process the request list as necessary
         for request in request_list:
-            if isinstance(request, dict) and ('name' in request) and (request['name'] == 'start_stim'):
-                request['args'] = [time()]
-                request['kwargs'] = {}
+            if isinstance(request, dict) and ('name' in request) and (request['name'] in self.time_stamp_commands):
+                if 'kwargs' not in request:
+                    request['kwargs'] = {}
+                request['kwargs']['t'] = time()
 
         # send modified request list to clients
         for client in self.clients:
