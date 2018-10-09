@@ -17,7 +17,8 @@ setup(
 	    'PyQt5',
 	    'hidapi',
         'pandas',
-        'json-rpc'
+        'json-rpc',
+        'matplotlib'
     ],
     include_package_data=True,
     zip_safe=False,

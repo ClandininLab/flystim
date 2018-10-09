@@ -39,11 +39,11 @@ def get_bigrig_screen(dir):
         rotation = pi/2
         offset = (-w/2, 0, h/2)
     elif dir.lower() in ['n', 'north']:
-        id = 2
+        id = 3
         rotation = 0
         offset = (0, w/2, h/2)
     elif dir.lower() in ['s', 'south']:
-        id = 3
+        id = 2
         rotation = pi
         offset = (0, -w/2, h/2)
     elif dir.lower() in ['e', 'east']:
