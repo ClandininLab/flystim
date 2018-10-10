@@ -22,10 +22,9 @@ def launch_screen(screen):
     # set the arguments as necessary
     env = os.environ.copy()
     if platform.system() == 'Linux':
-        env['DISPLAY'] = ':0.' + str(screen['id'])
-
+        env['DISPLAY'] = ':0.' + str(screen.id)
     # launch the server and return the resulting client
-    return launch_server(flystim.framework, screen=screen.serialize(), env=env)
+    return launch_server(flystim.framework, screen=screen.serialize(), new_env_vars=env)
 
 
 class StimServer(MySocketServer):
