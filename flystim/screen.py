@@ -9,7 +9,7 @@ class Screen:
     Parameters such as screen coordinates and the ID # are represented.
     """
 
-    def __init__(self, width=None, height=None, rotation=None, offset=None, id=None, fullscreen=None, vsync=None,
+    def __init__(self, width=None, height=None, rotation=None, offset=None, server_number=None, id=None, fullscreen=None, vsync=None,
                  square_side=None, square_loc=None, name=None):
         """
         :param width: width of the screen (meters)
@@ -17,6 +17,7 @@ class Screen:
         :param rotation: rotation of the screen about the z axis (radians).  a value of zero corresponds to the screen
         width being aligned along the x axis.
         :param offset: position of the center of the screen (3-vector in meters).
+        :param server_number: ID # of the X server
         :param id: ID # of the screen
         :param fullscreen: Boolean.  If True, display stimulus fullscreen (default).  Otherwise, display stimulus
         in a window.
@@ -36,6 +37,8 @@ class Screen:
             rotation = 0.0
         if offset is None:
             offset = (0.0, 0.3, 0.0)
+        if server_number is None:
+            server_number = 0
         if id is None:
             id = 0
         if fullscreen is None:
@@ -56,6 +59,7 @@ class Screen:
         self.rotation = rotation
         self.offset = np.array(offset, dtype=float)
         self.id = id
+        self.server_number = server_number
         self.fullscreen = fullscreen
         self.vsync = vsync
         self.square_side = square_side
@@ -86,7 +90,7 @@ class Screen:
 
     def serialize(self):
         # get all variables needed to reconstruct the screen object
-        vars = ['width', 'height', 'rotation', 'offset', 'id', 'fullscreen', 'vsync', 'square_side', 'square_loc',
+        vars = ['width', 'height', 'rotation', 'offset', 'id', 'server_number', 'fullscreen', 'vsync', 'square_side', 'square_loc',
                 'name']
         data = {var: getattr(self, var) for var in vars}
 

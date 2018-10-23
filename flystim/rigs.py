@@ -53,8 +53,7 @@ def get_bigrig_screen(dir):
     else:
         raise ValueError('Invalid direction.')
 
-    return Screen(id=id, rotation=rotation, width=w, height=h, offset=offset,
-                  name='BigRig {} Screen'.format(dir.title()))
+    return Screen(server_number=1, id=id, rotation=rotation, width=w, height=h, offset=offset, name='BigRig {} Screen'.format(dir.title()))
 
 def get_screens(setup_name):
     if setup_name.lower() == 'macbook':
