@@ -1,11 +1,10 @@
-import os
-import os.path
 import platform
 
 from time import time
 
 import flystim.framework
-from flystim.rigs import get_screens
+from flystim.screen import Screen
+from flystim.util import listify
 
 from flyrpc.transceiver import MySocketServer
 from flyrpc.launch import launch_server
@@ -20,11 +19,11 @@ def launch_screen(screen):
     """
 
     # set the arguments as necessary
-    env = os.environ.copy()
+    new_env_vars = {}
     if platform.system() in ['Linux', 'Darwin']:
-        env['DISPLAY'] = ':{}.{}'.format(screen.server_number, screen.id)
+        new_env_vars['DISPLAY'] = ':{}.{}'.format(screen.server_number, screen.id)
     # launch the server and return the resulting client
-    return launch_server(flystim.framework, screen=screen.serialize(), new_env_vars=env)
+    return launch_server(flystim.framework, screen=screen.serialize(), new_env_vars=new_env_vars)
 
 
 class StimServer(MySocketServer):
@@ -53,13 +52,24 @@ class StimServer(MySocketServer):
         for client in self.clients:
             client.write_request_list(request_list)
 
-def run_stim_server(host=None, port=None, auto_stop=None, setup_name=None):
+def launch_stim_server(screen_or_screens=None):
     # set defaults
-    if setup_name is None:
-        setup_name = 'macbook'
+    if screen_or_screens is None:
+        screen_or_screens = []
 
-    # get the associated screens
-    screens = get_screens(setup_name)
+    # make list from single screen if necessary
+    screens = listify(screen_or_screens, Screen)
+
+    # serialize the Screen objects
+    screens = [screen.serialize() for screen in screens]
+
+    # run the server
+    return launch_server(__file__, screens=screens)
+
+def run_stim_server(host=None, port=None, auto_stop=None, screens=None):
+    # set defaults
+    if screens is None:
+        screens = []
 
     # instantiate the server
     server = StimServer(screens=screens, host=host, port=port, auto_stop=auto_stop)
@@ -71,9 +81,14 @@ def main():
     # get the startup arguments
     kwargs = get_kwargs()
 
+    # get list of screens
+    screens = kwargs['screens']
+    if screens is None:
+        screens = []
+    screens = [Screen.deserialize(screen) for screen in screens]
+
     # run the server
-    run_stim_server(host=kwargs['host'], port=kwargs['port'], auto_stop=kwargs['auto_stop'],
-                    setup_name=kwargs['setup_name'])
+    run_stim_server(host=kwargs['host'], port=kwargs['port'], auto_stop=kwargs['auto_stop'], screens=screens)
 
 if __name__ == '__main__':
     main()

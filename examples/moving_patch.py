@@ -4,15 +4,14 @@
 
 from time import sleep
 
-import flystim.stim_server
 from flystim.trajectory import RectangleTrajectory, Trajectory
-
-from flyrpc.launch import launch_server
+from flystim.screen import Screen
+from flystim.stim_server import launch_stim_server
 
 def main():
     num_trials = 1
 
-    manager = launch_server(flystim.stim_server, setup_name='macbook')
+    manager = launch_stim_server(Screen(fullscreen=False))
 
     trajectory = RectangleTrajectory(x=[(0,90),(1,95),(2,95),(3,90),(4,90),(5,90)],
                                      y=[(0,90),(1,90),(2,95),(3,95),(4,90),(5,90)],
