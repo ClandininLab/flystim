@@ -4,6 +4,16 @@ import moderngl
 import numpy as np
 import os.path
 from string import Template
+from math import pi, radians
+
+class BaseConfigOptions:
+    def __init__(self, *args, box_min_x=-180, box_max_x=180, box_min_y=0, box_max_y=180, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        self.box_min_x = radians(box_min_x)
+        self.box_max_x = radians(box_max_x)
+        self.box_min_y = radians(box_min_y)
+        self.box_max_y = radians(box_max_y)
 
 class BaseProgram:
     def __init__(self, screen, uniforms=None, functions=None, calc_color=None):
@@ -78,12 +88,19 @@ class BaseProgram:
         if self.prog.get('screen_height', None) is not None:
             self.prog['screen_height'].value = self.screen.height
 
+    def configure(self, *args, **kwargs):
+        pass
+
     def paint_at(self, t):
         """
         :param t: current time in seconds
         """
 
-        self.ctx.clear()
+        self.prog['box_min_x'].value = self.box_min_x
+        self.prog['box_max_x'].value = self.box_max_x
+        self.prog['box_min_y'].value = self.box_min_y
+        self.prog['box_max_y'].value = self.box_max_y
+
         self.eval_at(t)
         self.vao.render(mode=moderngl.TRIANGLE_STRIP)
 
@@ -93,3 +110,14 @@ class BaseProgram:
         """
 
         pass
+
+    def make_config_options(self, *args, **kwargs):
+        return BaseConfigOptions(*args, **kwargs)
+
+    def apply_config_options(self, config_options):
+        self.box_min_x = config_options.box_min_x
+        self.box_max_x = config_options.box_max_x
+        self.box_min_y = config_options.box_min_y
+        self.box_max_y = config_options.box_max_y
+
+        self.configure(*config_options.args, **config_options.kwargs)

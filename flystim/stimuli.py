@@ -170,7 +170,9 @@ class MovingPatch(BaseProgram):
             Uniform('phi_width', float),
             Uniform('face_color', float),
             Uniform('angle', float),
-            Uniform('background', float)
+            Uniform('background', float),
+            Uniform('draw_background', float),
+            Uniform('use_alpha', float)
         ]
 
         # reference for modular arithmetic: https://fgiesen.wordpress.com/2015/09/24/intervals-in-modular-arithmetic/
@@ -192,32 +194,49 @@ class MovingPatch(BaseProgram):
             float dx = dot(vec2(+cos(angle), +sin(angle)), vec2(rx, ry));
             float dy = dot(vec2(-sin(angle), +cos(angle)), vec2(rx, ry));
                
-            // check if pixel is within face        
+            // check if pixel is within face
             if ((abs(dx) <= (0.5*theta_width)) && (abs(dy) <= (0.5*phi_width))){
-                color = face_color;
-            } else {
+                if (use_alpha == 0.0) {
+                    color = face_color;
+                } else {
+                    color = background;
+                    alpha = face_color;
+                }
+                
+            } else if (draw_background == 1.0) {
                 color = background;
+            } else {
+                alpha = 0.0;
             }
         '''
 
         super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
 
-    def configure(self, trajectory=None, background=0.0):
+    def make_config_options(self, *args, trajectory=None, **kwargs):
+        # set default
+        if trajectory is None:
+            trajectory = RectangleTrajectory().to_dict()
+
+        # convert the input dictionary to a trajectory object
+        trajectory = RectangleTrajectory.from_dict(trajectory)
+
+        return super().make_config_options(*args, trajectory=trajectory, **kwargs)
+
+    def configure(self, trajectory=None, background=0.0, vary='intensity'):
         """
         Stimulus consisting of a patch that moves along an arbitrary trajectory.
         :param background: Background color (0.0 to 1.0)
         :param trajectory: RectangleTrajectory converted to dictionary (to_dict method)
         """
 
-        # set default
-        if trajectory is None:
-            trajectory = RectangleTrajectory().to_dict()
-
-        # convert the input dictionary to a trajectory object
-        self.trajectory = RectangleTrajectory.from_dict(trajectory)
+        # set the trajectory
+        self.trajectory = trajectory
 
         # set uniforms
-        self.prog['background'].value = background
+        self.prog['use_alpha'].value = 0.0 if vary=='intensity' else 1.0
+        self.prog['draw_background'].value = 1.0 if background is not None else 0.0
+        if background is not None:
+            self.prog['background'].value = background
 
     def eval_at(self, t):
         self.prog['theta_center'].value = radians(self.trajectory.x.eval_at(t))
@@ -395,8 +414,18 @@ class GridStim(BaseProgram):
 
 
 class RandomGrid(GridStim):
+    def make_config_options(self, *args, distribution_data=None, **kwargs):
+        if distribution_data is None:
+            distribution_data = {'name':'Uniform',
+                                 'args':[0, 1],
+                                 'kwargs':{}}
+
+        noise_distribution = getattr(distribution,distribution_data['name'])(*distribution_data.get('args',[]), **distribution_data.get('kwargs',{}))
+
+        return super().make_config_options(*args, noise_distribution=noise_distribution, **kwargs)
+
     def configure(self, theta_period=15, phi_period=15, start_seed=0, update_rate=60.0,
-                  distribution_data = None):
+                  noise_distribution = None):
         """
         Patches surrounding the viewer change brightness randomly.
         :param theta_period: Longitude period of the checkerboard patches (degrees)
@@ -405,13 +434,8 @@ class RandomGrid(GridStim):
         :param update_rate: Rate at which color is updated
         :param distribution_data: dict of distribution type and args, see flystim.distribution method
         """
-        if distribution_data is None:
-            distribution_data = {'name':'Uniform',
-                                 'args':[0, 1],
-                                 'kwargs':{}}
 
         # save settings
-        self.distribution_data = distribution_data
         self.start_seed = start_seed
         self.update_rate = update_rate
 
@@ -420,7 +444,7 @@ class RandomGrid(GridStim):
         self.prog['theta_period'].value = radians(theta_period)
         
         # get the noise distribution
-        self.noise_distribution = getattr(distribution,distribution_data['name'])(*distribution_data.get('args',[]), **distribution_data.get('kwargs',{}))
+        self.noise_distribution = noise_distribution
         
     def eval_at(self, t):
         # set the seed

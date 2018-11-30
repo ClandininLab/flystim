@@ -18,6 +18,12 @@ uniform vec2  screen_vector;
 uniform vec3  screen_offset;
 uniform float screen_height;
 
+// box uniforms
+uniform float box_min_x;
+uniform float box_max_x;
+uniform float box_min_y;
+uniform float box_max_y;
+
 // stimulus-specific uniforms
 ${decl_uniforms}
 
@@ -47,11 +53,17 @@ void main() {
     float theta = atan(pos.y, pos.x);
 
     // declare fragment color variable (monochromatic)
-    float color;
+    float color = 0.0;
+    float alpha = 1.0;
 
     // calculated fragment color
-    ${calc_color}
+    if ((box_min_y <= phi) && (phi <= box_max_y) && (box_min_x <= theta) && (theta <= box_max_x)){
+        ${calc_color}
+    } else {
+        color = 0.0;
+        alpha = 0.0;
+    }
 
     // assign the output color
-    out_color = vec4(color, color, color, 1.0);
+    out_color = vec4(color, color, color, alpha);
 }

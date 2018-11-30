@@ -40,7 +40,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.resize(rectScreen.width(), rectScreen.height())
 
         # stimulus initialization
-        self.stim = None
+        self.stim_list = []
 
         # stimulus state
         self.stim_paused = True
@@ -101,19 +101,26 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.ctx.viewport = (0, 0, self.width()*self.devicePixelRatio(), self.height()*self.devicePixelRatio())
 
         # draw the stimulus
-        if self.stim is not None:
+        if self.stim_list:
             t = time.time()
 
-            self.stim.paint_at(self.get_stim_time(t))
+            self.ctx.clear(0, 0, 0, 1)
+            self.ctx.enable(moderngl.BLEND)
 
-            self.profile_frame_count += 1
+            for stim, config_options in self.stim_list:
+                stim.apply_config_options(config_options)
+                stim.paint_at(self.get_stim_time(t))
 
-            if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
-                self.profile_frame_times.append(t - self.profile_last_time)
-
-            self.profile_last_time = t
+            try:
+                # TODO: make sure that profile information is still accurate
+                self.profile_frame_count += 1
+                if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
+                    self.profile_frame_times.append(t - self.profile_last_time)
+                self.profile_last_time = t
+            except:
+                pass
         else:
-            self.ctx.clear(self.idle_background, self.idle_background, self.idle_background)
+            self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
         # draw the corner square
         self.square_program.paint()
@@ -126,18 +133,30 @@ class StimDisplay(QtOpenGL.QGLWidget):
     ###########################################
 
     def update_stim(self, rate, t):
-        if self.stim is not None:
-            self.stim.update_stim(rate=rate, t=self.get_stim_time(t))
+        for stim, _ in self.stim_list:
+            stim.update_stim(rate=rate, t=self.get_stim_time(t))
 
-    def load_stim(self, name, *args, **kwargs):
+    def load_stim(self, name, hold=False, *args, **kwargs):
         """
         Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
         background color is changed to the one specified in the stimulus, and the stimulus is evaluated at time 0.
         :param name: Name of the stimulus (should be a class name)
         """
 
-        self.stim = self.render_programs[name]
-        self.stim.configure(*args, **kwargs)
+        if hold is False:
+            self.stim_list = []
+
+        stim = self.render_programs[name]
+        config_options = stim.make_config_options(*args, **kwargs)
+
+        self.stim_list.append((stim, config_options))
+
+    def start_stim(self, t):
+        """
+        Starts the stimulus animation, using the given time as t=0
+        :param t: Time corresponding to t=0 of the animation
+        """
+
         self.stim_offset_time = 0
 
         self.profile_frame_count = 0
@@ -145,12 +164,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.profile_last_time = None
         self.profile_frame_times = []
-
-    def start_stim(self, t):
-        """
-        Starts the stimulus animation, using the given time as t=0
-        :param t: Time corresponding to t=0 of the animation
-        """
 
         self.stim_paused = False
         self.stim_start_time = t
@@ -169,7 +182,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         if ((self.profile_frame_count is not None) and
             (self.profile_start_time is not None) and
-            (self.stim is not None)):
+            (self.stim_list)):
 
             profile_duration = time.time() - self.profile_start_time
 
@@ -179,13 +192,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             if len(fps_data) > 0:
                 fps_data = pd.Series(1.0/fps_data)
-                print('*** ' + type(self.stim).__name__ + ' ***')
+                stim_names = ', '.join([type(stim).__name__ for stim, _ in self.stim_list])
+                print('*** ' + stim_names + ' ***')
                 print(fps_data.describe(percentiles=[0.01, 0.05, 0.1, 0.9, 0.95, 0.99]))
                 print()
 
         # reset stim variables
 
-        self.stim = None
+        self.stim_list = []
         self.stim_offset_time = 0
 
         self.stim_paused = True
@@ -279,6 +293,9 @@ def make_qt_format(vsync):
     # TODO: determine what these lines do and whether they are necessary
     format.setSampleBuffers(True)
     format.setDepthBufferSize(24)
+
+    # needed to enable transparency
+    format.setAlpha(True)
 
     return format
 
