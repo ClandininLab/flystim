@@ -24,6 +24,10 @@ uniform float box_max_x;
 uniform float box_min_y;
 uniform float box_max_y;
 
+// closed-loop uniforms
+uniform vec3 global_fly_pos;
+uniform float global_theta_offset;
+
 // stimulus-specific uniforms
 ${decl_uniforms}
 
@@ -45,12 +49,21 @@ ${decl_functions}
 
 void main() {
     // compute screen position in cartesian coordinates
-    vec3 pos = screen_offset + frag_pos.xxy*vec3(screen_vector, 0.5*screen_height);
+    vec3 pixel_pos = screen_offset + frag_pos.xxy*vec3(screen_vector, 0.5*screen_height);
+
+    // find position of this pixel relative to fly
+    vec3 pos = pixel_pos - global_fly_pos;
 
     // compute screen position in spherical coordinates
     float r     = length(pos);
     float phi   = acos(pos.z / r);
     float theta = atan(pos.y, pos.x);
+
+    // add offset to theta
+    theta = theta + global_theta_offset;
+
+    // wrap theta back into the range [-pi, pi]
+    theta = mod(theta, 2*M_PI) - M_PI;
 
     // declare fragment color variable (monochromatic)
     float color = 0.0;

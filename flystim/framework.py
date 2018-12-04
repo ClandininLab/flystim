@@ -12,6 +12,7 @@ from flystim.stimuli import RotatingBars, ExpandingEdges, RandomBars, Sequential
 from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground
 from flystim.square import SquareProgram
 from flystim.screen import Screen
+from math import radians
 
 from flyrpc.transceiver import MySocketServer
 from flyrpc.util import get_kwargs
@@ -69,6 +70,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # initialize background color
         self.idle_background = 0.5
 
+        # set the closed-loop parameters
+        self.global_theta_offset = 0
+        self.global_fly_pos = np.array([0, 0, 0], dtype=float)
+
     def initializeGL(self):
         # get OpenGL context
         self.ctx = moderngl.create_context()
@@ -109,7 +114,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             for stim, config_options in self.stim_list:
                 stim.apply_config_options(config_options)
-                stim.paint_at(self.get_stim_time(t))
+                stim.paint_at(self.get_stim_time(t), global_fly_pos=self.global_fly_pos,
+                              global_theta_offset=self.global_theta_offset)
 
             try:
                 # TODO: make sure that profile information is still accurate
@@ -270,6 +276,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.idle_background = color
 
+    def set_global_fly_pos(self, x, y, z):
+        self.global_fly_pos = np.array([x, y, z], dtype=float)
+
+    def set_global_theta_offset(self, value):
+        self.global_theta_offset = radians(value)
 
 def make_qt_format(vsync):
     """
@@ -331,6 +342,8 @@ def main():
     server.register_function(stim_display.show_corner_square)
     server.register_function(stim_display.hide_corner_square)
     server.register_function(stim_display.set_idle_background)
+    server.register_function(stim_display.set_global_fly_pos)
+    server.register_function(stim_display.set_global_theta_offset)
 
     # display the stimulus
     if screen.fullscreen:
