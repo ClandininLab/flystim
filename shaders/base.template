@@ -60,7 +60,7 @@ void main() {
     float theta = atan(pos.y, pos.x);
 
     // add offset to theta
-    theta = theta + global_theta_offset;
+    theta = theta - global_theta_offset;
 
     // wrap theta back into the range [-pi, pi]
     if (theta > M_PI){
