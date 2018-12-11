@@ -6,13 +6,14 @@
 from random import choice
 from time import sleep
 
-from flyrpc.launch import launch_server
-import flystim.stim_server
+from flystim.screen import Screen
+from flystim.stim_server import launch_stim_server
 
 def main():
-    manager = launch_server(flystim.stim_server, setup_name='bigrig')
+    manager = launch_stim_server(Screen(fullscreen=False))
 
     manager.load_stim(name='RotatingBars', rate=10, angle=0)
+
     for _ in range(10):
         rate = choice([-10, 10])
         print('chose rate: {}'.format(rate))

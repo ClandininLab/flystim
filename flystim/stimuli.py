@@ -48,7 +48,7 @@ class PeriodicGrating(BaseProgram):
 
         super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
 
-    def configure(self, period=20, rate=10, color=1.0, background=0.0, angle=45.0):
+    def configure(self, period=20, rate=10, color=1.0, background=0.0, angle=45.0, offset=0.0):
         """
         Stimulus pattern in which a periodic grating moves as a wavefront
         :param period: Spatial period of the grating, in degrees.
@@ -61,7 +61,7 @@ class PeriodicGrating(BaseProgram):
 
         # save settings
         self.rate = radians(rate)
-        self.offset = 0.0
+        self.offset = radians(offset)
 
         # compute wavevector
         self.k = 2*pi/radians(period)

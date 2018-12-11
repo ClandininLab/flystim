@@ -139,8 +139,19 @@ class StimDisplay(QtOpenGL.QGLWidget):
     ###########################################
 
     def update_stim(self, rate, t):
-        for stim, _ in self.stim_list:
-            stim.update_stim(rate=rate, t=self.get_stim_time(t))
+        for stim, config_options in self.stim_list:
+            if isinstance(stim, (SineGrating, RotatingBars)):
+                # get the time that will be passed to the stimulus
+                t = self.get_stim_time(t)
+
+                # get the spatial period, rate, and offset (in degrees)
+                period = config_options.kwargs.get('period', 20)
+                old_rate = config_options.kwargs.get('rate', 10)
+                old_offset = config_options.kwargs.get('offset', 0)
+
+                # set the new rate and offset
+                config_options.kwargs['rate'] = rate
+                config_options.kwargs['offset'] = (rate - old_rate) * (360 / period) * t + old_offset
 
     def load_stim(self, name, hold=False, *args, **kwargs):
         """
@@ -151,6 +162,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         if hold is False:
             self.stim_list = []
+            self.stim_offset_time = 0
 
         stim = self.render_programs[name]
         config_options = stim.make_config_options(*args, **kwargs)
@@ -162,8 +174,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         Starts the stimulus animation, using the given time as t=0
         :param t: Time corresponding to t=0 of the animation
         """
-
-        self.stim_offset_time = 0
 
         self.profile_frame_count = 0
         self.profile_start_time = time.time()
