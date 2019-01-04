@@ -4,7 +4,7 @@
 
 from flystim.stim_server import launch_stim_server
 from flystim.screen import Screen
-from flystim.trajectory import RectangleTrajectory, Trajectory
+from flystim.trajectory import RectangleTrajectory
 
 from time import sleep
 

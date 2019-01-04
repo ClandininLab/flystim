@@ -51,7 +51,7 @@ class ContrastReversingGrating(BaseProgram):
 
         super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
         
-    def configure(self, spatial_period=10, temporal_frequency=1.0, contrast_scale=1.0, mean=0.5, angle=0.0):
+    def configure(self, spatial_period=10, temporal_frequency=1.0, contrast_scale=1.0, mean=0.5, angle=0.0, temporal_waveform='sine'):
         """
         Stationary periodic grating whose contrast is modulated as a function of time
         :param spatial_period: Spatial period of the grating, in degrees.
@@ -66,6 +66,7 @@ class ContrastReversingGrating(BaseProgram):
         """
         # save settings
         self.temporal_frequency = temporal_frequency
+        self.temporal_waveform = temporal_waveform
 
         # compute wavevector
         self.k = 2*pi/radians(spatial_period)
@@ -77,8 +78,11 @@ class ContrastReversingGrating(BaseProgram):
         self.prog['mean'].value = mean #[0,0.5], intensity
 
     def eval_at(self, t):
-        self.prog['contrast'].value = sin(2 * pi * self.temporal_frequency * t) #lives on [-1, 1]
-
+        if self.temporal_waveform == 'sine':
+            self.prog['contrast'].value = sin(2 * pi * self.temporal_frequency * t) #lives on [-1, 1]
+        elif self.temporal_waveform == 'square':
+            self.prog['contrast'].value = np.sign(sin(2 * pi * self.temporal_frequency * t)) #element of [-1, 1]
+        
 
 class PeriodicGrating(BaseProgram):
     def __init__(self, screen, grating):
