@@ -28,6 +28,56 @@ class ConstantBackground(BaseProgram):
 
     def eval_at(self, t):
         pass
+    
+class ContrastReversingGrating(BaseProgram):
+    def __init__(self, screen):
+        uniforms = [
+            Uniform('contrast_scale', float),
+            Uniform('mean', float),
+            Uniform('k_theta', float),
+            Uniform('k_phi', float),
+            Uniform('contrast', float)
+        ]
+        
+        grating = Function(name='rect_grating',
+                           in_vars=[Variable('phase', float)],
+                           out_type=float,
+                           code='return (fract(phase/(2.0*M_PI)) <= 0.5) ? 1.0 : -1.0;')
+        
+
+        calc_color = ''
+        calc_color += 'float spatial_contrast = {}(k_theta*theta + k_phi*phi);\n'.format(grating.name)
+        calc_color += 'color = mean + spatial_contrast*contrast*contrast_scale*mean;\n'
+
+        super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
+        
+    def configure(self, spatial_period=10, temporal_frequency=1.0, contrast_scale=1.0, mean=0.5, angle=0.0):
+        """
+        Stationary periodic grating whose contrast is modulated as a function of time
+        :param spatial_period: Spatial period of the grating, in degrees.
+        :param temporal_frequency: temporal_frequency of the contrast modulation, in Hz
+        :param mean: Mean intensity of grating (midpoint of wave). Should be between [0,0.5] to prevent clipping
+        :param contrast_scale: multiplier on mean intensity to determine wave peak/trough
+            wave peak = mean + contrast_scale * mean
+            wave trough = mean - contrast_scale * mean
+            *spatial and temporal contrast values [-1,1] multiply variations above and below the mean
+        :param angle: Tilt angle (in degrees) of the grating.  0 degrees will align the grating with a line of
+        longitude.
+        """
+        # save settings
+        self.temporal_frequency = temporal_frequency
+
+        # compute wavevector
+        self.k = 2*pi/radians(spatial_period)
+        self.prog['k_theta'].value = self.k*cos(radians(angle))
+        self.prog['k_phi'].value   = self.k*sin(radians(angle))
+
+        # set color uniforms
+        self.prog['contrast_scale'].value = contrast_scale #[0, 1] contrast, relative to mean
+        self.prog['mean'].value = mean #[0,0.5], intensity
+
+    def eval_at(self, t):
+        self.prog['contrast'].value = sin(2 * pi * self.temporal_frequency * t) #lives on [-1, 1]
 
 
 class PeriodicGrating(BaseProgram):

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import platform
 
-from flystim.stimuli import RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
+from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
 from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground
 from flystim.square import SquareProgram
 from flystim.screen import Screen
@@ -60,7 +60,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.app = app
 
         # make OpenGL programs that are used by stimuli
-        cls_list = [RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid,
+        cls_list = [ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid,
                     MovingPatch, Checkerboard, ConstantBackground]
         self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
 
