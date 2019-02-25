@@ -9,7 +9,7 @@ import pandas as pd
 import platform
 
 from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
-from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground
+from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground, ArbitraryGrid
 from flystim.square import SquareProgram
 from flystim.screen import Screen
 from math import radians
@@ -61,7 +61,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # make OpenGL programs that are used by stimuli
         cls_list = [ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid,
-                    MovingPatch, Checkerboard, ConstantBackground]
+                    MovingPatch, Checkerboard, ConstantBackground, ArbitraryGrid]
         self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
 
         # make program for rendering the corner square

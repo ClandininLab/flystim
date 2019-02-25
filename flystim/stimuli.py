@@ -535,3 +535,106 @@ class Checkerboard(GridStim):
 
     def eval_at(self, t):
         self.texture.use()
+
+class ArbitraryGrid(BaseProgram):
+    def __init__(self, screen):
+        uniforms = [
+            Uniform('stixel_size', float),
+            Uniform('min_y', float),
+            Uniform('max_y', float),
+            Uniform('min_x', float),
+            Uniform('max_x', float),
+            Texture('grid_values')
+        ]
+
+        calc_color = '''
+            if (theta < 0) {
+                theta += 2*M_PI;
+            } 
+            if (phi < 0) {
+                phi += M_PI;
+            } 
+
+            if ((min_y <= phi) && (phi <= max_y) && (min_x <= theta) && (theta <= max_x)) {
+                
+                    int theta_int = int((theta - min_x)/stixel_size);
+                    int phi_int = int((phi - min_y)/stixel_size);
+                    
+                    color = texelFetch(grid_values, ivec2(theta_int, phi_int), 0).r;
+            }
+
+
+        '''
+        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
+        
+        
+    def initialize(self, ctx):
+        self.ctx = ctx
+        super().initialize(self.ctx)
+
+    def initTexture(self, num_phi, num_theta):
+        # ref: https://github.com/cprogrammer1994/ModernGL/blob/6b0f5851539da4170596f62456bac0c22024e754/examples/conways_game_of_life.py
+        patches = self.background * np.ones((num_phi, num_theta)).astype('f4')
+        self.texture = self.ctx.texture((num_theta, num_phi), 1, patches.tobytes(), dtype='f4')
+        self.texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
+        self.texture.swizzle = 'RRR1'
+        self.texture.use()
+
+    def configure(self, stixel_size = 10, num_theta = 20, num_phi = 20, t_dim = 100, update_rate = 30, 
+                  center_theta = 0, center_phi = 0, background = 0.5, 
+                  stimulus_code = None, encoding_scheme = 'ternary_dense'):
+        """
+        Patches surrounding the viewer are arranged in an arbitrary grid stimulus
+        :param theta_period: Longitude period of the checkerboard patches (degrees)
+        :param phi_period: Latitude period of the checkerboard patches (degrees)
+        """
+        self.stixel_size = stixel_size
+        self.num_theta = num_theta
+        self.num_phi = num_phi
+        self.t_dim = t_dim
+        self.update_rate = update_rate
+        self.background = background
+        
+        self.stimulus_code = stimulus_code
+        
+        width_phi = self.num_phi * self.stixel_size
+        width_theta = self.num_theta * self.stixel_size
+        
+        # write program settings
+        self.prog['stixel_size'].value = radians(self.stixel_size)
+        self.prog['min_y'].value = radians(center_phi - width_phi / 2)
+        self.prog['max_y'].value = radians(center_phi + width_phi / 2)
+        self.prog['min_x'].value = radians(center_theta - width_theta / 2)
+        self.prog['max_x'].value = radians(center_theta + width_theta / 2)
+
+        # create the pattern
+        # row = y (phi) coord
+        # col = x (theta) coord
+        if stimulus_code is None:
+            self.stimulus_code = np.zeros((self.num_phi, self.num_theta, self.t_dim))
+            
+        if encoding_scheme == 'ternary_dense':
+            self.xyt_stimulus = np.array(self.stimulus_code).reshape(self.num_phi, self.num_theta, self.t_dim)
+
+        elif encoding_scheme == 'single_spot':
+            row, col = self.getRowColumnFromLocation(self.stimulus_code, self.num_phi, self.num_theta)
+            self.xyt_stimulus = self.background * np.ones((self.num_phi,self.num_theta, self.t_dim))
+            for ff in range(self.xyt_stimulus.shape[2]):
+                self.xyt_stimulus[col[ff], row[ff], ff] = 1
+
+        # initialize texture
+        self.initTexture(self.num_phi, self.num_theta)
+ 
+    def getRowColumnFromLocation(self, location, y_dim, x_dim):
+        row = np.mod(location, x_dim) - 1
+        col = np.mod(location, y_dim) - 1
+        return row, col
+
+    def eval_at(self, t):
+        if t > 0:
+            t_pull = int(np.floor((t*self.update_rate)))
+            face_colors = self.xyt_stimulus[:,:,np.min((t_pull, self.t_dim-1))].copy()
+    
+            # write to GPU
+            self.texture.write(face_colors.astype('f4'))
+            self.texture.use()                
