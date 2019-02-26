@@ -189,7 +189,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_offset_time = t - self.stim_start_time + self.stim_offset_time
         self.stim_start_time = t
 
-    def stop_stim(self):
+    def stop_stim(self, print_profile = True):
         """
         Stops the stimulus animation and removes it from the display.
         """
@@ -209,9 +209,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
             if len(fps_data) > 0:
                 fps_data = pd.Series(1.0/fps_data)
                 stim_names = ', '.join([type(stim).__name__ for stim, _ in self.stim_list])
-                print('*** ' + stim_names + ' ***')
-                print(fps_data.describe(percentiles=[0.01, 0.05, 0.1, 0.9, 0.95, 0.99]))
-                print()
+                if print_profile:
+                    print('*** ' + stim_names + ' ***')
+                    print(fps_data.describe(percentiles=[0.01, 0.05, 0.1, 0.9, 0.95, 0.99]))
+                    print()
 
         # reset stim variables
 
