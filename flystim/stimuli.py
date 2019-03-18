@@ -544,6 +544,7 @@ class ArbitraryGrid(BaseProgram):
             Uniform('max_y', float),
             Uniform('min_x', float),
             Uniform('max_x', float),
+            Uniform('background', float),
             Texture('grid_values')
         ]
 
@@ -561,6 +562,8 @@ class ArbitraryGrid(BaseProgram):
                     int phi_int = int((phi - min_y)/stixel_size);
                     
                     color = texelFetch(grid_values, ivec2(theta_int, phi_int), 0).r;
+            } else {
+                color = background;
             }
 
 
@@ -606,6 +609,7 @@ class ArbitraryGrid(BaseProgram):
         self.prog['max_y'].value = radians(center_phi + width_phi / 2)
         self.prog['min_x'].value = radians(center_theta - width_theta / 2)
         self.prog['max_x'].value = radians(center_theta + width_theta / 2)
+        self.prog['background'].value = self.background
 
         # create the pattern
         # row = y (phi) coord
