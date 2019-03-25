@@ -9,7 +9,7 @@ from flystim.trajectory import RectangleTrajectory
 from time import sleep
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0))
 
     
     manager.load_stim(name='MovingPatch', background = 0.5, trajectory=RectangleTrajectory(w = 0, h = 0).to_dict())
