@@ -4,7 +4,7 @@
 
 # Prerequisites
 
-**flystim** only supports Python3, so in the commands below, the **pip** and **python** commands should refer to a Python3 install.  
+**flystim** only supports Python3, so in the commands below, the **pip** and **python** commands should refer to a Python3 install.  You can either install Python3 directly or through a package manager like Conda.
 
 On Linux, you'll also need to install a few packages via **apt-get**:
 ```shell
