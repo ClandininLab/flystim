@@ -73,20 +73,21 @@ class BaseProgram:
 
         self.prog = self.ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
 
-        # create VBO to represent vertex positions
-        pts = np.array([-1.0, -1.0, +1.0, -1.0, -1.0, +1.0, +1.0, +1.0])
-        vbo = self.ctx.buffer(pts.astype('f4').tobytes())
+        # create a flat list of all of the 5-tuples that describe the screen coordinates
+        data = []
+
+        for tri in self.screen.tri_list:
+            for pt in [tri.pa, tri.pb, tri.pc]:
+                data.extend(pt.ndc)
+                data.extend(pt.cart)
+
+        data = np.array(data, dtype=float)
+
+        # create a VBO for the vertex data
+        vbo = self.ctx.buffer(data.astype('f4').tobytes())
 
         # create vertex array object
-        self.vao = self.ctx.simple_vertex_array(self.prog, vbo, 'vert_pos')
-
-        # write screen parameters
-        if self.prog.get('screen_offset', None) is not None:
-            self.prog['screen_offset'].value = tuple(self.screen.offset)
-        if self.prog.get('screen_vector', None) is not None:
-            self.prog['screen_vector'].value = tuple(self.screen.vector)
-        if self.prog.get('screen_height', None) is not None:
-            self.prog['screen_height'].value = self.screen.height
+        self.vao = self.ctx.simple_vertex_array(self.prog, vbo, 'vert_pos', 'vert_col')
 
     def configure(self, *args, **kwargs):
         pass
@@ -105,7 +106,7 @@ class BaseProgram:
         self.prog['global_theta_offset'].value = global_theta_offset
 
         self.eval_at(t)
-        self.vao.render(mode=moderngl.TRIANGLE_STRIP)
+        self.vao.render(mode=moderngl.TRIANGLES)
 
     def eval_at(self, t):
         """
