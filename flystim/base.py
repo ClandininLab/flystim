@@ -77,8 +77,9 @@ class BaseProgram:
         data = []
 
         for tri in self.screen.tri_list:
-            for tup5 in tri:
-                data.extend(tup5)
+            for pt in [tri.pa, tri.pb, tri.pc]:
+                data.extend(pt.ndc)
+                data.extend(pt.cart)
 
         data = np.array(data, dtype=float)
 

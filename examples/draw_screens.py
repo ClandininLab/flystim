@@ -1,7 +1,6 @@
 from math import pi
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
+from flystim.draw import draw_screens
 from flystim.screen import Screen
 
 def get_test_screen(dir):
@@ -32,16 +31,7 @@ def get_test_screen(dir):
 def main():
     screens = [get_test_screen(dir) for dir in ['w', 'n', 's', 'e']]
 
-    fig = plt.figure()
-    ax = Axes3D(fig)
-
-    for screen in screens:
-        screen.draw(ax=ax)
-
-    # draw fly in the center
-    ax.scatter(0, 0, 0, c='g')
-
-    plt.show()
+    draw_screens(screens)
 
 if __name__=='__main__':
     main()
