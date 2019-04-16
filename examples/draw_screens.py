@@ -1,40 +1,47 @@
-#!/usr/bin/env python3
-
+from math import pi
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
-from argparse import ArgumentParser
-from flystim.rigs import get_screens
+from flystim.screen import Screen
+
+def get_test_screen(dir):
+    w = 2
+    h = 1
+
+    if dir.lower() in ['w', 'west']:
+        id = 0
+        rotation = pi/2
+        offset = (-w/2, 0, h/2)
+    elif dir.lower() in ['n', 'north']:
+        id = 1
+        rotation = 0
+        offset = (0, w/2, h/2)
+    elif dir.lower() in ['s', 'south']:
+        id = 2
+        rotation = pi
+        offset = (0, -w/2, h/2)
+    elif dir.lower() in ['e', 'east']:
+        id = 3
+        rotation = -pi/2
+        offset = (w/2, 0, h/2)
+    else:
+        raise ValueError('Invalid direction.')
+
+    return Screen(id=id, rotation=rotation, width=w, height=h, offset=offset, name=f'Screen {dir.title()}')
 
 def main():
-    parser = ArgumentParser('Draw screen setup.')
-    parser.add_argument('--setup_name', type=str, default='bigrig', help='Name of the stimulus configuration.')
-    parser.add_argument('--title', type=str, default=None, help='Optional title for the plot.')
-    parser.add_argument('--output', type=str, default=None, help='Optional output file name for the plot.')
+    screens = [get_test_screen(dir) for dir in ['w', 'n', 's', 'e']]
 
-    args = parser.parse_args()
+    fig = plt.figure()
+    ax = Axes3D(fig)
 
-    screens = get_screens(args.setup_name)
-
-    legend = []
     for screen in screens:
-        screen.draw()
-        legend.append(screen.name)
+        screen.draw(ax=ax)
 
-    plt.plot([0], [0], marker='*')
-    legend += ['fly']
+    # draw fly in the center
+    ax.scatter(0, 0, 0, c='g')
 
-    plt.legend(legend)
-    plt.axis('equal')
-    plt.xlabel('x (meters)')
-    plt.ylabel('y (meters)')
-
-    if args.title is not None:
-        plt.title(args.title)
-
-    if args.output is None:
-        plt.show()
-    else:
-        plt.savefig(args.output, bbox_inches='tight')
+    plt.show()
 
 if __name__=='__main__':
     main()

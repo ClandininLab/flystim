@@ -11,12 +11,7 @@
 ////////////////
 
 // from vertex shader
-in vec2 frag_pos;
-
-// screen uniforms
-uniform vec2  screen_vector;
-uniform vec3  screen_offset;
-uniform float screen_height;
+in vec3 pixel_pos;
 
 // box uniforms
 uniform float box_min_x;
@@ -48,9 +43,6 @@ ${decl_functions}
 ////////////////
 
 void main() {
-    // compute screen position in cartesian coordinates
-    vec3 pixel_pos = screen_offset + frag_pos.xxy*vec3(screen_vector, 0.5*screen_height);
-
     // find position of this pixel relative to fly
     vec3 pos = pixel_pos - global_fly_pos;
 
