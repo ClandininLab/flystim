@@ -157,7 +157,7 @@ class SpotDisplay(QtOpenGL.QGLWidget):
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('--fullscreen', action='store_true')
+    parser.add_argument('--windowed', action='store_true')
     args = parser.parse_args()
 
     # launch application
@@ -166,7 +166,7 @@ def main():
     stim_display = SpotDisplay(app=app)
 
     # display the stimulus
-    if args.fullscreen:
+    if not args.windowed:
         stim_display.showFullScreen()
     else:
         stim_display.show()
