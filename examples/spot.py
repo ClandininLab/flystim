@@ -1,21 +1,14 @@
 from PyQt5 import QtOpenGL, QtWidgets, QtCore
 
-import time
 import sys
 import signal
 import moderngl
 import numpy as np
-import pandas as pd
 import os.path
 from argparse import ArgumentParser
 
-from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
-from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground, ArbitraryGrid
-from flystim.square import SquareProgram
-from math import radians
-
 class SpotProgram:
-    def __init__(self, color=1.0, width=0.01, height=0.01):
+    def __init__(self, color=1.0):
         self.color = color
 
     def initialize(self, ctx):
