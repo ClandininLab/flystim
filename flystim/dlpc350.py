@@ -5,6 +5,14 @@ import time
 import hid
 from math import floor
 
+def clamp(x, min, max):
+    if x < min:
+        return min
+    elif x > max:
+        return max
+    else:
+        return x
+
 def make_dlpc350_objects():
     """
     Returns a list of DLPC350 objects corresponding to the connected Lightcrafter 4500 units.
@@ -188,3 +196,27 @@ class DLPC350:
         self.play_sequence()
         time.sleep(0.1)
         self.play_sequence()
+
+    def set_current(self, red=0, green=0, blue=0):
+        # compute PWM control codes
+        red_code, green_code, blue_code = self.currents_to_codes(red=red, green=green, blue=blue)
+
+        # send codes to part
+        self.write(cmd2=0x0b, cmd3=0x01, data=[red_code, green_code, blue_code])
+
+    def currents_to_codes(self, red=0, green=0, blue=0):
+        # sanity check
+        assert red+green+blue < 4.3, 'The sum of red, green, and blue currents is too high.'
+
+        # compute codes
+        red_code = int(floor((red-0.4495)/0.0175))
+        green_code = int(floor((green-0.3587)/0.0181))
+        blue_code = int(floor((blue-0.1529)/0.0160))
+
+        # limit values to 0-255
+        red_code = clamp(red_code, 0, 255)
+        green_code = clamp(green_code, 0, 255)
+        blue_code = clamp(blue_code, 0, 255)
+
+        # return codes
+        return red_code, green_code, blue_code

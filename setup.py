@@ -20,6 +20,11 @@ setup(
         'json-rpc',
         'matplotlib'
     ],
+    entry_points={
+        'console_scripts': [
+            'lcr_ctl=examples.lcr_ctl:main'
+        ]
+    },
     include_package_data=True,
     zip_safe=False,
 )
