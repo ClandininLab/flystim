@@ -27,7 +27,11 @@ def main():
 
     for dlpc350_object in dlpc350_objects:
         dlpc350_object.set_current(red=args.red_current, green=args.green_current, blue=args.blue_current)
-        dlpc350_object.pattern_mode(fps=args.fps)
+
+        dlpc350_object.pattern_mode(fps=args.fps,
+                                    red=args.red_current > 0,
+                                    green=args.green_current > 0,
+                                    blue=args.blue_current > 0)
 
 if __name__ == "__main__":
     main()
