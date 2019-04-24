@@ -209,9 +209,11 @@ class DLPC350:
         assert red+green+blue < 4.3, 'The sum of red, green, and blue currents is too high.'
 
         # compute codes
-        red_code = int(floor((red-0.4495)/0.0175))
-        green_code = int(floor((green-0.3587)/0.0181))
-        blue_code = int(floor((blue-0.1529)/0.0160))
+        # the "255-x" computation is to account for apparent
+        # inversion of PWM on the LCR4500 board
+        red_code = 255-int(floor((red-0.4495)/0.0175))
+        green_code = 255-int(floor((green-0.3587)/0.0181))
+        blue_code = 255-int(floor((blue-0.1529)/0.0160))
 
         # limit values to 0-255
         red_code = clamp(red_code, 0, 255)
