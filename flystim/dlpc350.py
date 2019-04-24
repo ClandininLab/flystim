@@ -149,7 +149,7 @@ class DLPC350:
         else:
             raise Exception('Timed out waiting for pattern sequence validation.')
 
-    def pattern_mode(self, fps=60):
+    def pattern_mode(self, fps=60, red=False, green=False, blue=True):
         # stop sequence mode
         self.stop_sequence()
 
@@ -181,10 +181,23 @@ class DLPC350:
         self.write(cmd2=0x1a, cmd3=0x32, data=[0x00])
 
         # write LUT data
+
+        # build up the LED code
+
+        # start with just 8-bit color, all LEDs off
+        led_code = 8
+
+        # enable each LED as desired
+        if red:
+            led_code |= 0x10
+        if green:
+            led_code |= 0x20
+        if blue:
+            led_code |= 0x40
+
         # 0x09 == use 8 bits blue data, with external positive trigger
-        # 0x48 == blue LED, with 8 bit color depth
         # 0x04 == trigger out 1 frames pattern, perform buffer swap, do not insert post pattern, do not invert pattern
-        self.write(cmd2=0x1a, cmd3=0x34, data=[0x09, 0x48, 0x04])
+        self.write(cmd2=0x1a, cmd3=0x34, data=[0x09, led_code, 0x04])
 
         # close mailbox
         self.write(cmd2=0x1a, cmd3=0x33, data=[0x00])
