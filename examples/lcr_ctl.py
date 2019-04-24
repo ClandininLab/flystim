@@ -17,9 +17,9 @@ def main():
     args = parser.parse_args()
 
     print('Using FPS: ' + str(args.fps))
-    print('Red current: ' + str(args.red_current))
-    print('Green current: ' + str(args.green_current))
-    print('Blue current: ' + str(args.blue_current))
+    print('Red current: ' + str(args.red_current) + ' A')
+    print('Green current: ' + str(args.green_current) + ' A')
+    print('Blue current: ' + str(args.blue_current) + ' A')
 
     dlpc350_objects = make_dlpc350_objects()
 
