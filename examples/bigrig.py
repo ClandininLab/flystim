@@ -2,13 +2,18 @@
 
 # Example client program that walks through all available stimuli.
 
+import json
 from flystim.stim_server import launch_stim_server
 from time import sleep
 
+from random import choice
 from math import pi
 
 from flystim.screen import Screen
+from flyrpc.multicall import MyMultiCall
 from flystim.trajectory import RectangleTrajectory
+
+import os, os.path
 
 def get_bigrig_screen(dir):
     w = 43 * 2.54e-2
@@ -34,11 +39,6 @@ def get_bigrig_screen(dir):
         rotation = -pi/2
         offset = (w/2, 0, h/2)
         fullscreen = True
-    elif dir.lower() == 'gui':
-        id = 0
-        rotation = 0
-        offset = (0, w/2, h/2)
-        fullscreen = False
     else:
         raise ValueError('Invalid direction.')
 
@@ -46,17 +46,24 @@ def get_bigrig_screen(dir):
                   name='BigRig {} Screen'.format(dir.title()))
 
 def main():
-    screens = [get_bigrig_screen(dir) for dir in ['n', 'e', 's', 'w', 'gui']]
+    screens = [get_bigrig_screen(dir) for dir in ['n', 'e', 's', 'w']]
     manager = launch_stim_server(screens)
     manager.hide_corner_square()
 
-    trajectory = RectangleTrajectory(x=-45, y=90, angle=0, w=3, h=180)
-    kwargs = {'name': 'MovingPatch', 'trajectory': trajectory.to_dict()}
-    manager.load_stim(**kwargs)
+    angles = [
+        ('east', 0),
+        ('north', 90),
+        ('west', 180),
+        ('south', 270)
+    ]
 
-    manager.start_stim()
-    sleep(10)
-    manager.stop_stim()
+    for name, value in angles:
+
+        trajectory = RectangleTrajectory(x=[(0,value),(10,value)], y=90, w=30, h=180)
+        manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
+        print(f'{name} ({value} deg)')
+
+        sleep(5)
 
 if __name__ == '__main__':
     main()
