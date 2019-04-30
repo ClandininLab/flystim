@@ -8,7 +8,7 @@
 
 On Linux, you'll also need to install a few packages via **apt-get**:
 ```shell
-> sudo apt-get install libusb-1.0.0-dev libudev-dev
+> sudo apt-get install build-essential libusb-1.0.0-dev libudev-dev
 ```
 
 # Installation
