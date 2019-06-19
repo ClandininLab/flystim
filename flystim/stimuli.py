@@ -331,7 +331,7 @@ class RandomBars(BaseProgram):
         super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
 
     def configure(self, period=15, vert_extent=30, width=2, rand_min=0.0, rand_max=1.0, start_seed=0,
-                  update_rate=60.0, background=0.5):
+                  update_rate=60.0, background=0.5, theta_offset = None):
         """
         Bars surrounding the viewer change brightness randomly.
         :param period: Period of the bars surrounding the viewer.
@@ -355,7 +355,10 @@ class RandomBars(BaseProgram):
         self.prog['phi_min'].value = pi/2-radians(vert_extent)
         self.prog['phi_max'].value = pi/2+radians(vert_extent)
         self.prog['theta_period'].value = radians(period)
-        self.prog['theta_offset'].value = -radians(period)/2.0
+        if theta_offset is None:
+            self.prog['theta_offset'].value = -radians(period)/2.0
+        else:
+            self.prog['theta_offset'].value = radians(theta_offset)
         self.prog['theta_duty'].value = width/period
         self.prog['background'].value = background
 
