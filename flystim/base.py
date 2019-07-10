@@ -92,7 +92,7 @@ class BaseProgram:
     def configure(self, *args, **kwargs):
         pass
 
-    def paint_at(self, t, global_fly_pos, global_theta_offset):
+    def paint_at(self, t, global_fly_pos, global_theta_offset, global_phi_offset):
         """
         :param t: current time in seconds
         """
@@ -104,6 +104,7 @@ class BaseProgram:
 
         self.prog['global_fly_pos'].value = tuple(global_fly_pos)
         self.prog['global_theta_offset'].value = global_theta_offset
+        self.prog['global_phi_offset'].value = global_phi_offset
 
         self.eval_at(t)
         self.vao.render(mode=moderngl.TRIANGLES)

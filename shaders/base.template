@@ -22,6 +22,7 @@ uniform float box_max_y;
 // closed-loop uniforms
 uniform vec3 global_fly_pos;
 uniform float global_theta_offset;
+uniform float global_phi_offset;
 
 // stimulus-specific uniforms
 ${decl_uniforms}
@@ -57,6 +58,14 @@ void main() {
     // wrap theta back into the range [-pi, pi]
     if (theta > M_PI){
         theta = theta - 2*M_PI;
+    }
+
+    // add offset to phi
+    phi = phi - global_phi_offset;
+
+    // wrap phi back into the range [-pi, pi]
+    if (phi > M_PI){
+        phi = phi - 2*M_PI;
     }
 
     // declare fragment color variable (monochromatic)
