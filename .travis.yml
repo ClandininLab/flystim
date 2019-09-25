@@ -19,11 +19,12 @@ before_install:
 - export PATH="$HOME/miniconda/bin:$PATH"
 - hash -r
 - conda config --set always_yes yes --set changeps1 no
+- conda update -q conda
 - conda info -a
 
 install:
 # create the conda environment and activate it
-- conda create -q -n test-env python=3.7.3
+- conda create -q -n test-env python=3.7.4
 - source activate test-env
 # install pip
 - conda install pip
