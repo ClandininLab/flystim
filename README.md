@@ -1,4 +1,6 @@
-# Introduction
+# FlyStim
+
+https://travis-ci.com/ClandininLab/flystim.svg?branch=master
 
 **flystim** is a software package for generating visual stimuli for fruit fly experiments.  The stimuli are perspective-corrected and can be displayed across multiple screens.  Sample code, illustrating various use cases, is included in the **examples** directory.
 
