@@ -3,9 +3,20 @@
 # https://github.com/softwaresaved/recipy/blob/master/.travis.yml
 
 # run on Linux and macOS
-os:
-- linux
-- osx
+matrix:
+  include:
+  - os: linux
+    addons:
+      apt:
+        packages:
+        - libusb-1.0.0-dev
+        - libudev-dev
+    env:
+  - os: osx
+    addons:
+      homebrew:
+        packages:
+          - libusb
 
 # install conda
 before_install:
