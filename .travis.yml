@@ -4,8 +4,6 @@
 
 # specify python version
 language: python
-python:
-  - "3.7"
 
 # run on Linux and macOS
 matrix:
@@ -16,7 +14,6 @@ matrix:
         packages:
         - libusb-1.0.0-dev
         - libudev-dev
-    env:
   - os: osx
     addons:
       homebrew:
@@ -24,14 +21,17 @@ matrix:
           - libusb
 
 install:
-# use pip to install packages
-- pip install pytest
-- pip install -e .
-# print the environment
+# print the starting environment
 - which python
+- python --version
 - which pip
+- pip --version
+# install pytest
+- pip install pytest
 - which pytest
 - pytest --version
+# install flystim
+- pip install -e .
 - pip freeze
 
 script:
