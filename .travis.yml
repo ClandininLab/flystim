@@ -1,8 +1,14 @@
 # modified from:
 # https://github.com/leonardt/fault/blob/master/.travis.yml
 # https://github.com/softwaresaved/recipy/blob/master/.travis.yml
+# https://blog.travis-ci.com/2019-08-07-extensive-python-testing-on-travis-ci
 
-# run on Linux and macOS
+# specify python version
+language: python
+python:
+  - 3.7
+
+# specify platform(s)
 matrix:
   include:
   - os: linux
@@ -11,43 +17,20 @@ matrix:
         packages:
         - libusb-1.0.0-dev
         - libudev-dev
-    env:
-  - os: osx
-    addons:
-      homebrew:
-        packages:
-          - libusb
+# Travis does not currently support Python for macOS...
+#  - os: osx
+#    addons:
+#      homebrew:
+#        packages:
+#          - libusb
 
-# install conda
 before_install:
-- |
-  if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
-  else
-    wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-  fi
-- bash miniconda.sh -b -p $HOME/miniconda
-- export PATH="$HOME/miniconda/bin:$PATH"
-- hash -r
-- conda config --set always_yes yes --set changeps1 no
-- conda update -q conda
-- conda info -a
+- python --version
+- pip install -U pip
+- pip install -U pytest
 
 install:
-# create the conda environment and activate it
-- conda create -q -n test-env python=3.7.4
-- source activate test-env
-# install pip
-- conda install pip
-# use pip to install packages
-- pip install pytest
 - pip install -e .
-# print the environment
-- which python
-- which pip
-- which pytest
-- pytest --version
-- pip freeze
 
 script:
 - pytest -v tests
