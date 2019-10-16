@@ -2,6 +2,11 @@
 # https://github.com/leonardt/fault/blob/master/.travis.yml
 # https://github.com/softwaresaved/recipy/blob/master/.travis.yml
 
+# specify python version
+language: python
+python:
+  - "3.7"
+
 # run on Linux and macOS
 matrix:
   include:
@@ -18,26 +23,7 @@ matrix:
         packages:
           - libusb
 
-# install conda
-before_install:
-- |
-  if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
-  else
-    wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-  fi
-- bash miniconda.sh -b -p $HOME/miniconda
-- export PATH="$HOME/miniconda/bin:$PATH"
-- hash -r
-- conda config --set always_yes yes --set changeps1 no
-- conda info -a
-
 install:
-# create the conda environment and activate it
-- conda create -q -n test-env python=3.7.4
-- source activate test-env
-# install pip
-- conda install pip
 # use pip to install packages
 - pip install pytest
 - pip install -e .
