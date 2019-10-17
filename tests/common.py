@@ -7,7 +7,7 @@ from PyQt5 import QtOpenGL, QtWidgets
 class HeadlessDisplay:
     def __init__(self, width=512, height=512):
         # Create an OpenGL context
-        self.ctx = moderngl.create_standalone_context()
+        self.ctx = moderngl.create_context(standalone=True, size=(width, height))
         self.ctx.enable(moderngl.DEPTH_TEST)
         self.ctx.enable(moderngl.BLEND)
 
