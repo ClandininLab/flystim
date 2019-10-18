@@ -10,6 +10,7 @@ from flystim.trajectory import RectangleTrajectory
 import flystim.distribution as distribution
 
 class ConstantBackground(BaseProgram):
+    # keep as-is
     def __init__(self, screen):
         uniforms = [
             Uniform('background', float)
@@ -30,6 +31,7 @@ class ConstantBackground(BaseProgram):
         pass
     
 class ContrastReversingGrating(BaseProgram):
+    # change to vertical bars with the cylinder itself rotating along 2 angles
     def __init__(self, screen):
         uniforms = [
             Uniform('contrast_scale', float),
@@ -150,6 +152,7 @@ class PeriodicGrating(BaseProgram):
 
 
 class SineGrating(PeriodicGrating):
+    # treated the same way as contrast reversing
     def __init__(self, screen):
         # define grating function
         grating = Function(name='sine_grating',
@@ -162,6 +165,7 @@ class SineGrating(PeriodicGrating):
 
 
 class RectGrating(PeriodicGrating):
+    # treated the same way as contrast reversing
     def __init__(self, screen):
         # define grating function
         grating = Function(name='rect_grating',
@@ -175,6 +179,7 @@ class RectGrating(PeriodicGrating):
 
 
 class RotatingBars(RectGrating):
+    # treated the same way as contrast reversing
     def configure(self, duty_cycle=0.5, **kwargs):
         """
         Stimulus pattern in which rectangular bars rotate around the viewer.
@@ -190,6 +195,7 @@ class RotatingBars(RectGrating):
 
 
 class ExpandingEdges(RectGrating):
+    # treated the same way as contrast reversing
     def configure(self, init_width=2, expand_rate=10, period=15, rate=0, **kwargs):
         """
         Stimulus pattern in which bars surrounding the viewer get wider or narrower.
@@ -216,6 +222,8 @@ class ExpandingEdges(RectGrating):
 
 
 class MovingPatch(BaseProgram):
+    # add circular patch, rectangular patch, using triangles to assemble the patches; they should never change shape
+    # this will be implemented with 3D rendering
     def __init__(self, screen):
         uniforms = [
             Uniform('theta_center', float),
@@ -301,6 +309,7 @@ class MovingPatch(BaseProgram):
         self.prog['face_color'].value = self.trajectory.color.eval_at(t)
 
 class RandomBars(BaseProgram):
+    # cylindrical mode
     def __init__(self, screen, max_face_colors=64):
         self.max_face_colors = max_face_colors
 
@@ -374,6 +383,7 @@ class RandomBars(BaseProgram):
         self.prog['face_colors'].value = rand_colors
 
 class SequentialBars(BaseProgram):
+    # consider removing...
     def __init__(self, screen):
         uniforms = [
             Uniform('theta_offset', float),
@@ -435,6 +445,8 @@ class SequentialBars(BaseProgram):
         self.prog['enable_second'].value = (t >= self.second_active_time)
 
 class GridStim(BaseProgram):
+    # render on a cylinder with the height of patches adjusted for equal solid angle.
+    # cylinder type stimulus
     def __init__(self, screen, max_theta=256, max_phi=128):
         # initialize the random map
         self.max_theta = max_theta
@@ -515,6 +527,7 @@ class RandomGrid(GridStim):
         self.texture.use()
 
 class Checkerboard(GridStim):
+    # changing to cylinder style
     def configure(self, theta_period=2, phi_period=2):
         """
         Patches surrounding the viewer are arranged in a periodic checkerboard.
@@ -540,6 +553,7 @@ class Checkerboard(GridStim):
         self.texture.use()
 
 class ArbitraryGrid(BaseProgram):
+    # changing to cylinder style
     def __init__(self, screen):
         uniforms = [
             Uniform('stixel_size', float),

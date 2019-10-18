@@ -12,6 +12,9 @@ python:
 matrix:
   include:
   - os: linux
+    dist: xenial
+    services:
+      - xvfb
     addons:
       apt:
         packages:
