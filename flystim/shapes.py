@@ -68,7 +68,7 @@ class GlCube(GlVertices):
         if '-y' not in colors:
             colors['-y'] = 'cyan'
         if '+z' not in colors:
-            colors['+z'] = 'magenta'
+            colors['+z'] = 'yellow'
         if '-z' not in colors:
             colors['-z'] = 'magenta'
 
