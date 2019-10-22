@@ -94,7 +94,7 @@ class GlSphericalRect(GlVertices):
                  width=None,  # degrees, theta
                  height=None,  # degrees, phi
                  radius=None,  # meters
-                 color=None,  # (r,g,b,a)
+                 color=None,  # (r,g,b,a) or single value for monochrome, alpha = 1
                  n_steps_x=None,
                  n_steps_y=None):
         super().__init__()
@@ -106,6 +106,8 @@ class GlSphericalRect(GlVertices):
             radius = 1
         if color is None:
             color = (1, 1, 1, 1)
+        if type(color) is not tuple:
+            color = [color, color, color, 1]
         if n_steps_x is None:
             n_steps_x = 6
         if n_steps_y is None:
@@ -138,15 +140,17 @@ class GlSphericalCirc(GlVertices):
     def __init__(self,
                  circle_radius=None,  # degrees in spherical coordinates
                  sphere_radius=None,  # meters
-                 color=None,  # (r,g,b,a)
+                 color=None,  # (r,g,b,a) or single value for monochrome, alpha = 1
                  n_steps=None):
         super().__init__()
         if circle_radius is None:
-            circle_radius = 20
+            circle_radius = 10
         if sphere_radius is None:
             sphere_radius = 1
         if color is None:
             color = (1, 1, 1, 1)
+        if type(color) is not tuple:
+            color = [color, color, color, 1]
         if n_steps is None:
             n_steps = 36
 
@@ -154,6 +158,7 @@ class GlSphericalCirc(GlVertices):
 
         angles = np.linspace(0, 2*np.pi, n_steps+1)
         for wedge in range(n_steps):
+            # render circle at the equator (phi=pi/2) so it's not near the poles
             v1 = self.sphericalToCartesian((sphere_radius,
                                             radians(circle_radius)*np.cos(angles[wedge]),
                                             np.pi/2 + radians(circle_radius)*np.sin(angles[wedge])))
