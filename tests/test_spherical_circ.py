@@ -19,7 +19,8 @@ def register_cave(display, omega=0):
 
     # add circ rendering to the render action list
     display.render_objs.append(cave)
-    display.render_actions.append(lambda: cave.render(GlSphericalCirc(center=(-180,0), circle_radius=10)))
+    t0 = time()
+    display.render_actions.append(lambda: cave.render(GlSphericalCirc(center=(-180,0), circle_radius=10 + omega*(time()-t0))))
 
 def test_spherical_circ(max_err=100):
     # render image
@@ -36,5 +37,5 @@ def test_spherical_circ(max_err=100):
     assert error <= max_err, f'Error {error} exceeds limit of {max_err}.'
 
 if __name__ == '__main__':
-    run_qt(lambda display: register_cave(display, omega=45))
+    run_qt(lambda display: register_cave(display, omega=20))
     #test_spherical_circ()

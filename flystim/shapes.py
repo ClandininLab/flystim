@@ -95,7 +95,6 @@ class GlSphericalRect(GlVertices):
                  height=None,  # degrees, phi
                  radius=None,  # meters
                  color=None,  # (r,g,b,a)
-                 center=None,  # degrees, (theta, phi)
                  n_steps_x=None,
                  n_steps_y=None):
         super().__init__()
@@ -107,8 +106,6 @@ class GlSphericalRect(GlVertices):
             radius = 1
         if color is None:
             color = (1, 1, 1, 1)
-        if center is None:
-            center = (0, 0)
         if n_steps_x is None:
             n_steps_x = 6
         if n_steps_y is None:
@@ -125,8 +122,9 @@ class GlSphericalRect(GlVertices):
                 v2 = self.sphericalToCartesian((radius, theta, phi + d_phi))
                 v3 = self.sphericalToCartesian((radius, theta + d_theta, phi))
                 v4 = self.sphericalToCartesian((radius, theta + d_theta, phi + d_phi))
-                self.add(GlTri(v1, v2, v4, color).rotz(radians(center[0])).roty(radians(center[1])))
-                self.add(GlTri(v1, v3, v4, color).rotz(radians(center[0])).roty(radians(center[1])))
+                self.add(GlTri(v1, v2, v4, color))
+                self.add(GlTri(v1, v3, v4, color))
+
 
     def sphericalToCartesian(self, spherical_coords):
         r, theta, phi = spherical_coords
@@ -141,7 +139,6 @@ class GlSphericalCirc(GlVertices):
                  circle_radius=None,  # degrees in spherical coordinates
                  sphere_radius=None,  # meters
                  color=None,  # (r,g,b,a)
-                 center=None,  # degrees, (theta, phi)
                  n_steps=None):
         super().__init__()
         if circle_radius is None:
@@ -150,8 +147,6 @@ class GlSphericalCirc(GlVertices):
             sphere_radius = 1
         if color is None:
             color = (1, 1, 1, 1)
-        if center is None:
-            center = (0, 0)
         if n_steps is None:
             n_steps = 36
 
@@ -166,7 +161,7 @@ class GlSphericalCirc(GlVertices):
                                             radians(circle_radius)*np.cos(angles[wedge+1]),
                                             np.pi/2 + radians(circle_radius)*np.sin(angles[wedge+1])))
 
-            self.add(GlTri(v1, v2, v_center, color).rotz(radians(center[0])).roty(radians(center[1])))
+            self.add(GlTri(v1, v2, v_center, color))
 
     def sphericalToCartesian(self, spherical_coords):
         r, theta, phi = spherical_coords

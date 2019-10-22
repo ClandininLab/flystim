@@ -19,7 +19,10 @@ def register_cave(display, omega=0):
 
     # add rect rendering to the render action list
     display.render_objs.append(cave)
-    display.render_actions.append(lambda: cave.render(GlSphericalRect(center=(-180,0), width=20, height=20)))
+    t0 = time()
+    elevation = 20
+    az_start = -260
+    display.render_actions.append(lambda: cave.render(GlSphericalRect(width=10, height=30).rotz(radians(az_start+omega*(time()-t0))).roty(radians(elevation))))
 
 def test_spherical_rect(max_err=100):
     # render image
@@ -36,5 +39,5 @@ def test_spherical_rect(max_err=100):
     assert error <= max_err, f'Error {error} exceeds limit of {max_err}.'
 
 if __name__ == '__main__':
-    run_qt(lambda display: register_cave(display, omega=45))
+    run_qt(lambda display: register_cave(display, omega=20))
     #test_spherical_rect()
