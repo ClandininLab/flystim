@@ -13,7 +13,7 @@ def get_perspective(theta, phi):
     # rotate screen and eye position
     return perspective.roty(-radians(phi)).rotz(radians(theta))
 
-def register_cave(display, omega=0):
+def register_cave(display):
     # create the CAVE system with various perspectives
     cave = CaveSystem()
     cave.add_subscreen((0, 0, 512, 512), get_perspective(theta=0, phi=0))
@@ -33,4 +33,4 @@ def register_cave(display, omega=0):
     display.render_actions.append(lambda: cave.render(GlQuad(v1, v2, v3, v4, color, tc1, tc2, tc3, tc4).translate((0,np.cos(2*np.pi*(time()-t0)/4),np.sin(2*np.pi*(time()-t0)/2))), texture_img=img))
 
 if __name__ == '__main__':
-    run_qt(lambda display: register_cave(display, omega=1))
+    run_qt(lambda display: register_cave(display))

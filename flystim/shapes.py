@@ -188,3 +188,37 @@ class GlSphericalCirc(GlVertices):
                             r * np.sin(phi) * np.sin(theta),
                             r * np.cos(phi))
         return cartesian_coords
+
+class GlCylinder(GlVertices):
+    def __init__(self,
+                 cylinder_height=None,  # meters
+                 cylinder_radius=None,  # meters
+                 color=None,  # (r,g,b,a) or single value for monochrome, alpha = 1
+                 n_faces=None):
+        super().__init__()
+        if cylinder_height is None:
+            cylinder_height = 10
+        if cylinder_radius is None:
+            cylinder_radius = 1
+        if color is None:
+            color = (1, 1, 1, 1)
+        if type(color) is not tuple:
+            color = [color, color, color, 1]
+        if n_faces is None:
+            n_faces = 24
+
+        d_theta = 2*np.pi / n_faces
+        for face in range(n_faces):
+            v1 = self.cylindricalToCartesian((cylinder_radius, face*d_theta, cylinder_height/2))
+            v2 = self.cylindricalToCartesian((cylinder_radius, face*d_theta, -cylinder_height/2))
+            v3 = self.cylindricalToCartesian((cylinder_radius, (face+1)*d_theta, -cylinder_height/2))
+            v4 = self.cylindricalToCartesian((cylinder_radius, (face+1)*d_theta, cylinder_height/2))
+
+            self.add(GlQuad(v1, v2, v3, v4, color, tc1=(face/n_faces,1), tc2=(face/n_faces,0), tc3=((face+1)/n_faces,0), tc4=((face+1)/n_faces,1)))
+
+    def cylindricalToCartesian(self, cylindrical_coords):
+        r, theta, z = cylindrical_coords
+        cartesian_coords = (r * np.cos(theta),
+                            r * np.sin(theta),
+                            z)
+        return cartesian_coords
