@@ -1,10 +1,9 @@
 from math import radians
 from time import time
-from PIL import Image
 import numpy as np
 
-from flystim import GenPerspective, GlSphericalCirc, CaveSystem, rel_path
-from common import run_qt, run_headless, get_img_err
+from flystim import GenPerspective, GlSphericalCirc, CaveSystem
+from common import run_qt
 
 def get_perspective(theta, phi):
     # nominal position
@@ -27,20 +26,5 @@ def register_cave(display, omega=0):
     center_2 = (-160, 0)
     display.render_actions.append(lambda: cave.render(GlSphericalCirc(color=0.5 + 0.5*np.sin(2*np.pi*(omega/2)*(time()-t0))).rotz(radians(center_2[0])).roty(radians(center_2[1]))))
 
-def test_spherical_circ(max_err=100):
-    # render image
-    obs = run_headless(register_cave)
-
-    # load image for comparison
-    ref = Image.open(rel_path('tests', 'data', 'color_cube.png'))
-
-    # compute error
-    error = get_img_err(obs, ref)
-    print(error)
-
-    # check that error is OK
-    assert error <= max_err, f'Error {error} exceeds limit of {max_err}.'
-
 if __name__ == '__main__':
     run_qt(lambda display: register_cave(display, omega=1))
-    #test_spherical_circ()
