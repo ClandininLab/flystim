@@ -51,7 +51,7 @@ class GlVertices:
         return data.flatten(order='F')
 
 class GlTri(GlVertices):
-    def __init__(self, v1, v2, v3, color, tc1=None, tc2=None, tc3=None):
+    def __init__(self, v1, v2, v3, color, tc1=None, tc2=None, tc3=None, texture=None):
         vertices = np.concatenate((v1, v2, v3)).reshape((3, 3), order='F')
         colors = np.concatenate((color, color, color)).reshape((4, 3), order='F')
         if tc1 is not None:
@@ -61,7 +61,7 @@ class GlTri(GlVertices):
         super().__init__(vertices=vertices, colors=colors, tex_coords=tex_coords)
 
 class GlQuad(GlVertices):
-    def __init__(self, v1, v2, v3, v4, color, tc1=None, tc2=None, tc3=None, tc4=None):
+    def __init__(self, v1, v2, v3, v4, color, tc1=None, tc2=None, tc3=None, tc4=None, texture=None):
         super().__init__()
         self.add(GlTri(v1, v2, v3, color, tc1, tc2, tc3))
         self.add(GlTri(v1, v3, v4, color, tc1, tc3, tc4))
@@ -107,7 +107,7 @@ class GlSphericalRect(GlVertices):
     def __init__(self,
                  width=None,  # degrees, theta
                  height=None,  # degrees, phi
-                 radius=None,  # meters
+                 sphere_radius=None,  # meters
                  color=None,  # (r,g,b,a) or single value for monochrome, alpha = 1
                  n_steps_x=None,
                  n_steps_y=None):
@@ -116,8 +116,8 @@ class GlSphericalRect(GlVertices):
             width = 20
         if height is None:
             height = 20
-        if radius is None:
-            radius = 1
+        if sphere_radius is None:
+            sphere_radius = 1
         if color is None:
             color = (1, 1, 1, 1)
         if type(color) is not tuple:
@@ -134,10 +134,10 @@ class GlSphericalRect(GlVertices):
                 # render patch at the equator (phi=pi/2) so it's not near the poles
                 theta = radians(width) * (-1/2 + (cc/n_steps_x))
                 phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
-                v1 = self.sphericalToCartesian((radius, theta, phi))
-                v2 = self.sphericalToCartesian((radius, theta, phi + d_phi))
-                v3 = self.sphericalToCartesian((radius, theta + d_theta, phi))
-                v4 = self.sphericalToCartesian((radius, theta + d_theta, phi + d_phi))
+                v1 = self.sphericalToCartesian((sphere_radius, theta, phi))
+                v2 = self.sphericalToCartesian((sphere_radius, theta, phi + d_phi))
+                v3 = self.sphericalToCartesian((sphere_radius, theta + d_theta, phi))
+                v4 = self.sphericalToCartesian((sphere_radius, theta + d_theta, phi + d_phi))
                 self.add(GlTri(v1, v2, v4, color))
                 self.add(GlTri(v1, v3, v4, color))
 
@@ -194,7 +194,8 @@ class GlCylinder(GlVertices):
                  cylinder_height=None,  # meters
                  cylinder_radius=None,  # meters
                  color=None,  # (r,g,b,a) or single value for monochrome, alpha = 1
-                 n_faces=None):
+                 n_faces=None,
+                 texture=None):
         super().__init__()
         if cylinder_height is None:
             cylinder_height = 10

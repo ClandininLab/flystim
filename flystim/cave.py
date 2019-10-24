@@ -9,7 +9,6 @@ class CaveSystem:
     def __init__(self, num_tri=200):
         # save settings
         self.num_tri = num_tri
-        self.use_texture = False
 
         # initialize
         self.subscreens = []
@@ -20,21 +19,21 @@ class CaveSystem:
     def initialize(self, display):
         self.ctx = display.ctx
         self.prog = self.create_prog()
+        self.update_vertex_objects()
 
-        # basic, no-texture vbo and vao
-        self.vbo = self.ctx.buffer(reserve=self.num_tri*3*7*4) # 3 points, 7 values, 4 bytes per value
-        self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
-        self.prog['use_texture'].value = self.use_texture
+    def update_vertex_objects(self, use_texture=False):
+        if use_texture:
+            # 3 points, 9 values (3 for vert, 4 for color, 2 for tex_coords), 4 bytes per value
+            self.vbo = self.ctx.buffer(reserve=self.num_tri*3*9*4)
+            self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color', 'in_tex_coord')
+        else:
+            # basic, no-texture vbo and vao:
+            self.vbo = self.ctx.buffer(reserve=self.num_tri*3*7*4) # 3 points, 7 values, 4 bytes per value
+            self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
 
     def add_texture(self, texture_img):
-        self.use_texture = True
-        # 3 points, 9 values (3 for vert, 4 for color, 2 for tex_coordscoord), 4 bytes per value
-        self.vbo = self.ctx.buffer(reserve=self.num_tri*3*9*4)
-        self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color', 'in_tex_coord')
-
         self.texture = self.ctx.texture(texture_img.shape, 1, texture_img.tobytes(), alignment=4)
         self.texture.use()
-        self.prog['use_texture'].value = self.use_texture
 
     def create_prog(self):
         return self.ctx.program(
@@ -81,17 +80,20 @@ class CaveSystem:
         )
 
     def render(self, obj, texture_img=None):
-        if texture_img is not None:
-            self.add_texture(texture_img)
-        # write data to VBO
         data = obj.data
-        self.vbo.write(data.astype('f4'))
 
-        # compute the number of vertices
-        if self.use_texture:
+        if texture_img is not None:
+            self.update_vertex_objects(use_texture=True)
+            self.prog['use_texture'].value = True
+            self.add_texture(texture_img)
             vertices = len(data) // 9
         else:
+            self.update_vertex_objects(use_texture=False)
+            self.prog['use_texture'].value = False
             vertices = len(data) // 7
+
+        # write data to VBO
+        self.vbo.write(data.astype('f4'))
 
         # render each viewport separately
         for viewport, perspective in self.subscreens:
