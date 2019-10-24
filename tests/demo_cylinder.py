@@ -1,10 +1,10 @@
 from math import radians
 from time import time
 import numpy as np
-from PIL import Image
 
-from flystim import GenPerspective, GlCylinder, CaveSystem, rel_path
+from flystim import GenPerspective, GlCylinder, CaveSystem
 from common import run_qt
+
 
 def get_perspective(theta, phi):
     # nominal position
@@ -12,6 +12,7 @@ def get_perspective(theta, phi):
 
     # rotate screen and eye position
     return perspective.roty(-radians(phi)).rotz(radians(theta))
+
 
 def register_cave(display):
     # create the CAVE system with various perspectives
@@ -22,14 +23,15 @@ def register_cave(display):
 
     # make the texture image
     dim = 512
-    sf = 20/(2*np.pi) # cycles per radian
-    xx = np.linspace(0,2*np.pi,dim)
-    yy = 255*((0.5 + 0.5*(np.sin(sf*2*np.pi*xx)))>0.5)
-    img = np.tile(yy,(dim,1)).astype(np.uint8)
+    sf = 20/(2*np.pi)  # cycles per radian
+    xx = np.linspace(0, 2*np.pi, dim)
+    yy = 255*((0.5 + 0.5*(np.sin(sf*2*np.pi*xx))) > 0.5)
+    img = np.tile(yy, (dim, 1)).astype(np.uint8)
 
     t0 = time()
-    omega = 40
+    omega = 20
     display.render_actions.append(lambda: cave.render(GlCylinder().rotz(radians(omega*(time()-t0))).rotx(radians(0)), texture_img=img))
+
 
 if __name__ == '__main__':
     run_qt(lambda display: register_cave(display))

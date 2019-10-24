@@ -32,7 +32,9 @@ class CaveSystem:
             self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
 
     def add_texture(self, texture_img):
-        self.texture = self.ctx.texture(texture_img.shape, 1, texture_img.tobytes(), alignment=4)
+        self.texture = self.ctx.texture(size=(texture_img.shape[1], texture_img.shape[0]),
+                                        components=1,
+                                        data=texture_img.tobytes()) # size = (width, height)
         self.texture.use()
 
     def create_prog(self):
