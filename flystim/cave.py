@@ -2,12 +2,14 @@
 
 import numpy as np
 import moderngl
-from flystim import normalize, rotx, roty, rotz
+from flystim import normalize, rotx, roty, rotz, rel_path
+import os
 
 class CaveSystem:
-    def __init__(self, num_tri=100):
+    def __init__(self, num_tri=200):
         # save settings
         self.num_tri = num_tri
+        self.use_texture = False
 
         # initialize
         self.subscreens = []
@@ -18,44 +20,78 @@ class CaveSystem:
     def initialize(self, display):
         self.ctx = display.ctx
         self.prog = self.create_prog()
+
+        # basic, no-texture vbo and vao
         self.vbo = self.ctx.buffer(reserve=self.num_tri*3*7*4) # 3 points, 7 values, 4 bytes per value
         self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
+        self.prog['use_texture'].value = self.use_texture
+
+    def add_texture(self, texture_img):
+        self.use_texture = True
+        # 3 points, 9 values (3 for vert, 4 for color, 2 for tex_coordscoord), 4 bytes per value
+        self.vbo = self.ctx.buffer(reserve=self.num_tri*3*9*4)
+        self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color', 'in_tex_coord')
+
+        self.texture = self.ctx.texture(texture_img.shape, 1, texture_img.tobytes(), alignment=4)
+        self.texture.use()
+        self.prog['use_texture'].value = self.use_texture
 
     def create_prog(self):
         return self.ctx.program(
             vertex_shader='''
                 #version 330
-        
+
                 in vec3 in_vert;
                 in vec4 in_color;
+                in vec2 in_tex_coord;
+
                 out vec4 v_color;
-        
+                out vec2 v_tex_coord;
+
                 uniform mat4 Mvp;
-        
+
                 void main() {
                     v_color = in_color;
+                    v_tex_coord = in_tex_coord;
                     gl_Position = Mvp * vec4(in_vert, 1.0);
                 }
             ''',
             fragment_shader='''
                 #version 330
-        
+
                 in vec4 v_color;
+                in vec2 v_tex_coord;
+
+                uniform bool use_texture;
+                uniform sampler2D texture_matrix;
+
                 out vec4 f_color;
-        
+
                 void main() {
-                    f_color = v_color;
+                    if (use_texture) {
+                        vec4 texFrag = texture(texture_matrix, v_tex_coord);
+                        f_color.rgb = texFrag.r * v_color.rgb;
+                        f_color.a = 1;
+                    } else {
+                        f_color.rgb = v_color.rgb;
+                        f_color.a = 1;
+                    }
                 }
             '''
         )
 
-    def render(self, obj):
+    def render(self, obj, texture_img=None):
+        if texture_img is not None:
+            self.add_texture(texture_img)
         # write data to VBO
         data = obj.data
         self.vbo.write(data.astype('f4'))
 
         # compute the number of vertices
-        vertices = len(data) // 7
+        if self.use_texture:
+            vertices = len(data) // 9
+        else:
+            vertices = len(data) // 7
 
         # render each viewport separately
         for viewport, perspective in self.subscreens:
