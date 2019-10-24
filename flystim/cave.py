@@ -6,7 +6,7 @@ from flystim import normalize, rotx, roty, rotz, rel_path
 import os
 
 class CaveSystem:
-    def __init__(self, num_tri=100):
+    def __init__(self, num_tri=200):
         # save settings
         self.num_tri = num_tri
         self.use_texture = False

@@ -205,7 +205,7 @@ class GlCylinder(GlVertices):
         if type(color) is not tuple:
             color = [color, color, color, 1]
         if n_faces is None:
-            n_faces = 24
+            n_faces = 64
 
         d_theta = 2*np.pi / n_faces
         for face in range(n_faces):

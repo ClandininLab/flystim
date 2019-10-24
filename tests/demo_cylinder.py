@@ -24,12 +24,12 @@ def register_cave(display):
     dim = 512
     sf = 20/(2*np.pi) # cycles per radian
     xx = np.linspace(0,2*np.pi,dim)
-    yy = 255*(0.5 + 0.5*(np.sin(sf*2*np.pi*xx)))
+    yy = 255*((0.5 + 0.5*(np.sin(sf*2*np.pi*xx)))>0.5)
     img = np.tile(yy,(dim,1)).astype(np.uint8)
 
     t0 = time()
     omega = 40
-    display.render_actions.append(lambda: cave.render(GlCylinder().rotz(radians(omega*(time()-t0))), texture_img=img))
+    display.render_actions.append(lambda: cave.render(GlCylinder().rotz(radians(omega*(time()-t0))).rotx(radians(0)), texture_img=img))
 
 if __name__ == '__main__':
     run_qt(lambda display: register_cave(display))
