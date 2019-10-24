@@ -29,7 +29,7 @@ class ConstantBackground(BaseProgram):
 
     def eval_at(self, t):
         pass
-    
+
 class ContrastReversingGrating(BaseProgram):
     # change to vertical bars with the cylinder itself rotating along 2 angles
     def __init__(self, screen):
@@ -40,19 +40,19 @@ class ContrastReversingGrating(BaseProgram):
             Uniform('k_phi', float),
             Uniform('contrast', float)
         ]
-        
+
         grating = Function(name='rect_grating',
                            in_vars=[Variable('phase', float)],
                            out_type=float,
                            code='return (fract(phase/(2.0*M_PI)) <= 0.5) ? 1.0 : -1.0;')
-        
+
 
         calc_color = ''
         calc_color += 'float spatial_contrast = {}(k_theta*theta + k_phi*phi);\n'.format(grating.name)
         calc_color += 'color = mean + spatial_contrast*contrast*contrast_scale*mean;\n'
 
         super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
-        
+
     def configure(self, spatial_period=10, temporal_frequency=1.0, contrast_scale=1.0, mean=0.5, angle=0.0, temporal_waveform='sine'):
         """
         Stationary periodic grating whose contrast is modulated as a function of time
@@ -84,7 +84,7 @@ class ContrastReversingGrating(BaseProgram):
             self.prog['contrast'].value = sin(2 * pi * self.temporal_frequency * t) #lives on [-1, 1]
         elif self.temporal_waveform == 'square':
             self.prog['contrast'].value = np.sign(sin(2 * pi * self.temporal_frequency * t)) #element of [-1, 1]
-        
+
 
 class PeriodicGrating(BaseProgram):
     def __init__(self, screen, grating):
@@ -245,17 +245,17 @@ class MovingPatch(BaseProgram):
             if (rx >= M_PI) {
                 rx -= 2*M_PI;
             }
-            
+
             // compute relative y coordinates of pixel
             float ry = mod(phi-phi_center, 2*M_PI);
             if (ry >= M_PI) {
                 ry -= 2*M_PI;
             }
-            
+
             // compute displacement from center
             float dx = dot(vec2(+cos(angle), +sin(angle)), vec2(rx, ry));
             float dy = dot(vec2(-sin(angle), +cos(angle)), vec2(rx, ry));
-               
+
             // check if pixel is within face
             if ((abs(dx) <= (0.5*theta_width)) && (abs(dy) <= (0.5*phi_width))){
                 if (use_alpha == 0.0) {
@@ -264,7 +264,7 @@ class MovingPatch(BaseProgram):
                     color = background;
                     alpha = face_color;
                 }
-                
+
             } else if (draw_background == 1.0) {
                 color = background;
             } else {
@@ -322,7 +322,10 @@ class RandomBars(BaseProgram):
             Uniform('theta_offset', float),
             Uniform('theta_duty', float),
             Uniform('background', float),
-            Uniform('face_colors', float, max_face_colors)
+            Uniform('face_colors', float, max_face_colors),
+            Uniform('red_gun', float),
+            Uniform('green_gun', float),
+            Uniform('blue_gun', float),
         ]
 
         calc_color = '''
@@ -337,10 +340,16 @@ class RandomBars(BaseProgram):
             }
         '''
 
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
+        rgb = '''
+            red = red_gun;
+            green = green_gun;
+            blue = blue_gun;
+            '''
+
+        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color, rgb=rgb)
 
     def configure(self, period=15, vert_extent=30, width=2, rand_min=0.0, rand_max=1.0, start_seed=0,
-                  update_rate=60.0, background=0.5, theta_offset = None):
+                  update_rate=60.0, background=0.5, theta_offset=None, rgb=(1.0,1.0,1.0)):
         """
         Bars surrounding the viewer change brightness randomly.
         :param period: Period of the bars surrounding the viewer.
@@ -370,6 +379,10 @@ class RandomBars(BaseProgram):
             self.prog['theta_offset'].value = radians(theta_offset)
         self.prog['theta_duty'].value = width/period
         self.prog['background'].value = background
+
+        self.prog['red_gun'].value = rgb[0]
+        self.prog['green_gun'].value = rgb[1]
+        self.prog['blue_gun'].value = rgb[2]
 
     def eval_at(self, t):
         # set the seed
@@ -461,11 +474,11 @@ class GridStim(BaseProgram):
         calc_color = '''
             if (theta < 0) {
                 theta += 2*M_PI;
-            } 
-            
+            }
+
             int theta_int = int(theta/theta_period);
             int phi_int = int(phi/phi_period);
-        
+
             color = texelFetch(grid_values, ivec2(theta_int, phi_int), 0).r;
         '''
 
@@ -511,15 +524,15 @@ class RandomGrid(GridStim):
         # write program settings
         self.prog['phi_period'].value = radians(phi_period)
         self.prog['theta_period'].value = radians(theta_period)
-        
+
         # get the noise distribution
         self.noise_distribution = noise_distribution
-        
+
     def eval_at(self, t):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
-        
+
         face_colors = self.noise_distribution.get_random_values((self.max_phi, self.max_theta))
 
         # write to GPU
@@ -568,16 +581,16 @@ class ArbitraryGrid(BaseProgram):
         calc_color = '''
             if (theta < 0) {
                 theta += 2*M_PI;
-            } 
+            }
             if (phi < 0) {
                 phi += M_PI;
-            } 
+            }
 
             if ((min_y <= phi) && (phi <= max_y) && (min_x <= theta) && (theta <= max_x)) {
-                
+
                     int theta_int = int((theta - min_x)/stixel_size);
                     int phi_int = int((phi - min_y)/stixel_size);
-                    
+
                     color = texelFetch(grid_values, ivec2(theta_int, phi_int), 0).r;
             } else {
                 color = background;
@@ -586,8 +599,8 @@ class ArbitraryGrid(BaseProgram):
 
         '''
         super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-        
-        
+
+
     def initialize(self, ctx):
         self.ctx = ctx
         super().initialize(self.ctx)
@@ -600,8 +613,8 @@ class ArbitraryGrid(BaseProgram):
         self.texture.swizzle = 'RRR1'
         self.texture.use()
 
-    def configure(self, stixel_size = 10, num_theta = 20, num_phi = 20, t_dim = 100, update_rate = 30, 
-                  center_theta = 0, center_phi = 0, background = 0.5, 
+    def configure(self, stixel_size = 10, num_theta = 20, num_phi = 20, t_dim = 100, update_rate = 30,
+                  center_theta = 0, center_phi = 0, background = 0.5,
                   stimulus_code = None, encoding_scheme = 'ternary_dense'):
         """
         Patches surrounding the viewer are arranged in an arbitrary grid stimulus
@@ -614,12 +627,12 @@ class ArbitraryGrid(BaseProgram):
         self.t_dim = t_dim
         self.update_rate = update_rate
         self.background = background
-        
+
         self.stimulus_code = stimulus_code
-        
+
         width_phi = self.num_phi * self.stixel_size
         width_theta = self.num_theta * self.stixel_size
-        
+
         # write program settings
         self.prog['stixel_size'].value = radians(self.stixel_size)
         self.prog['min_y'].value = radians(center_phi - width_phi / 2)
@@ -633,7 +646,7 @@ class ArbitraryGrid(BaseProgram):
         # col = x (theta) coord
         if stimulus_code is None:
             self.stimulus_code = np.zeros((self.num_phi, self.num_theta, self.t_dim))
-            
+
         if encoding_scheme == 'ternary_dense':
             self.xyt_stimulus = np.array(self.stimulus_code).reshape(self.num_phi, self.num_theta, self.t_dim)
 
@@ -645,7 +658,7 @@ class ArbitraryGrid(BaseProgram):
 
         # initialize texture
         self.initTexture(self.num_phi, self.num_theta)
- 
+
     def getRowColumnFromLocation(self, location, y_dim, x_dim):
         row = np.mod(location, x_dim) - 1
         col = np.mod(location, y_dim) - 1
@@ -655,7 +668,7 @@ class ArbitraryGrid(BaseProgram):
         if t > 0:
             t_pull = int(np.floor((t*self.update_rate)))
             face_colors = self.xyt_stimulus[:,:,np.min((t_pull, self.t_dim-1))].copy()
-    
+
             # write to GPU
             self.texture.write(face_colors.astype('f4'))
-            self.texture.use()                
+            self.texture.use()

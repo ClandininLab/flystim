@@ -16,7 +16,7 @@ class BaseConfigOptions:
         self.box_max_y = radians(box_max_y)
 
 class BaseProgram:
-    def __init__(self, screen, uniforms=None, functions=None, calc_color=None):
+    def __init__(self, screen, uniforms=None, functions=None, calc_color=None, rgb=None):
         """
         :param screen: Object containing screen size information
         :param uniforms: List of glsl.Uniform objects representing the uniform variables used in the shader
@@ -41,6 +41,14 @@ class BaseProgram:
         if calc_color is None:
             calc_color = 'color = 0.0;'
         self.calc_color = calc_color
+
+        if rgb is None:
+            rgb = '''
+                red = 1.0;
+                green = 1.0;
+                blue = 1.0;
+            '''
+        self.rgb = rgb
 
     def initialize(self, ctx):
         """
@@ -68,7 +76,8 @@ class BaseProgram:
         fragment_shader = fragment_shader_template.substitute(
             decl_uniforms=decl_uniforms,
             decl_functions=decl_functions,
-            calc_color=self.calc_color
+            calc_color=self.calc_color,
+            rgb=self.rgb
         )
 
         self.prog = self.ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
