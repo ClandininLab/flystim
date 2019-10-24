@@ -21,8 +21,11 @@ def register_cave(display, omega=0):
     # add circ rendering to the render action list
     display.render_objs.append(cave)
     t0 = time()
-    center = (-200, 0)
-    display.render_actions.append(lambda: cave.render(GlSphericalCirc(color=0.5 + 0.5*np.sin(2*np.pi*omega*(time()-t0))).rotz(radians(center[0])).roty(radians(center[1]))))
+    center_1 = (-200, 0)
+    display.render_actions.append(lambda: cave.render(GlSphericalCirc(color=0.5 + 0.5*np.sin(2*np.pi*(2*omega)*(time()-t0))).rotz(radians(center_1[0])).roty(radians(center_1[1]))))
+
+    center_2 = (-160, 0)
+    display.render_actions.append(lambda: cave.render(GlSphericalCirc(color=0.5 + 0.5*np.sin(2*np.pi*(omega/2)*(time()-t0))).rotz(radians(center_2[0])).roty(radians(center_2[1]))))
 
 def test_spherical_circ(max_err=100):
     # render image

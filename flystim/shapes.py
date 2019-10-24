@@ -3,9 +3,10 @@ from math import radians
 from .util import get_rgba, rotx, roty, rotz, translate, scale
 
 class GlVertices:
-    def __init__(self, vertices=None, colors=None):
+    def __init__(self, vertices=None, colors=None, tex_coords=None):
         self.vertices = vertices
         self.colors = colors
+        self.tex_coords = tex_coords
 
     def add(self, obj):
         # add vertices
@@ -20,37 +21,50 @@ class GlVertices:
         else:
             self.colors = np.concatenate((self.colors, obj.colors), axis=1)
 
+        # add tex_coords
+        if self.tex_coords is None:
+            self.tex_coords = obj.tex_coords
+        else:
+            self.tex_coords = np.concatenate((self.tex_coords, obj.tex_coords), axis=1)
+
     def rotx(self, th):
-        return GlVertices(vertices=rotx(self.vertices, th), colors=self.colors)
+        return GlVertices(vertices=rotx(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
 
     def roty(self, th):
-        return GlVertices(vertices=roty(self.vertices, th), colors=self.colors)
+        return GlVertices(vertices=roty(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
 
     def rotz(self, th):
-        return GlVertices(vertices=rotz(self.vertices, th), colors=self.colors)
+        return GlVertices(vertices=rotz(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
 
     def scale(self, amt):
-        return GlVertices(vertices=scale(self.vertices, amt), colors=self.colors)
+        return GlVertices(vertices=scale(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
 
     def translate(self, amt):
-        return GlVertices(vertices=translate(self.vertices, amt), colors=self.colors)
+        return GlVertices(vertices=translate(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
 
     @property
     def data(self):
-        data = np.concatenate((self.vertices, self.colors), axis=0)
+        if self.tex_coords is not None:
+            data = np.concatenate((self.vertices, self.colors, self.tex_coords), axis=0)
+        else:
+            data = np.concatenate((self.vertices, self.colors), axis=0)
         return data.flatten(order='F')
 
 class GlTri(GlVertices):
-    def __init__(self, v1, v2, v3, color):
+    def __init__(self, v1, v2, v3, color, tc1=None, tc2=None, tc3=None):
         vertices = np.concatenate((v1, v2, v3)).reshape((3, 3), order='F')
         colors = np.concatenate((color, color, color)).reshape((4, 3), order='F')
-        super().__init__(vertices=vertices, colors=colors)
+        if tc1 is not None:
+            tex_coords = np.concatenate((tc1, tc2, tc3)).reshape((2, 3), order='F')
+        else:
+            tex_coords = None
+        super().__init__(vertices=vertices, colors=colors, tex_coords=tex_coords)
 
 class GlQuad(GlVertices):
-    def __init__(self, v1, v2, v3, v4, color):
+    def __init__(self, v1, v2, v3, v4, color, tc1=None, tc2=None, tc3=None, tc4=None):
         super().__init__()
-        self.add(GlTri(v1, v2, v3, color))
-        self.add(GlTri(v1, v3, v4, color))
+        self.add(GlTri(v1, v2, v3, color, tc1, tc2, tc3))
+        self.add(GlTri(v1, v3, v4, color, tc1, tc3, tc4))
 
 
 class GlCube(GlVertices):
