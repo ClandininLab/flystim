@@ -72,6 +72,12 @@ void main() {
     float color = 0.0;
     float alpha = 1.0;
 
+    // declare rgb gun values
+    float red = 1.0;
+    float green = 1.0;
+    float blue = 1.0;
+    ${rgb}
+
     // calculated fragment color
     if ((box_min_y <= phi) && (phi <= box_max_y) && (box_min_x <= theta) && (theta <= box_max_x)){
         ${calc_color}
@@ -81,5 +87,6 @@ void main() {
     }
 
     // assign the output color
-    out_color = vec4(color, color, color, alpha);
+
+    out_color = vec4(red*color, green*color, blue*color, alpha);
 }
