@@ -5,22 +5,13 @@
 from time import sleep
 from math import pi
 
-from flystim.launch import StimManager, StimClient
 from flystim.screen import Screen
 from flystim.trajectory import RectangleTrajectory, Trajectory
+from flystim.stim_server import launch_stim_server
 
 def main(use_server=False):
-    w = 43 * 2.54e-2
-    h = 24 * 2.54e-2
 
-    if use_server:
-        manager = StimClient()
-    else:
-        screens = [Screen(id=1, rotation=pi / 2, width=w, height=h, offset=(-w / 2, 0, h / 2)),
-                   Screen(id=2, rotation=0, width=w, height=h, offset=(0, w / 2, h / 2)),
-                   Screen(id=3, rotation=pi, width=w, height=h, offset=(0, -w / 2, h / 2)),
-                   Screen(id=4, rotation=-pi / 2, width=w, height=h, offset=(w / 2, 0, h / 2))]
-        manager = StimManager(screens)
+    manager = launch_stim_server(Screen(fullscreen=False))
 
     trajectory = RectangleTrajectory(h=[(0,10),(.5,50),(1,10),(1.5,50),(2,10),(2.5,50),(3,10),(3.5,50)],
                                      w=[(0,10),(.5,50),(1,10),(1.5,50),(2,10),(2.5,50),(3,10),(3.5,50)],
@@ -36,7 +27,7 @@ def main(use_server=False):
         #sleep(550e-3)
 
         manager.start_stim()
-        sleep(3.5)
+        sleep(20)
 
         manager.stop_stim()
         #sleep(500e-3)
