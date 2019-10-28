@@ -6,8 +6,9 @@ from math import pi, radians, ceil, cos, sin
 
 from flystim.base import BaseProgram
 from flystim.glsl import Uniform, Function, Variable, Texture
-from flystim.trajectory import RectangleTrajectory
+from flystim.trajectory import RectangleTrajectory, Trajectory
 import flystim.distribution as distribution
+from flystim import GlSphericalRect
 
 class ConstantBackground(BaseProgram):
     # keep as-is
@@ -225,88 +226,37 @@ class MovingPatch(BaseProgram):
     # add circular patch, rectangular patch, using triangles to assemble the patches; they should never change shape
     # this will be implemented with 3D rendering
     def __init__(self, screen):
-        uniforms = [
-            Uniform('theta_center', float),
-            Uniform('phi_center', float),
-            Uniform('theta_width', float),
-            Uniform('phi_width', float),
-            Uniform('face_color', float),
-            Uniform('angle', float),
-            Uniform('background', float),
-            Uniform('draw_background', float),
-            Uniform('use_alpha', float)
-        ]
+        super().__init__(screen=screen)
 
-        # reference for modular arithmetic: https://fgiesen.wordpress.com/2015/09/24/intervals-in-modular-arithmetic/
-
-        calc_color = '''
-            // compute relative x coordinates of pixel
-            float rx = mod(theta-theta_center, 2*M_PI);
-            if (rx >= M_PI) {
-                rx -= 2*M_PI;
-            }
-
-            // compute relative y coordinates of pixel
-            float ry = mod(phi-phi_center, 2*M_PI);
-            if (ry >= M_PI) {
-                ry -= 2*M_PI;
-            }
-
-            // compute displacement from center
-            float dx = dot(vec2(+cos(angle), +sin(angle)), vec2(rx, ry));
-            float dy = dot(vec2(-sin(angle), +cos(angle)), vec2(rx, ry));
-
-            // check if pixel is within face
-            if ((abs(dx) <= (0.5*theta_width)) && (abs(dy) <= (0.5*phi_width))){
-                if (use_alpha == 0.0) {
-                    color = face_color;
-                } else {
-                    color = background;
-                    alpha = face_color;
-                }
-
-            } else if (draw_background == 1.0) {
-                color = background;
-            } else {
-                alpha = 0.0;
-            }
-        '''
-
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-
-    def make_config_options(self, *args, trajectory=None, **kwargs):
-        # set default
-        if trajectory is None:
-            trajectory = RectangleTrajectory().to_dict()
-
-        # convert the input dictionary to a trajectory object
-        trajectory = RectangleTrajectory.from_dict(trajectory)
-
-        return super().make_config_options(*args, trajectory=trajectory, **kwargs)
-
-    def configure(self, trajectory=None, background=0.0, vary='intensity'):
+    def configure(self, width=10, height=10, sphere_radius=1, color=(1, 1, 1, 1), theta=-180, phi=0):
         """
         Stimulus consisting of a patch that moves along an arbitrary trajectory.
         :param background: Background color (0.0 to 1.0)
         :param trajectory: RectangleTrajectory converted to dictionary (to_dict method)
         """
-
-        # set the trajectory
-        self.trajectory = trajectory
-
-        # set uniforms
-        self.prog['use_alpha'].value = 0.0 if vary=='intensity' else 1.0
-        self.prog['draw_background'].value = 1.0 if background is not None else 0.0
-        if background is not None:
-            self.prog['background'].value = background
+        self.width = width
+        self.height = height
+        self.sphere_radius = sphere_radius
+        self.color = color
+        self.theta = theta
+        self.phi = phi
 
     def eval_at(self, t):
-        self.prog['theta_center'].value = radians(self.trajectory.x.eval_at(t))
-        self.prog['phi_center'].value = radians(self.trajectory.y.eval_at(t))
-        self.prog['theta_width'].value = radians(self.trajectory.w.eval_at(t))
-        self.prog['phi_width'].value = radians(self.trajectory.h.eval_at(t))
-        self.prog['angle'].value = radians(self.trajectory.angle.eval_at(t))
-        self.prog['face_color'].value = self.trajectory.color.eval_at(t)
+        if type(self.width) is dict:
+            self.width = Trajectory.from_dict(self.width).eval_at(t)
+        if type(self.height) is dict:
+            self.height = Trajectory.from_dict(self.height).eval_at(t)
+        if type(self.color) is dict:
+            self.color = Trajectory.from_dict(self.color).eval_at(t)
+        if type(self.theta) is dict:
+            self.theta = Trajectory.from_dict(self.theta).eval_at(t)
+        if type(self.phi) is dict:
+            self.phi = Trajectory.from_dict(self.phi).eval_at(t)
+
+        self.stim_object = GlSphericalRect(width=self.width,
+                                           height=self.height,
+                                           sphere_radius=self.sphere_radius,
+                                           color=self.color).rotz(radians(self.theta)).roty(radians(self.phi))
 
 class RandomBars(BaseProgram):
     # cylindrical mode

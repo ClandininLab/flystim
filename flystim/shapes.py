@@ -119,9 +119,12 @@ class GlSphericalRect(GlVertices):
         if sphere_radius is None:
             sphere_radius = 1
         if color is None:
-            color = (1, 1, 1, 1)
-        if type(color) is not tuple:
-            color = [color, color, color, 1]
+            color = [1, 1, 1, 1]
+        if type(color) is not list:
+            if type(color) is tuple:
+                color = list(color)
+            else:
+                color = [color, color, color, 1]
         if n_steps_x is None:
             n_steps_x = 6
         if n_steps_y is None:
@@ -162,9 +165,12 @@ class GlSphericalCirc(GlVertices):
         if sphere_radius is None:
             sphere_radius = 1
         if color is None:
-            color = (1, 1, 1, 1)
-        if type(color) is not tuple:
-            color = [color, color, color, 1]
+            color = [1, 1, 1, 1]
+        if type(color) is not list:
+            if type(color) is tuple:
+                color = list(color)
+            else:
+                color = [color, color, color, 1]
         if n_steps is None:
             n_steps = 36
 
@@ -205,9 +211,12 @@ class GlCylinder(GlVertices):
         if cylinder_location is None:
             cylinder_location = (0, 0, 0) # (0,0,0) is center of cylinder (r = 0 and z = height/2)
         if color is None:
-            color = (1, 1, 1, 1)
-        if type(color) is not tuple:
-            color = [color, color, color, 1]
+            color = [1, 1, 1, 1]
+        if type(color) is not list:
+            if type(color) is tuple:
+                color = list(color)
+            else:
+                color = [color, color, color, 1]
         if n_faces is None:
             n_faces = 64
 

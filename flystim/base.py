@@ -5,118 +5,72 @@ import numpy as np
 import os.path
 from string import Template
 from math import pi, radians
-
-class BaseConfigOptions:
-    def __init__(self, *args, box_min_x=-180, box_max_x=180, box_min_y=0, box_max_y=180, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-        self.box_min_x = radians(box_min_x)
-        self.box_max_x = radians(box_max_x)
-        self.box_min_y = radians(box_min_y)
-        self.box_max_y = radians(box_max_y)
+from flystim.trajectory import Trajectory
 
 class BaseProgram:
-    def __init__(self, screen, uniforms=None, functions=None, calc_color=None, rgb=None):
+    def __init__(self, screen, num_tri=200):
         """
         :param screen: Object containing screen size information
-        :param uniforms: List of glsl.Uniform objects representing the uniform variables used in the shader
-        :param calc_color: GLSL shader code used to compute the monochromatic color of each pixel as a function
-        of spherical coordinates (r, theta, phi), which should be assumed to have been calculated before the calc_color
-        code has run (see base.template)
         """
         # set screen
         self.screen = screen
-
-        # set uniform declarations
-        if uniforms is None:
-            uniforms = []
-        self.uniforms = uniforms
-
-        # set function declarations
-        if functions is None:
-            functions = []
-        self.functions = functions
-
-        # set color program
-        if calc_color is None:
-            calc_color = 'color = 0.0;'
-        self.calc_color = calc_color
-
-        if rgb is None:
-            rgb = '''
-                red = 1.0;
-                green = 1.0;
-                blue = 1.0;
-            '''
-        self.rgb = rgb
+        self.num_tri = num_tri
 
     def initialize(self, ctx):
         """
         :param ctx: ModernGL context
         """
-
         # save context
         self.ctx = ctx
+        self.prog = self.create_prog()
 
-        # find path to shader directory
-        this_file_path = os.path.realpath(os.path.expanduser(__file__))
-        shader_dir = os.path.join(os.path.dirname(os.path.dirname(this_file_path)), 'shaders')
-
-        # load the vertex shader
-        vertex_shader = open(os.path.join(shader_dir, 'base.vert'), 'r').read()
-
-        # convert list of uniforms to GLSL code
-        decl_uniforms = ''.join(str(uniform)+';\n' for uniform in self.uniforms)
-
-        # convert list of functions to GLSL code
-        decl_functions = ''.join(str(function)+'\n' for function in self.functions)
-
-        # load the fragment shader
-        fragment_shader_template = Template(open(os.path.join(shader_dir, 'base.template'), 'r').read())
-        fragment_shader = fragment_shader_template.substitute(
-            decl_uniforms=decl_uniforms,
-            decl_functions=decl_functions,
-            calc_color=self.calc_color,
-            rgb=self.rgb
-        )
-
-        self.prog = self.ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
-
-        # create a flat list of all of the 5-tuples that describe the screen coordinates
-        data = []
-
-        for tri in self.screen.tri_list:
-            for pt in [tri.pa, tri.pb, tri.pc]:
-                data.extend(pt.ndc)
-                data.extend(pt.cart)
-
-        data = np.array(data, dtype=float)
-
-        # create a VBO for the vertex data
-        vbo = self.ctx.buffer(data.astype('f4').tobytes())
-
-        # create vertex array object
-        self.vao = self.ctx.simple_vertex_array(self.prog, vbo, 'vert_pos', 'vert_col')
+        self.update_vertex_objects()
 
     def configure(self, *args, **kwargs):
         pass
 
-    def paint_at(self, t, global_fly_pos, global_theta_offset, global_phi_offset):
+    def paint_at(self, t, perspective):
         """
         :param t: current time in seconds
         """
-
-        self.prog['box_min_x'].value = self.box_min_x
-        self.prog['box_max_x'].value = self.box_max_x
-        self.prog['box_min_y'].value = self.box_min_y
-        self.prog['box_max_y'].value = self.box_max_y
-
-        self.prog['global_fly_pos'].value = tuple(global_fly_pos)
-        self.prog['global_theta_offset'].value = global_theta_offset
-        self.prog['global_phi_offset'].value = global_phi_offset
-
         self.eval_at(t)
-        self.vao.render(mode=moderngl.TRIANGLES)
+
+        data = self.stim_object.data
+
+        # if texture_img is not None:
+        #     self.update_vertex_objects(use_texture=True)
+        #     self.prog['use_texture'].value = True
+        #     self.add_texture(texture_img)
+        #     vertices = len(data) // 9
+        # else:
+        self.update_vertex_objects(use_texture=False)
+        self.prog['use_texture'].value = False
+        vertices = len(data) // 7
+
+        # write data to VBO
+        self.vbo.write(data.astype('f4'))
+
+        # set the perspective matrix
+        self.prog['Mvp'].write(perspective.matrix.astype('f4').tobytes(order='F'))
+        # render the objects
+        self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
+
+    def update_vertex_objects(self, use_texture=False):
+        # if use_texture:
+        #     # 3 points, 9 values (3 for vert, 4 for color, 2 for tex_coords), 4 bytes per value
+        #     self.vbo = self.ctx.buffer(reserve=self.num_tri*3*9*4)
+        #     self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color', 'in_tex_coord')
+        # else:
+        # basic, no-texture vbo and vao:
+        self.vbo = self.ctx.buffer(reserve=self.num_tri*3*7*4) # 3 points, 7 values, 4 bytes per value
+        self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
+
+    def add_texture(self, texture_img):
+        self.texture = self.ctx.texture(size=(texture_img.shape[1], texture_img.shape[0]),
+                                        components=1,
+                                        data=texture_img.tobytes()) # size = (width, height)
+        self.texture.use()
+
 
     def eval_at(self, t):
         """
@@ -125,13 +79,47 @@ class BaseProgram:
 
         pass
 
-    def make_config_options(self, *args, **kwargs):
-        return BaseConfigOptions(*args, **kwargs)
 
-    def apply_config_options(self, config_options):
-        self.box_min_x = config_options.box_min_x
-        self.box_max_x = config_options.box_max_x
-        self.box_min_y = config_options.box_min_y
-        self.box_max_y = config_options.box_max_y
+    def create_prog(self):
+        return self.ctx.program(
+            vertex_shader='''
+                #version 330
 
-        self.configure(*config_options.args, **config_options.kwargs)
+                in vec3 in_vert;
+                in vec4 in_color;
+                in vec2 in_tex_coord;
+
+                out vec4 v_color;
+                out vec2 v_tex_coord;
+
+                uniform mat4 Mvp;
+
+                void main() {
+                    v_color = in_color;
+                    v_tex_coord = in_tex_coord;
+                    gl_Position = Mvp * vec4(in_vert, 1.0);
+                }
+            ''',
+            fragment_shader='''
+                #version 330
+
+                in vec4 v_color;
+                in vec2 v_tex_coord;
+
+                uniform bool use_texture;
+                uniform sampler2D texture_matrix;
+
+                out vec4 f_color;
+
+                void main() {
+                    if (use_texture) {
+                        vec4 texFrag = texture(texture_matrix, v_tex_coord);
+                        f_color.rgb = texFrag.r * v_color.rgb;
+                        f_color.a = 1;
+                    } else {
+                        f_color.rgb = v_color.rgb;
+                        f_color.a = 1;
+                    }
+                }
+            '''
+        )

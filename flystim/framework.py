@@ -8,14 +8,18 @@ import numpy as np
 import pandas as pd
 import platform
 
-from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
-from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground, ArbitraryGrid
+from flystim import stimuli
+
+# from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
+# from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground, ArbitraryGrid
+from flystim import GenPerspective
 from flystim.square import SquareProgram
 from flystim.screen import Screen
 from math import radians
 
 from flyrpc.transceiver import MySocketServer
 from flyrpc.util import get_kwargs
+
 
 class StimDisplay(QtOpenGL.QGLWidget):
     """
@@ -59,10 +63,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.server = server
         self.app = app
 
-        # make OpenGL programs that are used by stimuli
-        cls_list = [ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid,
-                    MovingPatch, Checkerboard, ConstantBackground, ArbitraryGrid]
-        self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
+        # cls_list = [MovingPatch]
+        # self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
 
         # make program for rendering the corner square
         self.square_program = SquareProgram(screen=screen)
@@ -75,13 +77,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.global_phi_offset = 0
         self.global_fly_pos = np.array([0, 0, 0], dtype=float)
 
+        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
+
     def initializeGL(self):
         # get OpenGL context
         self.ctx = moderngl.create_context()
-
-        # initialize stimuli programs
-        for render_program in self.render_programs.values():
-            render_program.initialize(self.ctx)
+        self.ctx.enable(moderngl.DEPTH_TEST)
+        self.ctx.enable(moderngl.BLEND)
 
         # initialize square program
         self.square_program.initialize(self.ctx)
@@ -113,20 +115,18 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.ctx.clear(0, 0, 0, 1)
             self.ctx.enable(moderngl.BLEND)
 
-            for stim, config_options in self.stim_list:
-                stim.apply_config_options(config_options)
-                stim.paint_at(self.get_stim_time(t), global_fly_pos=self.global_fly_pos,
-                              global_theta_offset=self.global_theta_offset,
-                              global_phi_offset=self.global_phi_offset)
+            for stim in self.stim_list:
+                stim.configure(**stim.kwargs)
+                stim.paint_at(self.get_stim_time(t), get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset))
 
-            try:
-                # TODO: make sure that profile information is still accurate
-                self.profile_frame_count += 1
-                if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
-                    self.profile_frame_times.append(t - self.profile_last_time)
-                self.profile_last_time = t
-            except:
-                pass
+            # try:
+            #     # TODO: make sure that profile information is still accurate
+            #     self.profile_frame_count += 1
+            #     if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
+            #         self.profile_frame_times.append(t - self.profile_last_time)
+            #     self.profile_last_time = t
+            # except:
+            #     pass
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
@@ -134,7 +134,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.square_program.paint()
 
         # update the window
+        self.ctx.finish()
         self.update()
+
 
     ###########################################
     # control functions
@@ -155,7 +157,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 config_options.kwargs['rate'] = rate
                 config_options.kwargs['offset'] = (rate - old_rate) * (360 / period) * t + old_offset
 
-    def load_stim(self, name, hold=False, *args, **kwargs):
+    def load_stim(self, name, hold=False, **kwargs):
         """
         Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
         background color is changed to the one specified in the stimulus, and the stimulus is evaluated at time 0.
@@ -166,10 +168,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.stim_list = []
             self.stim_offset_time = 0
 
-        stim = self.render_programs[name]
-        config_options = stim.make_config_options(*args, **kwargs)
-
-        self.stim_list.append((stim, config_options))
+        stim = getattr(stimuli, name)(screen=self.screen)
+        stim.initialize(self.ctx)
+        stim.kwargs = kwargs
+        self.stim_list.append(stim)
 
     def start_stim(self, t):
         """
@@ -297,6 +299,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def set_global_phi_offset(self, value):
         self.global_phi_offset = radians(value)
+
+
+def get_perspective(fly_pos, theta, phi):
+    # nominal position
+    perspective = GenPerspective(pa=(+1, -1, -1), pb=(+1, +1, -1), pc=(+1, -1, 1), pe=fly_pos)
+
+    # rotate screen and eye position
+    return perspective.roty(-radians(phi)).rotz(radians(theta))
+
 
 def make_qt_format(vsync):
     """
