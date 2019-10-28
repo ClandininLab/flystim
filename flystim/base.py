@@ -15,6 +15,8 @@ class BaseProgram:
         # set screen
         self.screen = screen
         self.num_tri = num_tri
+        self.texture_image = None
+        self.use_texture = False
 
     def initialize(self, ctx):
         """
@@ -36,16 +38,15 @@ class BaseProgram:
         self.eval_at(t)
 
         data = self.stim_object.data
+        self.update_vertex_objects()
 
-        # if texture_img is not None:
-        #     self.update_vertex_objects(use_texture=True)
-        #     self.prog['use_texture'].value = True
-        #     self.add_texture(texture_img)
-        #     vertices = len(data) // 9
-        # else:
-        self.update_vertex_objects(use_texture=False)
-        self.prog['use_texture'].value = False
-        vertices = len(data) // 7
+        if self.use_texture:
+            self.prog['use_texture'].value = True
+            self.add_texture(self.texture_image)
+            vertices = len(data) // 9
+        else:
+            self.prog['use_texture'].value = False
+            vertices = len(data) // 7
 
         # write data to VBO
         self.vbo.write(data.astype('f4'))
@@ -55,20 +56,20 @@ class BaseProgram:
         # render the objects
         self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
 
-    def update_vertex_objects(self, use_texture=False):
-        # if use_texture:
-        #     # 3 points, 9 values (3 for vert, 4 for color, 2 for tex_coords), 4 bytes per value
-        #     self.vbo = self.ctx.buffer(reserve=self.num_tri*3*9*4)
-        #     self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color', 'in_tex_coord')
-        # else:
-        # basic, no-texture vbo and vao:
-        self.vbo = self.ctx.buffer(reserve=self.num_tri*3*7*4) # 3 points, 7 values, 4 bytes per value
-        self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
+    def update_vertex_objects(self):
+        if self.use_texture:
+            # 3 points, 9 values (3 for vert, 4 for color, 2 for tex_coords), 4 bytes per value
+            self.vbo = self.ctx.buffer(reserve=self.num_tri*3*9*4)
+            self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color', 'in_tex_coord')
+        else:
+            # basic, no-texture vbo and vao:
+            self.vbo = self.ctx.buffer(reserve=self.num_tri*3*7*4) # 3 points, 7 values, 4 bytes per value
+            self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
 
-    def add_texture(self, texture_img):
-        self.texture = self.ctx.texture(size=(texture_img.shape[1], texture_img.shape[0]),
+    def add_texture(self, texture_image):
+        self.texture = self.ctx.texture(size=(texture_image.shape[1], texture_image.shape[0]),
                                         components=1,
-                                        data=texture_img.tobytes()) # size = (width, height)
+                                        data=texture_image.tobytes()) # size = (width, height)
         self.texture.use()
 
 

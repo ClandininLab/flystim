@@ -8,7 +8,7 @@ from flystim.base import BaseProgram
 from flystim.glsl import Uniform, Function, Variable, Texture
 from flystim.trajectory import RectangleTrajectory, Trajectory
 import flystim.distribution as distribution
-from flystim import GlSphericalRect
+from flystim import GlSphericalRect, GlCylinder
 
 class ConstantBackground(BaseProgram):
     # keep as-is
@@ -179,22 +179,6 @@ class RectGrating(PeriodicGrating):
         super().__init__(screen=screen, grating=grating)
 
 
-class RotatingBars(RectGrating):
-    # treated the same way as contrast reversing
-    def configure(self, duty_cycle=0.5, **kwargs):
-        """
-        Stimulus pattern in which rectangular bars rotate around the viewer.
-        :param duty_cycle: Duty cycle of each bar, which should be between 0 and 1.  A value of "0" means the bar has
-        zero width, and a value of "1" means that it occupies the entire period.
-        """
-
-        # set uniform
-        self.prog['duty_cycle'].value = duty_cycle
-
-        # call configuration method from parent class
-        super().configure(**kwargs)
-
-
 class ExpandingEdges(RectGrating):
     # treated the same way as contrast reversing
     def configure(self, init_width=2, expand_rate=10, period=15, rate=0, **kwargs):
@@ -223,12 +207,10 @@ class ExpandingEdges(RectGrating):
 
 
 class MovingPatch(BaseProgram):
-    # add circular patch, rectangular patch, using triangles to assemble the patches; they should never change shape
-    # this will be implemented with 3D rendering
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, width=10, height=10, sphere_radius=1, color=(1, 1, 1, 1), theta=-180, phi=0):
+    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=-180, phi=0):
         """
         Stimulus consisting of a patch that moves along an arbitrary trajectory.
         :param background: Background color (0.0 to 1.0)
@@ -257,6 +239,39 @@ class MovingPatch(BaseProgram):
                                            height=self.height,
                                            sphere_radius=self.sphere_radius,
                                            color=self.color).rotz(radians(self.theta)).roty(radians(self.phi))
+
+
+class RotatingBars(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.use_texture = True
+
+    def configure(self, period=20, rate=10, color=[1, 1, 1, 1], background=0.0, angle=45.0, offset=0.0, cylinder_radius=1):
+        """
+
+        """
+        self.period = period
+        self.rate = rate
+        self.color = color
+        self.background = background
+        self.angle = angle
+        self.offset = offset
+        self.cylinder_radius = cylinder_radius
+
+    def eval_at(self, t):
+        self.stim_object = GlCylinder(cylinder_height=20.0,
+                                      cylinder_radius=self.cylinder_radius,
+                                      color=self.color,
+                                      texture=True).rotz(radians(self.rate*t)).rotx(radians(self.angle))
+
+        # make the texture image
+        # TODO: integrate spatial period, background and offset into this grating
+        dim = 512
+        sf = 20/(2*np.pi)  # cycles per radian
+        xx = np.linspace(0, 2*np.pi, dim)
+        yy = 255*((0.5 + 0.5*(np.sin(sf*2*np.pi*xx))) > 0.5)
+        img = np.tile(yy, (dim, 1)).astype(np.uint8)
+        self.texture_image = img
 
 class RandomBars(BaseProgram):
     # cylindrical mode
