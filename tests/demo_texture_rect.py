@@ -34,6 +34,5 @@ def register_cave(display):
     tc1, tc2, tc3, tc4 = ((0, 0), (1, 0), (1, 1), (0, 1))
     display.render_actions.append(lambda: cave.render(GlQuad(v1, v2, v3, v4, color, tc1, tc2, tc3, tc4).translate((0,np.cos(2*np.pi*(time()-t0)/8),np.sin(2*np.pi*(time()-t0)/4))), texture_img=img))
 
-
 if __name__ == '__main__':
     run_qt(lambda display: register_cave(display))

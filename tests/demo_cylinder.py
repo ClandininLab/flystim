@@ -30,7 +30,7 @@ def register_cave(display):
 
     t0 = time()
     omega = 20
-    display.render_actions.append(lambda: cave.render(GlCylinder().rotz(radians(omega*(time()-t0))).rotx(radians(0)), texture_img=img))
+    display.render_actions.append(lambda: cave.render(GlCylinder(texture=True).rotz(radians(omega*(time()-t0))).rotx(radians(0)), texture_img=img))
 
 
 if __name__ == '__main__':

@@ -193,14 +193,17 @@ class GlCylinder(GlVertices):
     def __init__(self,
                  cylinder_height=None,  # meters
                  cylinder_radius=None,  # meters
+                 cylinder_location=None, # (x,y,z) meters
                  color=None,  # (r,g,b,a) or single value for monochrome, alpha = 1
                  n_faces=None,
-                 texture=None):
+                 texture=False):
         super().__init__()
         if cylinder_height is None:
             cylinder_height = 10
         if cylinder_radius is None:
             cylinder_radius = 1
+        if cylinder_location is None:
+            cylinder_location = (0, 0, 0) # (0,0,0) is center of cylinder (r = 0 and z = height/2)
         if color is None:
             color = (1, 1, 1, 1)
         if type(color) is not tuple:
@@ -215,7 +218,14 @@ class GlCylinder(GlVertices):
             v3 = self.cylindricalToCartesian((cylinder_radius, (face+1)*d_theta, -cylinder_height/2))
             v4 = self.cylindricalToCartesian((cylinder_radius, (face+1)*d_theta, cylinder_height/2))
 
-            self.add(GlQuad(v1, v2, v3, v4, color, tc1=(face/n_faces,1), tc2=(face/n_faces,0), tc3=((face+1)/n_faces,0), tc4=((face+1)/n_faces,1)))
+            if texture:
+                self.add(GlQuad(v1, v2, v3, v4, color,
+                                tc1=(face/n_faces, 1),
+                                tc2=(face/n_faces, 0),
+                                tc3=((face+1)/n_faces, 0),
+                                tc4=((face+1)/n_faces, 1)).translate(cylinder_location))
+            else:
+                self.add(GlQuad(v1, v2, v3, v4, color).translate(cylinder_location))
 
     def cylindricalToCartesian(self, cylindrical_coords):
         r, theta, z = cylindrical_coords
