@@ -27,12 +27,12 @@ def register_cave(display):
 
     t0 = time()
 
+    h = 1
     w = 1
-    h = 4.5
-    v1, v2, v3, v4 = ((-1, -h/2, -w/2), (-1, +h/2, -w/2), (-1, +h/2, +w/2), (-1, -h/2, +w/2))
+    v1, v2, v3, v4 = ((-1, -w/2, -h/2), (-1, +w/2, -h/2), (-1, +w/2, +h/2), (-1, -w/2, +h/2))
     color = (1, 1, 1, 1)
     tc1, tc2, tc3, tc4 = ((0, 0), (1, 0), (1, 1), (0, 1))
-    display.render_actions.append(lambda: cave.render(GlQuad(v1, v2, v3, v4, color, tc1, tc2, tc3, tc4).translate((0,np.cos(2*np.pi*(time()-t0)/8),np.sin(2*np.pi*(time()-t0)/4))), texture_img=img))
+    display.render_actions.append(lambda: cave.render(GlQuad(v1, v2, v3, v4, color, tc1, tc2, tc3, tc4, texture_shift=(0, 0)), texture_img=img))
 
 if __name__ == '__main__':
     run_qt(lambda display: register_cave(display))

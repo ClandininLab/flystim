@@ -61,11 +61,16 @@ class GlTri(GlVertices):
         super().__init__(vertices=vertices, colors=colors, tex_coords=tex_coords)
 
 class GlQuad(GlVertices):
-    def __init__(self, v1, v2, v3, v4, color, tc1=None, tc2=None, tc3=None, tc4=None, texture=None):
+    def __init__(self, v1, v2, v3, v4, color, tc1=None, tc2=None, tc3=None, tc4=None, texture_shift=(0,0)):
         super().__init__()
-        self.add(GlTri(v1, v2, v3, color, tc1, tc2, tc3))
-        self.add(GlTri(v1, v3, v4, color, tc1, tc3, tc4))
-
+        self.add(GlTri(v1, v2, v3, color,
+                       [sum(x) for x in zip(tc1, texture_shift)],
+                       [sum(x) for x in zip(tc2, texture_shift)],
+                       [sum(x) for x in zip(tc3, texture_shift)]))
+        self.add(GlTri(v1, v3, v4, color,
+                       [sum(x) for x in zip(tc1, texture_shift)],
+                       [sum(x) for x in zip(tc3, texture_shift)],
+                       [sum(x) for x in zip(tc4, texture_shift)]))
 
 class GlCube(GlVertices):
     def __init__(self, colors=None, def_alpha=1.0):
@@ -105,30 +110,18 @@ class GlCube(GlVertices):
 
 class GlSphericalRect(GlVertices):
     def __init__(self,
-                 width=None,  # degrees, theta
-                 height=None,  # degrees, phi
-                 sphere_radius=None,  # meters
-                 color=None,  # (r,g,b,a) or single value for monochrome, alpha = 1
-                 n_steps_x=None,
-                 n_steps_y=None):
+                 width=20,  # degrees, theta
+                 height=20,  # degrees, phi
+                 sphere_radius=1,  # meters
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 n_steps_x=6,
+                 n_steps_y=6):
         super().__init__()
-        if width is None:
-            width = 20
-        if height is None:
-            height = 20
-        if sphere_radius is None:
-            sphere_radius = 1
-        if color is None:
-            color = [1, 1, 1, 1]
         if type(color) is not list:
             if type(color) is tuple:
                 color = list(color)
             else:
                 color = [color, color, color, 1]
-        if n_steps_x is None:
-            n_steps_x = 6
-        if n_steps_y is None:
-            n_steps_y = 6
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -155,24 +148,16 @@ class GlSphericalRect(GlVertices):
 
 class GlSphericalCirc(GlVertices):
     def __init__(self,
-                 circle_radius=None,  # degrees in spherical coordinates
-                 sphere_radius=None,  # meters
-                 color=None,  # (r,g,b,a) or single value for monochrome, alpha = 1
-                 n_steps=None):
+                 circle_radius=10,  # degrees in spherical coordinates
+                 sphere_radius=1,  # meters
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 n_steps=36):
         super().__init__()
-        if circle_radius is None:
-            circle_radius = 10
-        if sphere_radius is None:
-            sphere_radius = 1
-        if color is None:
-            color = [1, 1, 1, 1]
         if type(color) is not list:
             if type(color) is tuple:
                 color = list(color)
             else:
                 color = [color, color, color, 1]
-        if n_steps is None:
-            n_steps = 36
 
         v_center = self.sphericalToCartesian((sphere_radius, 0, np.pi/2))
 
@@ -197,30 +182,23 @@ class GlSphericalCirc(GlVertices):
 
 class GlCylinder(GlVertices):
     def __init__(self,
-                 cylinder_height=None,  # meters
-                 cylinder_radius=None,  # meters
-                 cylinder_location=None, # (x,y,z) meters
-                 color=None,  # (r,g,b,a) or single value for monochrome, alpha = 1
-                 n_faces=None,
-                 texture=False):
+                 cylinder_height=10,  # meters
+                 cylinder_radius=1,  # meters
+                 cylinder_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of cylinder (r = 0 and z = height/2)
+                 cylinder_angular_extent=360, # degrees
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 n_faces=32,
+                 texture=False,
+                 texture_shift=(0, 0)): # (u,v) coordinates to translate texture on shape. + us right, up. +/-1 is shift back to where texture started
+
         super().__init__()
-        if cylinder_height is None:
-            cylinder_height = 10
-        if cylinder_radius is None:
-            cylinder_radius = 1
-        if cylinder_location is None:
-            cylinder_location = (0, 0, 0) # (0,0,0) is center of cylinder (r = 0 and z = height/2)
-        if color is None:
-            color = [1, 1, 1, 1]
         if type(color) is not list:
             if type(color) is tuple:
                 color = list(color)
             else:
                 color = [color, color, color, 1]
-        if n_faces is None:
-            n_faces = 64
 
-        d_theta = 2*np.pi / n_faces
+        d_theta = np.radians(cylinder_angular_extent) / n_faces
         for face in range(n_faces):
             v1 = self.cylindricalToCartesian((cylinder_radius, face*d_theta, cylinder_height/2))
             v2 = self.cylindricalToCartesian((cylinder_radius, face*d_theta, -cylinder_height/2))
@@ -232,7 +210,8 @@ class GlCylinder(GlVertices):
                                 tc1=(face/n_faces, 1),
                                 tc2=(face/n_faces, 0),
                                 tc3=((face+1)/n_faces, 0),
-                                tc4=((face+1)/n_faces, 1)).translate(cylinder_location))
+                                tc4=((face+1)/n_faces, 1),
+                                texture_shift=texture_shift).translate(cylinder_location))
             else:
                 self.add(GlQuad(v1, v2, v3, v4, color).translate(cylinder_location))
 

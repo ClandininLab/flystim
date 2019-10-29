@@ -63,9 +63,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.server = server
         self.app = app
 
-        # cls_list = [MovingPatch]
-        # self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
-
         # make program for rendering the corner square
         self.square_program = SquareProgram(screen=screen)
 
@@ -119,14 +116,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 stim.configure(**stim.kwargs)
                 stim.paint_at(self.get_stim_time(t), get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset))
 
-            # try:
-            #     # TODO: make sure that profile information is still accurate
-            #     self.profile_frame_count += 1
-            #     if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
-            #         self.profile_frame_times.append(t - self.profile_last_time)
-            #     self.profile_last_time = t
-            # except:
-            #     pass
+            try:
+                # TODO: make sure that profile information is still accurate
+                self.profile_frame_count += 1
+                if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
+                    self.profile_frame_times.append(t - self.profile_last_time)
+                self.profile_last_time = t
+            except:
+                pass
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
@@ -193,16 +190,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_offset_time = t - self.stim_start_time + self.stim_offset_time
         self.stim_start_time = t
 
-    def stop_stim(self, print_profile = True):
+    def stop_stim(self, print_profile = False):
         """
         Stops the stimulus animation and removes it from the display.
         """
 
         # print profiling information if applicable
 
-        if ((self.profile_frame_count is not None) and
-            (self.profile_start_time is not None) and
-            (self.stim_list)):
+        if (print_profile):
 
             profile_duration = time.time() - self.profile_start_time
 
@@ -212,7 +207,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             if len(fps_data) > 0:
                 fps_data = pd.Series(1.0/fps_data)
-                stim_names = ', '.join([type(stim).__name__ for stim, _ in self.stim_list])
+                stim_names = ', '.join([type(stim).__name__ for stim in self.stim_list])
                 if print_profile:
                     print('*** ' + stim_names + ' ***')
                     print(fps_data.describe(percentiles=[0.01, 0.05, 0.1, 0.9, 0.95, 0.99]))

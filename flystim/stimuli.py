@@ -31,180 +31,6 @@ class ConstantBackground(BaseProgram):
     def eval_at(self, t):
         pass
 
-class ContrastReversingGrating(BaseProgram):
-    # change to vertical bars with the cylinder itself rotating along 2 angles
-    def __init__(self, screen):
-        uniforms = [
-            Uniform('contrast_scale', float),
-            Uniform('mean', float),
-            Uniform('k_theta', float),
-            Uniform('k_phi', float),
-            Uniform('contrast', float)
-        ]
-
-        grating = Function(name='rect_grating',
-                           in_vars=[Variable('phase', float)],
-                           out_type=float,
-                           code='return (fract(phase/(2.0*M_PI)) <= 0.5) ? 1.0 : -1.0;')
-
-
-        calc_color = ''
-        calc_color += 'float spatial_contrast = {}(k_theta*theta + k_phi*phi);\n'.format(grating.name)
-        calc_color += 'color = mean + spatial_contrast*contrast*contrast_scale*mean;\n'
-
-        super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
-
-    def configure(self, spatial_period=10, temporal_frequency=1.0, contrast_scale=1.0, mean=0.5, angle=0.0, temporal_waveform='sine'):
-        """
-        Stationary periodic grating whose contrast is modulated as a function of time
-        :param spatial_period: Spatial period of the grating, in degrees.
-        :param temporal_frequency: temporal_frequency of the contrast modulation, in Hz
-        :param mean: Mean intensity of grating (midpoint of wave). Should be between [0,0.5] to prevent clipping
-        :param contrast_scale: multiplier on mean intensity to determine wave peak/trough
-            wave peak = mean + contrast_scale * mean
-            wave trough = mean - contrast_scale * mean
-            *spatial and temporal contrast values [-1,1] multiply variations above and below the mean
-        :param angle: Tilt angle (in degrees) of the grating.  0 degrees will align the grating with a line of
-        longitude.
-        """
-        # save settings
-        self.temporal_frequency = temporal_frequency
-        self.temporal_waveform = temporal_waveform
-
-        # compute wavevector
-        self.k = 2*pi/radians(spatial_period)
-        self.prog['k_theta'].value = self.k*cos(radians(angle))
-        self.prog['k_phi'].value   = self.k*sin(radians(angle))
-
-        # set color uniforms
-        self.prog['contrast_scale'].value = contrast_scale #[0, 1] contrast, relative to mean
-        self.prog['mean'].value = mean #[0,0.5], intensity
-
-    def eval_at(self, t):
-        if self.temporal_waveform == 'sine':
-            self.prog['contrast'].value = sin(2 * pi * self.temporal_frequency * t) #lives on [-1, 1]
-        elif self.temporal_waveform == 'square':
-            self.prog['contrast'].value = np.sign(sin(2 * pi * self.temporal_frequency * t)) #element of [-1, 1]
-
-
-class PeriodicGrating(BaseProgram):
-    def __init__(self, screen, grating):
-        uniforms = [
-            Uniform('face_color', float),
-            Uniform('background', float),
-            Uniform('k_theta', float),
-            Uniform('k_phi', float),
-            Uniform('omega', float),
-            Uniform('offset', float),
-            Uniform('t', float)
-        ]
-
-        calc_color = ''
-        calc_color += 'float intensity = {}(k_theta*theta + k_phi*phi - omega*t + offset);\n'.format(grating.name)
-        calc_color += 'color = mix(background, face_color, intensity);\n'
-
-        super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
-
-    def configure(self, period=20, rate=10, color=1.0, background=0.0, angle=45.0, offset=0.0):
-        """
-        Stimulus pattern in which a periodic grating moves as a wavefront
-        :param period: Spatial period of the grating, in degrees.
-        :param rate: Velocity of the grating movement, in degrees per second.  Can be positive or negative.
-        :param color: Color shown at peak intensity.
-        :param background: Color shown at minimum intensity.
-        :param angle: Tilt angle (in degrees) of the grating.  0 degrees will align the grating with a line of
-        longitude.
-        """
-
-        # save settings
-        self.rate = radians(rate)
-        self.offset = radians(offset)
-
-        # compute wavevector
-        self.k = 2*pi/radians(period)
-        self.prog['k_theta'].value = self.k*cos(radians(angle))
-        self.prog['k_phi'].value   = self.k*sin(radians(angle))
-
-        # push omega and offset to graphics card
-        self.push_changes()
-
-        # set color uniforms
-        self.prog['face_color'].value = color
-        self.prog['background'].value = background
-
-    def push_changes(self):
-        self.prog['omega'].value = self.rate * self.k
-        self.prog['offset'].value = self.offset
-
-    def update_stim(self, rate, t):
-        old_rate = self.rate
-        new_rate = radians(rate)
-
-        old_offset = self.offset
-        new_offset = (new_rate - old_rate)*self.k*t + old_offset
-
-        self.rate = new_rate
-        self.offset = new_offset
-
-        self.push_changes()
-
-    def eval_at(self, t):
-        self.prog['t'].value = t
-
-
-class SineGrating(PeriodicGrating):
-    # treated the same way as contrast reversing
-    def __init__(self, screen):
-        # define grating function
-        grating = Function(name='sine_grating',
-                           in_vars=[Variable('phase', float)],
-                           out_type=float,
-                           code='return 0.5*sin(phase) + 0.5;')
-
-        # call super constructor
-        super().__init__(screen=screen, grating=grating)
-
-
-class RectGrating(PeriodicGrating):
-    # treated the same way as contrast reversing
-    def __init__(self, screen):
-        # define grating function
-        grating = Function(name='rect_grating',
-                           in_vars=[Variable('phase', float)],
-                           out_type=float,
-                           uniforms=[Uniform('duty_cycle', float)],
-                           code='return (fract(phase/(2.0*M_PI)) <= duty_cycle) ? 1.0 : 0.0;')
-
-        # call super constructor
-        super().__init__(screen=screen, grating=grating)
-
-
-class ExpandingEdges(RectGrating):
-    # treated the same way as contrast reversing
-    def configure(self, init_width=2, expand_rate=10, period=15, rate=0, **kwargs):
-        """
-        Stimulus pattern in which bars surrounding the viewer get wider or narrower.
-        :param width: Starting angular width of each bar.
-        :param expand_rate: The rate at which each bar grows wider in the counter-clockwise direction.  Can be negative.
-        :param period: Spatial period of the grating, in degrees.
-        :param rate: Velocity of the grating movement, in degrees per second.  Typically left at zero for this stimulus.
-        """
-
-        # save settings
-        self.init_width = init_width
-        self.expand_rate = expand_rate
-        self.period = period
-
-        # call configuration method from parent class
-        super().configure(period=period, rate=rate, **kwargs)
-
-    def eval_at(self, t):
-        # adjust duty cycle
-        self.prog['duty_cycle'].value = (self.init_width + t*self.expand_rate)/self.period
-
-        # call evaluation method of the parent class
-        super().eval_at(t)
-
 
 class MovingPatch(BaseProgram):
     def __init__(self, screen):
@@ -212,9 +38,15 @@ class MovingPatch(BaseProgram):
 
     def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=-180, phi=0):
         """
-        Stimulus consisting of a patch that moves along an arbitrary trajectory.
-        :param background: Background color (0.0 to 1.0)
-        :param trajectory: RectangleTrajectory converted to dictionary (to_dict method)
+        Stimulus consisting of a rectangular patch on the surface of a sphere
+
+        :param width: Width in degrees (azimuth)
+        :param height: Height in degrees (elevation)
+        :param sphere_radius: Radius of the sphere (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch
+        :param phi: degrees, elevation of the center of the patch
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
         self.width = width
         self.height = height
@@ -241,37 +73,112 @@ class MovingPatch(BaseProgram):
                                            color=self.color).rotz(radians(self.theta)).roty(radians(self.phi))
 
 
-class RotatingBars(BaseProgram):
+class CylindricalGrating(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
         self.use_texture = True
 
-    def configure(self, period=20, rate=10, color=[1, 1, 1, 1], background=0.0, angle=45.0, offset=0.0, cylinder_radius=1):
+    def configure(self, period=20, color=[1, 1, 1, 1], mean=0.5, contrast=1.0, angle=0.0, offset=0.0, cylinder_radius=1, cylinder_height=10, profile='sine'):
         """
+        Grating texture painted on a cylinder
 
+        :param period: spatial period, degrees
+        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome.
+        :param mean: mean intensity of grating
+        :param contrast: contrast of grating (Weber)
+        :param angle: roll angle of cylinder, determines direction of motion
+        :param offset: phase offse, degrees
+        :param cylinder_radius: meters
+        :param cylinder_height: meters
+        :param profile: 'sine' or 'square'; spatial profile of grating
+        *Any of these params except cylinder_radius, cylinder_height and profile can be passed as a trajectory dict to vary as a function of time
         """
         self.period = period
-        self.rate = rate
         self.color = color
-        self.background = background
+        self.mean = mean
+        self.contrast = contrast
         self.angle = angle
         self.offset = offset
         self.cylinder_radius = cylinder_radius
+        self.profile = profile
 
-    def eval_at(self, t):
-        self.stim_object = GlCylinder(cylinder_height=20.0,
-                                      cylinder_radius=self.cylinder_radius,
-                                      color=self.color,
-                                      texture=True).rotz(radians(self.rate*t)).rotx(radians(self.angle))
+    def updateTexture(self):
+        # Only renders part of the cylinder if the period is not a divisor of 360
+        n_cycles = np.floor(360/self.period)
+        self.cylinder_angular_extent = n_cycles * self.period
 
         # make the texture image
-        # TODO: integrate spatial period, background and offset into this grating
-        dim = 512
-        sf = 20/(2*np.pi)  # cycles per radian
-        xx = np.linspace(0, 2*np.pi, dim)
-        yy = 255*((0.5 + 0.5*(np.sin(sf*2*np.pi*xx))) > 0.5)
-        img = np.tile(yy, (dim, 1)).astype(np.uint8)
+        sf = 1/radians(self.period)  # spatial frequency
+        xx = np.linspace(0, np.radians(self.cylinder_angular_extent), 256)
+
+        if self.profile == 'sine':
+            self.texture_interpolation = 'LML'
+            yy = np.sin(np.radians(self.offset) + sf*2*np.pi*xx)  # [-1, 1]
+        elif self.profile == 'square':
+            self.texture_interpolation = 'NEAREST'
+            yy = np.sin(np.radians(self.offset) + sf*2*np.pi*xx)
+            yy[yy >= 0] = 1
+            yy[yy < 0] = -1
+
+        yy = 255*(self.mean + self.contrast*self.mean*yy)  # shift/scale from [-1,1] to mean and contrast and scale to [0,255] for uint8
+        img = np.expand_dims(yy, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
         self.texture_image = img
+
+    def eval_at(self, t):
+        need_to_update_texture = False
+        if type(self.period) is dict:
+            self.period = Trajectory.from_dict(self.period).eval_at(t)
+            need_to_update_texture = True
+        if type(self.mean) is dict:
+            self.mean = Trajectory.from_dict(self.mean).eval_at(t)
+            need_to_update_texture = True
+        if type(self.contrast) is dict:
+            self.contrast = Trajectory.from_dict(self.contrast).eval_at(t)
+            need_to_update_texture = True
+        if type(self.offset) is dict:
+            self.offset = Trajectory.from_dict(self.offset).eval_at(t)
+            need_to_update_texture = True
+
+        if type(self.angle) is dict:
+            self.angle = Trajectory.from_dict(self.angle).eval_at(t)
+        if type(self.color) is dict:
+            self.color = Trajectory.from_dict(self.color).eval_at(t)
+
+        if need_to_update_texture:
+            self.updateTexture()
+
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      texture=True).rotx(radians(self.angle))
+
+
+class RotatingGrating(CylindricalGrating):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, period=20, rate=10, color=[1, 1, 1, 1], mean=0.5, contrast=1.0, angle=0.0, offset=0.0, cylinder_radius=1, cylinder_height=10, profile='sine'):
+        """
+        Subclass of CylindricalGrating that rotates the grating along the varying axis of the grating
+        Note that the rotation effect is achieved by translating the texture on a semi-cylinder. This
+        allows for arbitrary spatial periods to be achieved with no discontinuities in the grating
+
+        :param rate: rotation rate, degrees/sec
+        """
+        super().configure(period=period, color=color, mean=mean, contrast=contrast, angle=angle, offset=offset, cylinder_radius=cylinder_radius, profile=profile)
+        self.rate = rate
+        self.updateTexture()
+
+    def eval_at(self, t):
+        shift_u = t*self.rate/self.cylinder_angular_extent
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      texture=True,
+                                      texture_shift=(shift_u, 0)).rotx(radians(self.angle))
+
 
 class RandomBars(BaseProgram):
     # cylindrical mode
@@ -360,67 +267,6 @@ class RandomBars(BaseProgram):
         # write to GPU
         self.prog['face_colors'].value = rand_colors
 
-class SequentialBars(BaseProgram):
-    # consider removing...
-    def __init__(self, screen):
-        uniforms = [
-            Uniform('theta_offset', float),
-            Uniform('theta_period', float),
-            Uniform('thresh_first', float),
-            Uniform('thresh_second', float),
-            Uniform('color_first', float),
-            Uniform('color_second', float),
-            Uniform('background', float),
-            Uniform('enable_first', bool),
-            Uniform('enable_second', bool)
-        ]
-
-        calc_color = '''
-            float theta_fract = fract((theta - theta_offset)/theta_period);
-            if (enable_first && (theta_fract <= thresh_first)) {
-                color = color_first;
-            } else if (enable_second && (thresh_first < theta_fract) && (theta_fract <= thresh_second)) {
-                color = color_second;
-            } else {
-                color = background;
-            }
-        '''
-
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-
-    def configure(self, width=5, period=20, offset=0, first_active_bright=True, second_active_bright=True,
-                 first_active_time=1, second_active_time=2, background=0.5):
-        """
-        Stimulus in which one set of bars appears first, followed by a second set some time later.
-        :param width: Width of the bars (same for the first and second set).
-        :param period: Period of the bar pattern (same for the first and second set).
-        :param offset: Offset in degrees of the bar pattern, which can be used to rotate the entire pattern
-        around the viewer.
-        :param first_active_bright: Boolean value.  If True, the first set of bars appear white when active.  If
-        False, they will appear black when active.
-        :param second_active_bright: Boolean value.  If True, the second set of bars appear white when active.  If
-        False, they will appear black when active.
-        :param first_active_time: Time in seconds when the first set of bars become active.
-        :param second_active_time: Time in seconds when the second set of bars become active.
-        :param background: Monochromatic background color (0.0 is black, 1.0 is white)
-        """
-
-        # save settings
-        self.first_active_time  = first_active_time
-        self.second_active_time = second_active_time
-
-        # configure program
-        self.prog['theta_offset'].value  = offset
-        self.prog['theta_period'].value  = radians(period)
-        self.prog['thresh_first'].value  = 1.0*width/period
-        self.prog['thresh_second'].value = 2.0*width/period
-        self.prog['color_first'].value = 1.0 if first_active_bright else 0.0
-        self.prog['color_second'].value = 1.0 if second_active_time else 0.0
-        self.prog['background'].value = background
-
-    def eval_at(self, t):
-        self.prog['enable_first'].value = (t >= self.first_active_time)
-        self.prog['enable_second'].value = (t >= self.second_active_time)
 
 class GridStim(BaseProgram):
     # render on a cylinder with the height of patches adjusted for equal solid angle.

@@ -1,31 +1,32 @@
 #!/usr/bin/env python3
-
-# Example client program that displays a patch that is sent on a square trajectory
+from flystim.stim_server import launch_stim_server
+from flystim.screen import Screen
+from flystim.trajectory import Trajectory
 
 from time import sleep
 
-from flystim.trajectory import RectangleTrajectory, Trajectory
-from flystim.screen import Screen
-from flystim.stim_server import launch_stim_server
-
 def main():
-    num_trials = 1
+    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=False))
 
-    manager = launch_stim_server(Screen(fullscreen=False))
 
-    trajectory = RectangleTrajectory(x=[(0,90),(1,95),(2,95),(3,90),(4,90),(5,90)],
-                                     y=[(0,90),(1,90),(2,95),(3,95),(4,90),(5,90)],
-                                     angle=Trajectory([(0,45),(2,-45),(4,45),(5,45)], 'zero'))
+    tv_pairs = [(0,1), (0.5,0), (1,1), (1.5,0), (2,1), (2.5,0), (3,1)]
+    color_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
-    for _ in range(num_trials):
-        manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
-        sleep(550e-3)
+    tv_pairs = [(0,-240), (3, -120)]
+    theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
-        manager.start_stim()
-        sleep(6)
 
-        manager.stop_stim()
-        sleep(500e-3)
+    manager.load_stim(name='MovingPatch',width=20, height=20, phi=0, color=color_traj, theta=theta_traj)
+
+    manager.load_stim(name='MovingPatch',width=20, height=20, phi=-30, color=0.5, theta=-180, hold=True)
+
+    sleep(1)
+
+    manager.start_stim()
+    sleep(4)
+
+    manager.stop_stim(print_profile=True)
+    sleep(1)
 
 if __name__ == '__main__':
     main()

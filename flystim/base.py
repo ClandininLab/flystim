@@ -8,7 +8,7 @@ from math import pi, radians
 from flystim.trajectory import Trajectory
 
 class BaseProgram:
-    def __init__(self, screen, num_tri=200):
+    def __init__(self, screen, num_tri=100):
         """
         :param screen: Object containing screen size information
         """
@@ -17,6 +17,7 @@ class BaseProgram:
         self.num_tri = num_tri
         self.texture_image = None
         self.use_texture = False
+        self.texture_interpolation = 'LINEAR'
 
     def initialize(self, ctx):
         """
@@ -70,6 +71,13 @@ class BaseProgram:
         self.texture = self.ctx.texture(size=(texture_image.shape[1], texture_image.shape[0]),
                                         components=1,
                                         data=texture_image.tobytes()) # size = (width, height)
+        if self.texture_interpolation == 'NEAREST':
+            self.texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
+        elif self.texture_interpolation == 'LINEAR':
+            self.texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
+        else:
+            self.texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
+
         self.texture.use()
 
 
