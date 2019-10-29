@@ -21,7 +21,7 @@ def register_cave(display, omega=0):
     t0 = time()
     elevation = 20
     az_start = -260
-    display.render_actions.append(lambda: cave.render(GlSphericalRect(width=10, height=30).rotz(radians(az_start+omega*(time()-t0))).roty(radians(elevation))))
+    display.render_actions.append(lambda: cave.render(GlSphericalRect(width=10, height=30).rotx(radians(90)).rotz(radians(az_start+omega*(time()-t0))).roty(radians(elevation))))
 
 if __name__ == '__main__':
     run_qt(lambda display: register_cave(display, omega=20))

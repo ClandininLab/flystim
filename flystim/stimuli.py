@@ -58,7 +58,7 @@ class MovingPatch(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=-180, phi=0):
+    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=-180, phi=0, angle=0):
         """
         Stimulus consisting of a rectangular patch on the surface of a sphere
 
@@ -68,6 +68,7 @@ class MovingPatch(BaseProgram):
         :param color: [r,g,b,a] or mono. Color of the patch
         :param theta: degrees, azimuth of the center of the patch
         :param phi: degrees, elevation of the center of the patch
+        :param angle: degrees, roll. Or orientation of patch in spherical coordinates
         *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
         self.width = width
@@ -76,6 +77,7 @@ class MovingPatch(BaseProgram):
         self.color = color
         self.theta = theta
         self.phi = phi
+        self.angle = angle
 
     def eval_at(self, t):
         if type(self.width) is dict:
@@ -88,11 +90,13 @@ class MovingPatch(BaseProgram):
             self.theta = Trajectory.from_dict(self.theta).eval_at(t)
         if type(self.phi) is dict:
             self.phi = Trajectory.from_dict(self.phi).eval_at(t)
+        if type(self.angle) is dict:
+            self.angle = Trajectory.from_dict(self.angle).eval_at(t)
 
         self.stim_object = GlSphericalRect(width=self.width,
                                            height=self.height,
                                            sphere_radius=self.sphere_radius,
-                                           color=self.color).rotz(radians(self.theta)).roty(radians(self.phi))
+                                           color=self.color).rotx(radians(self.angle)).rotz(radians(self.theta)).roty(radians(self.phi))
 
 
 class CylindricalGrating(BaseProgram):
