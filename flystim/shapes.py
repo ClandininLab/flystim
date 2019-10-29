@@ -61,16 +61,21 @@ class GlTri(GlVertices):
         super().__init__(vertices=vertices, colors=colors, tex_coords=tex_coords)
 
 class GlQuad(GlVertices):
-    def __init__(self, v1, v2, v3, v4, color, tc1=None, tc2=None, tc3=None, tc4=None, texture_shift=(0,0)):
+    def __init__(self, v1, v2, v3, v4, color, tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1), texture_shift=(0,0), use_texture=False):
         super().__init__()
-        self.add(GlTri(v1, v2, v3, color,
-                       [sum(x) for x in zip(tc1, texture_shift)],
-                       [sum(x) for x in zip(tc2, texture_shift)],
-                       [sum(x) for x in zip(tc3, texture_shift)]))
-        self.add(GlTri(v1, v3, v4, color,
-                       [sum(x) for x in zip(tc1, texture_shift)],
-                       [sum(x) for x in zip(tc3, texture_shift)],
-                       [sum(x) for x in zip(tc4, texture_shift)]))
+        if use_texture:
+            self.add(GlTri(v1, v2, v3, color,
+                           [sum(x) for x in zip(tc1, texture_shift)],
+                           [sum(x) for x in zip(tc2, texture_shift)],
+                           [sum(x) for x in zip(tc3, texture_shift)]))
+            self.add(GlTri(v1, v3, v4, color,
+                           [sum(x) for x in zip(tc1, texture_shift)],
+                           [sum(x) for x in zip(tc3, texture_shift)],
+                           [sum(x) for x in zip(tc4, texture_shift)]))
+        else:
+            self.add(GlTri(v1, v2, v3, color))
+            self.add(GlTri(v1, v3, v4, color))
+
 
 class GlCube(GlVertices):
     def __init__(self, colors=None, def_alpha=1.0):
@@ -211,7 +216,8 @@ class GlCylinder(GlVertices):
                                 tc2=(face/n_faces, 0),
                                 tc3=((face+1)/n_faces, 0),
                                 tc4=((face+1)/n_faces, 1),
-                                texture_shift=texture_shift).translate(cylinder_location))
+                                texture_shift=texture_shift,
+                                use_texture=True).translate(cylinder_location))
             else:
                 self.add(GlQuad(v1, v2, v3, v4, color).translate(cylinder_location))
 
