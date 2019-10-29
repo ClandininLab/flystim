@@ -118,6 +118,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
                                         self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
                                         0)
+                self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))
                 self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
 
             for stim in self.stim_list:
@@ -146,11 +147,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
     # control functions
     ###########################################
 
-
-    def set_fly_trajectory(self, x_trajectory, y_trajectory):
+    def set_fly_trajectory(self, x_trajectory, y_trajectory, theta_trajectory):
+        """
+        :param x_trajectory: meters, dict from Trajectory including time, value pairs
+        :param y_trajectory: meters, dict from Trajectory including time, value pairs
+        :param theta_trajectory: degrees on the azimuthal plane, dict from Trajectory including time, value pairs
+        """
         self.use_fly_trajectory = True
         self.fly_x_trajectory = Trajectory.from_dict(x_trajectory)
         self.fly_y_trajectory = Trajectory.from_dict(y_trajectory)
+        self.fly_theta_trajectory = Trajectory.from_dict(theta_trajectory)
 
     def update_stim(self, rate, t):
         for stim, config_options in self.stim_list:

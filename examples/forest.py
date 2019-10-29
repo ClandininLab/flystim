@@ -14,10 +14,13 @@ def main():
     tt = np.linspace(0,6,100)
     dx = -0.1 + 0.02*np.random.normal(size=100)
     dy = 0.01*np.random.normal(size=100)
+    dtheta = 10*np.random.normal(size=100)
+
     fly_x_trajectory = Trajectory(list(zip(tt, np.cumsum(dx)))).to_dict()
     fly_y_trajectory = Trajectory(list(zip(tt, np.cumsum(dy)))).to_dict()
+    fly_theta_trajectory = Trajectory(list(zip(tt, np.cumsum(dtheta)))).to_dict()
 
-    manager.set_fly_trajectory(fly_x_trajectory, fly_y_trajectory)
+    manager.set_fly_trajectory(fly_x_trajectory, fly_y_trajectory, fly_theta_trajectory)
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0])
     manager.load_stim(name='Floor', color=[0.25, 0.25, 0.25, 1.0], hold=True, z_level=z_level)
     n_trees = 20
