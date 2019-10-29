@@ -9,6 +9,7 @@ import pandas as pd
 import platform
 
 from flystim import stimuli
+from flystim.trajectory import Trajectory
 
 # from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
 # from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground, ArbitraryGrid
@@ -74,6 +75,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.global_phi_offset = 0
         self.global_fly_pos = np.array([0, 0, 0], dtype=float)
 
+        self.use_fly_trajectory = False
+
         self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
 
     def initializeGL(self):
@@ -111,13 +114,17 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             self.ctx.clear(0, 0, 0, 1)
             self.ctx.enable(moderngl.BLEND)
+            if self.use_fly_trajectory:
+                self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
+                                        self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
+                                        0)
+                self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
 
             for stim in self.stim_list:
                 stim.configure(**stim.kwargs)
-                stim.paint_at(self.get_stim_time(t), get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset))
+                stim.paint_at(self.get_stim_time(t), self.perspective)
 
             try:
-                # TODO: make sure that profile information is still accurate
                 self.profile_frame_count += 1
                 if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
                     self.profile_frame_times.append(t - self.profile_last_time)
@@ -138,6 +145,12 @@ class StimDisplay(QtOpenGL.QGLWidget):
     ###########################################
     # control functions
     ###########################################
+
+
+    def set_fly_trajectory(self, x_trajectory, y_trajectory):
+        self.use_fly_trajectory = True
+        self.fly_x_trajectory = Trajectory.from_dict(x_trajectory)
+        self.fly_y_trajectory = Trajectory.from_dict(y_trajectory)
 
     def update_stim(self, rate, t):
         for stim, config_options in self.stim_list:
@@ -351,6 +364,7 @@ def main():
     stim_display = StimDisplay(screen=screen, server=server, app=app)
 
     # register functions
+    server.register_function(stim_display.set_fly_trajectory)
     server.register_function(stim_display.load_stim)
     server.register_function(stim_display.start_stim)
     server.register_function(stim_display.stop_stim)

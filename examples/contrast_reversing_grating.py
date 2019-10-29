@@ -7,7 +7,7 @@ import numpy as np
 from time import sleep
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=True))
 
     # contrast-reversing grating
     tf = 1 #Hz
@@ -16,16 +16,14 @@ def main():
     tv_pairs = list(zip(t, c))
     contrast_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
-    tv_pairs = [(0, 0), (6, 720)]
-    angle_traj = Trajectory(tv_pairs, kind='linear').to_dict()
-    manager.load_stim(name='CylindricalGrating', angle=angle_traj, period=20, contrast=contrast_traj, profile='square')
+    manager.load_stim(name='CylindricalGrating', angle=0, period=20, contrast=contrast_traj, profile='square')
 
     sleep(1)
 
     manager.start_stim()
     sleep(6)
 
-    manager.stop_stim(print_profile=True)
+    manager.stop_stim(print_profile=False)
     sleep(1)
 
 if __name__ == '__main__':

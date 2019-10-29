@@ -15,10 +15,11 @@ def main():
     tv_pairs = [(0,-240), (3, -120)]
     theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
+    manager.load_stim(name='ConstantBackground', color = [0.5, 0.5, 0.5, 0.5], side_length=100)
 
-    manager.load_stim(name='MovingPatch',width=20, height=20, phi=0, color=color_traj, theta=theta_traj)
+    manager.load_stim(name='MovingPatch',width=20, height=20, phi=0, color=color_traj, theta=theta_traj, hold=True)
 
-    manager.load_stim(name='MovingPatch',width=20, height=20, phi=-30, color=0.5, theta=-180, hold=True)
+    manager.load_stim(name='MovingPatch',width=20, height=20, phi=-30, color=1.0, theta=-180, hold=True)
 
     sleep(1)
 

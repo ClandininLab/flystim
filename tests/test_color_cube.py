@@ -20,9 +20,13 @@ def register_cave(display, omega=0):
     cave.add_subscreen((256, 0, 256, 256), get_perspective(theta=45, phi=45))
 
     # add cube rendering to the render action list
+    def_alpha = 1
+    colors = {'+x': (0, 0, 1, def_alpha), '-x': (0, 1, 0, def_alpha),
+              '+y': (1, 0, 0, def_alpha), '-y': (0, 1, 1, def_alpha),
+              '+z': (1, 1, 0, def_alpha), '-z':(1, 0, 1, def_alpha)}
     display.render_objs.append(cave)
     t0 = time()
-    display.render_actions.append(lambda: cave.render(GlCube().rotz(radians(omega*(time()-t0)))))
+    display.render_actions.append(lambda: cave.render(GlCube(colors=colors).rotz(radians(omega*(time()-t0)))))
 
 def test_color_cube(max_err=100):
     # render image

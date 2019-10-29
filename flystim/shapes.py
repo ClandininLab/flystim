@@ -78,7 +78,7 @@ class GlQuad(GlVertices):
 
 
 class GlCube(GlVertices):
-    def __init__(self, colors=None, def_alpha=1.0):
+    def __init__(self, colors=None, center=[0,0,0], side_length=1.0):
         # call the super constructor
         super().__init__()
 
@@ -86,31 +86,28 @@ class GlCube(GlVertices):
         if colors is None:
             colors = {}
         if '+x' not in colors:
-            colors['+x'] = 'blue'
+            colors['+x'] = (0, 0, 1, 1)
         if '-x' not in colors:
-            colors['-x'] = 'green'
+            colors['-x'] = (0, 1, 0, 1)
         if '+y' not in colors:
-            colors['+y'] = 'red'
+            colors['+y'] = (1, 0, 0, 1)
         if '-y' not in colors:
-            colors['-y'] = 'cyan'
+            colors['-y'] = (0, 1, 1, 1)
         if '+z' not in colors:
-            colors['+z'] = 'yellow'
+            colors['+z'] = (1, 1, 0, 1)
         if '-z' not in colors:
-            colors['-z'] = 'magenta'
-
-        # convert colors to RGBA
-        colors = {key: get_rgba(val, def_alpha=def_alpha) for key, val in colors.items()}
+            colors['-z'] = (1, 0, 1, 1)
 
         # shorten name for side length for readability
-        s = 0.5
+        s = side_length/2
 
         # add all of the faces
-        self.add(GlQuad((+s, -s, -s), (+s, +s, -s), (+s, +s, +s), (+s, -s, +s), colors['+x']))
-        self.add(GlQuad((-s, -s, -s), (-s, +s, -s), (-s, +s, +s), (-s, -s, +s), colors['-x']))
-        self.add(GlQuad((+s, +s, -s), (-s, +s, -s), (-s, +s, +s), (+s, +s, +s), colors['+y']))
-        self.add(GlQuad((+s, -s, -s), (-s, -s, -s), (-s, -s, +s), (+s, -s, +s), colors['-y']))
-        self.add(GlQuad((+s, -s, +s), (+s, +s, +s), (-s, +s, +s), (-s, -s, +s), colors['+z']))
-        self.add(GlQuad((+s, -s, -s), (+s, +s, -s), (-s, +s, -s), (-s, -s, -s), colors['-z']))
+        self.add(GlQuad((+s, -s, -s), (+s, +s, -s), (+s, +s, +s), (+s, -s, +s), colors['+x']).translate(center))
+        self.add(GlQuad((-s, -s, -s), (-s, +s, -s), (-s, +s, +s), (-s, -s, +s), colors['-x']).translate(center))
+        self.add(GlQuad((+s, +s, -s), (-s, +s, -s), (-s, +s, +s), (+s, +s, +s), colors['+y']).translate(center))
+        self.add(GlQuad((+s, -s, -s), (-s, -s, -s), (-s, -s, +s), (+s, -s, +s), colors['-y']).translate(center))
+        self.add(GlQuad((+s, -s, +s), (+s, +s, +s), (-s, +s, +s), (-s, -s, +s), colors['+z']).translate(center))
+        self.add(GlQuad((+s, -s, -s), (+s, +s, -s), (-s, +s, -s), (-s, -s, -s), colors['-z']).translate(center))
 
 
 class GlSphericalRect(GlVertices):

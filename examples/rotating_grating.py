@@ -6,7 +6,7 @@ import numpy as np
 from time import sleep
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=True))
 
     # rotating grating
     manager.load_stim(name='RotatingGrating', angle=0, rate=20, period=20, contrast=0.75, profile='square')
@@ -16,7 +16,7 @@ def main():
     manager.start_stim()
     sleep(6)
 
-    manager.stop_stim(print_profile=True)
+    manager.stop_stim(print_profile=False)
     sleep(1)
 
 if __name__ == '__main__':

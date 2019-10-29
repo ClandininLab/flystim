@@ -109,6 +109,7 @@ class Screen:
         self.tri_list = tri_list
 
         # Save settings
+        self.offset = offset
         self.width = width
         self.height = height
         self.id = id

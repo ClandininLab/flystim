@@ -29,7 +29,7 @@ def register_cave(display):
     background_speed = 10
     patch_speed = 180
     az_start = -260
-    display.render_actions.append(lambda: cave.render(GlCylinder(cylinder_radius=3, cylinder_height=6).rotz(radians(background_speed*(time()-t0))).rotx(radians(0)), texture_img=img))
+    display.render_actions.append(lambda: cave.render(GlCylinder(cylinder_radius=3, cylinder_height=6, texture=True).rotz(radians(background_speed*(time()-t0))).rotx(radians(0)), texture_img=img))
     display.render_actions.append(lambda: cave.render(GlSphericalCirc(color=1, sphere_radius=2).rotz(radians(az_start+patch_speed*(time()-t0)))))
     display.render_actions.append(lambda: cave.render(GlSphericalRect(width=10, height=30, color=0, sphere_radius=1).rotz(radians(az_start+50*(time()-t0)))))
 

@@ -8,25 +8,47 @@ from flystim.base import BaseProgram
 from flystim.glsl import Uniform, Function, Variable, Texture
 from flystim.trajectory import RectangleTrajectory, Trajectory
 import flystim.distribution as distribution
-from flystim import GlSphericalRect, GlCylinder
+from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad
 
 class ConstantBackground(BaseProgram):
-    # keep as-is
     def __init__(self, screen):
-        uniforms = [
-            Uniform('background', float)
-        ]
+        super().__init__(screen=screen)
 
-        calc_color = 'color = background;\n'
-
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-
-    def configure(self, background=0.0):
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], center=[0,0,0], side_length=100):
         """
-        :param background
+        :param color: [r,g,b,a]
         """
 
-        self.prog['background'].value = background
+        self.color = color
+        self.center = center
+        self.side_length = side_length
+
+        colors = {'+x': self.color, '-x': self.color,
+                  '+y': self.color, '-y': self.color,
+                  '+z': self.color, '-z': self.color}
+        self.stim_object = GlCube(colors, center=self.center, side_length=self.side_length)
+
+    def eval_at(self, t):
+        pass
+
+
+class Floor(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=0):
+        """
+        :param color: [r,g,b,a]
+        """
+
+        self.color = color
+
+        v1 = (-1000, -1000, z_level)
+        v2 = (1000, -1000, z_level)
+        v3 = (1000, 1000, z_level)
+        v4 = (-1000, 1000, z_level)
+        color = self.color
+        self.stim_object = GlQuad(v1, v2, v3, v4, color)
 
     def eval_at(self, t):
         pass
@@ -100,6 +122,7 @@ class CylindricalGrating(BaseProgram):
         self.angle = angle
         self.offset = offset
         self.cylinder_radius = cylinder_radius
+        self.cylinder_height = cylinder_height
         self.profile = profile
 
     def updateTexture(self):
@@ -178,6 +201,27 @@ class RotatingGrating(CylindricalGrating):
                                       color=self.color,
                                       texture=True,
                                       texture_shift=(shift_u, 0)).rotx(radians(self.angle))
+
+class Tower(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, cylinder_radius=1, cylinder_height=10, cylinder_location=[0,0,0], color=[1, 1, 1, 1]):
+        """
+
+        """
+        self.cylinder_radius = cylinder_radius
+        self.cylinder_height = cylinder_height
+        self.cylinder_location = cylinder_location
+        self.color = color
+
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_location=self.cylinder_location,
+                                      color=self.color,
+                                      n_faces=8)
+    def eval_at(self, t):
+        pass
 
 
 class RandomBars(BaseProgram):
