@@ -71,17 +71,17 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.idle_background = 0.5
 
         # set the closed-loop parameters
-        self.global_theta_offset = 0
-        self.global_phi_offset = 0
-        self.global_fly_pos = np.array([0, 0, 0], dtype=float)
+        self.set_global_fly_pos(0, 0, 0)
+        self.set_global_theta_offset(0) # deg -> radians
+        self.set_global_phi_offset(0) # deg -> radians
 
         self.use_fly_trajectory = False
         self.fly_x_trajectory = None
         self.fly_y_trajectory = None
         self.fly_theta_trajectory = None
 
+        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
-        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
 
     def initializeGL(self):
         # get OpenGL context
@@ -122,8 +122,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
                                         self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
                                         0)
-                self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))
-                
+                self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))  # deg -> radians
+
             self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
 
             for stim in self.stim_list:
@@ -251,10 +251,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.profile_last_time = None
         self.profile_frame_times = None
 
-        self.global_theta_offset = 0
-        self.global_phi_offset = 0
-        self.global_fly_pos = np.array([0, 0, 0], dtype=float)
-
         self.use_fly_trajectory = False
         self.fly_x_trajectory = None
         self.fly_y_trajectory = None
@@ -333,12 +329,26 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.global_phi_offset = radians(value)
 
 
-def get_perspective(fly_pos, theta, phi):
-    # nominal position
-    perspective = GenPerspective(pa=(+1, -1, -1), pb=(+1, +1, -1), pc=(+1, -1, 1), pe=fly_pos)
+def get_perspective(fly_pos, theta, phi, screen=None):
+    """
+    :param fly_pos: (x, y, z) position of fly, meters
+    :param theta: fly heading angle along azimuth, radians
+    :param phi: fly heading angle along elevation, radians
+    :param screen: flystim.screen object
+    """
+    if screen is None:
+        pa = (+1, -1, -1)
+        pb = (+1, +1, -1)
+        pc = (+1, -1, 1)
+    else:
+        pa = screen.tri_list[0].pa.cart  # [x, y, z] in meters
+        pb = screen.tri_list[0].pb.cart
+        pc = screen.tri_list[0].pc.cart
+
+    perspective = GenPerspective(pa=pa, pb=pb, pc=pc, pe=fly_pos)
 
     # rotate screen and eye position
-    return perspective.roty(-radians(phi)).rotz(radians(theta))
+    return perspective.roty(phi).rotz(theta).rotx(radians(180)).rotz(radians(180))
 
 
 def make_qt_format(vsync):

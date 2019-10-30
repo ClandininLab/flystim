@@ -223,7 +223,7 @@ class Tower(BaseProgram):
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_location=self.cylinder_location,
                                       color=self.color,
-                                      n_faces=8)
+                                      n_faces=4)
     def eval_at(self, t):
         pass
 
