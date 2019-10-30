@@ -19,7 +19,7 @@ def main():
 
     manager.load_stim(name='MovingPatch',width=20, height=20, phi=0, color=color_traj, theta=theta_traj, hold=True, angle=45)
 
-    manager.load_stim(name='MovingPatch',width=20, height=20, phi=-30, color=1.0, theta=-180, hold=True)
+    manager.load_stim(name='MovingPatch',width=20, height=20, phi=0, color=1.0, theta=-180, hold=True)
 
     sleep(1)
 
