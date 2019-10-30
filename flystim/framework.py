@@ -123,7 +123,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
                                         self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
                                         0)
                 self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))
-                self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
+                
+            self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
 
             for stim in self.stim_list:
                 stim.configure(**stim.kwargs)
@@ -261,6 +262,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.set_global_fly_pos(0, 0, 0)
         self.set_global_theta_offset(0)
         self.set_global_phi_offset(0)
+        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
 
     def start_corner_square(self):
         """
