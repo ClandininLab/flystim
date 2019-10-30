@@ -348,7 +348,7 @@ def get_perspective(fly_pos, theta, phi, screen=None):
     perspective = GenPerspective(pa=pa, pb=pb, pc=pc, pe=fly_pos)
 
     # rotate screen and eye position
-    return perspective.roty(phi).rotz(theta).rotx(radians(180)).rotz(radians(180))
+    return perspective.roty(phi).rotz(theta).rotx(radians(180))
 
 
 def make_qt_format(vsync):
