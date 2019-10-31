@@ -6,9 +6,10 @@ from math import pi, radians, ceil, cos, sin
 
 from flystim.base import BaseProgram
 from flystim.glsl import Uniform, Function, Variable, Texture
-from flystim.trajectory import RectangleTrajectory, Trajectory
+from flystim.trajectory import Trajectory
 import flystim.distribution as distribution
-from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad
+from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc
+
 
 class ConstantBackground(BaseProgram):
     def __init__(self, screen):
@@ -54,6 +55,43 @@ class Floor(BaseProgram):
         pass
 
 
+class MovingSpot(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, radius=10, sphere_radius=1, color=[1, 1, 1, 1], theta=-180, phi=0):
+        """
+        Stimulus consisting of a circular patch on the surface of a sphere
+
+        :param radius: radius of circle in degrees
+        :param sphere_radius: Radius of the sphere (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch
+        :param phi: degrees, elevation of the center of the patch
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.radius = radius
+        self.sphere_radius = sphere_radius
+        self.color = color
+        self.theta = theta
+        self.phi = phi
+
+    def eval_at(self, t):
+        if type(self.radius) is dict:
+            self.radius = Trajectory.from_dict(self.radius).eval_at(t)
+        if type(self.color) is dict:
+            self.color = Trajectory.from_dict(self.color).eval_at(t)
+        if type(self.theta) is dict:
+            self.theta = Trajectory.from_dict(self.theta).eval_at(t)
+        if type(self.phi) is dict:
+            self.phi = Trajectory.from_dict(self.phi).eval_at(t)
+
+        self.stim_object = GlSphericalCirc(circle_radius=self.radius,
+                                           sphere_radius=self.sphere_radius,
+                                           color=self.color,
+                                           n_steps=36).rotz(radians(self.theta)).roty(radians(self.phi))
+
+
 class MovingPatch(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
@@ -96,7 +134,7 @@ class MovingPatch(BaseProgram):
         self.stim_object = GlSphericalRect(width=self.width,
                                            height=self.height,
                                            sphere_radius=self.sphere_radius,
-                                           color=self.color).rotx(radians(self.angle)).rotz(radians(self.theta)).roty(radians(self.phi))
+                                           color=self.color).rotx(radians(-self.angle)).rotz(radians(self.theta)).roty(radians(self.phi))
 
 
 class CylindricalGrating(BaseProgram):

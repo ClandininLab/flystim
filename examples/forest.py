@@ -23,10 +23,6 @@ def main():
     manager.set_fly_trajectory(fly_x_trajectory, fly_y_trajectory, fly_theta_trajectory)
 
 
-    manager.set_global_fly_pos(0,0,0)
-    manager.set_global_phi_offset(0)
-    manager.set_global_theta_offset(0)
-
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0])
     manager.load_stim(name='Floor', color=[0.25, 0.25, 0.25, 0.0], hold=True, z_level=z_level)
 
