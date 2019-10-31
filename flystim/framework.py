@@ -11,8 +11,6 @@ import platform
 from flystim import stimuli
 from flystim.trajectory import Trajectory
 
-# from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
-# from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground, ArbitraryGrid
 from flystim import GenPerspective
 from flystim.square import SquareProgram
 from flystim.screen import Screen
@@ -81,7 +79,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.fly_theta_trajectory = None
 
         self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
-
 
     def initializeGL(self):
         # get OpenGL context
@@ -165,6 +162,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def update_stim(self, rate, t):
         for stim, config_options in self.stim_list:
+            # TODO fix this
             if isinstance(stim, (SineGrating, RotatingBars)):
                 # get the time that will be passed to the stimulus
                 t = self.get_stim_time(t)

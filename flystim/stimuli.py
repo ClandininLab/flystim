@@ -394,8 +394,6 @@ class Checkerboard(TexturedCylinder):
         self.n_patches_height = int(np.floor(180/self.patch_height))
 
         # create the texture
-        # row = y (phi) coord
-        # col = x (theta) coord
         face_colors = np.zeros((self.n_patches_height, self.n_patches_width))
         face_colors[0::2, 0::2] = 1
         face_colors[1::2, 1::2] = 1

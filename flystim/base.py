@@ -124,10 +124,10 @@ class BaseProgram:
                     if (use_texture) {
                         vec4 texFrag = texture(texture_matrix, v_tex_coord);
                         f_color.rgb = texFrag.r * v_color.rgb;
-                        f_color.a = 1;
+                        f_color.a = v_color.a;
                     } else {
                         f_color.rgb = v_color.rgb;
-                        f_color.a = 1;
+                        f_color.a = v_color.a;
                     }
                 }
             '''
