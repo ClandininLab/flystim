@@ -212,10 +212,19 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_offset_time = t - self.stim_start_time + self.stim_offset_time
         self.stim_start_time = t
 
-    def stop_stim(self, print_profile = False):
+    def stop_stim(self, print_profile=False):
         """
         Stops the stimulus animation and removes it from the display.
         """
+        # # clear texture
+        # self.ctx.clear_samplers()
+        # self.ctx.clear()
+        #
+        # for stim in self.stim_list:
+        #     stim.vbo.release()
+        #     stim.vao.release()
+        #     stim.prog.release()
+
 
         # print profiling information if applicable
 
