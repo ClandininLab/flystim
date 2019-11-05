@@ -216,14 +216,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
         """
         Stops the stimulus animation and removes it from the display.
         """
-        # # clear texture
-        # self.ctx.clear_samplers()
-        # self.ctx.clear()
-        #
-        # for stim in self.stim_list:
-        #     stim.vbo.release()
-        #     stim.vao.release()
-        #     stim.prog.release()
+        # clear texture
+        self.ctx.clear_samplers()
+        self.ctx.clear()
+        
+        for stim in self.stim_list:
+            stim.vbo.release()
+            stim.vao.release()
+            stim.prog.release()
 
 
         # print profiling information if applicable

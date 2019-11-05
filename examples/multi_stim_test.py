@@ -2,12 +2,23 @@
 from flystim.stim_server import launch_stim_server
 from flystim.screen import Screen
 from flystim.trajectory import Trajectory
+from flystim.dlpc350 import make_dlpc350_objects
 import numpy as np
+from math import pi
 
 from time import sleep
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=False))
+    # Put lightcrafter(s) in pattern mode
+    dlpc350_objects = make_dlpc350_objects()
+    for dlpc350_object in dlpc350_objects:
+         dlpc350_object.pattern_mode(fps=120)
+
+    w = 20.6e-2; h = 12.8e-2; # meters of image at projection plane
+    scrn = Screen(width=w, height=h, rotation=pi+pi/4, offset=(-3.9e-2, 4.0e-2, -6.1e-2), id=1, fullscreen=True, vsync=True, square_side=5e-2, square_loc='lr')
+    aux_screen = Screen(width=w, height=h, rotation=pi+pi/4, offset=(-3.9e-2, 4.0e-2, -6.1e-2), id=0, fullscreen=False, vsync=True, square_side=0)
+
+    manager = launch_stim_server([scrn, aux_screen])
 
     # rotating grating 1
     manager.load_stim(name='RotatingGrating', angle=0, rate=20, period=20, contrast=0.75, profile='square')
