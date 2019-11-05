@@ -144,6 +144,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.ctx.finish()
         self.update()
 
+        # clear the buffer objects
+        for stim in self.stim_list:
+            stim.vbo.release() 
+            stim.vao.release()
+
 
     ###########################################
     # control functions
@@ -218,13 +223,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         """
         # clear texture
         self.ctx.clear_samplers()
-        self.ctx.clear()
         
         for stim in self.stim_list:
-            stim.vbo.release()
-            stim.vao.release()
             stim.prog.release()
-
 
         # print profiling information if applicable
 

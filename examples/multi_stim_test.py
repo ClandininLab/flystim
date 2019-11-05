@@ -25,10 +25,10 @@ def main():
     sleep(1)
     manager.start_stim()
     sleep(6)
-    manager.stop_stim(print_profile=True)
+    manager.stop_stim(print_profile=False)
     sleep(1)
 
-    for t in range(100):
+    for t in range(200):
         # forest
         z_level = -0.2
         # random walk trajectory
@@ -48,14 +48,14 @@ def main():
         manager.load_stim(name='Tower', color = [0, 1, 0, 0.5], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[-2, 0.5, z_level+height/2], hold=True)
         manager.load_stim(name='Tower', color = [0, 0, 1, 0.5], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[-2, -0.5, z_level+height/2], hold=True)
         manager.load_stim(name='Tower', color = [1, 1, 1, 0.5], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[2, -0.5, z_level+height/2], hold=True)
-        n_trees = 20
+        n_trees = 15
         for tree in range(n_trees):
             manager.load_stim(name='Tower', color = [0, 0, 0, 0.5], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[np.random.uniform(-20,0), np.random.uniform(-3, 3), z_level+height/2], hold=True)
 
         sleep(0.5)
         manager.start_stim()
-        sleep(1.0)
-        manager.stop_stim(print_profile=True)
+        sleep(3.0)
+        manager.stop_stim(print_profile=False)
         sleep(0.5)
 
     # rotating grating 2
@@ -63,7 +63,7 @@ def main():
     sleep(1)
     manager.start_stim()
     sleep(6)
-    manager.stop_stim(print_profile=True)
+    manager.stop_stim(print_profile=False)
     sleep(1)
 
 
