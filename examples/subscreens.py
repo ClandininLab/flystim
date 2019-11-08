@@ -3,7 +3,7 @@
 # Example program showing rendering onto three subscreens
 
 from flystim.draw import draw_screens
-from flystim.trajectory import RectangleTrajectory
+from flystim.trajectory import Trajectory
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
 
@@ -60,9 +60,10 @@ def main():
 
     manager = launch_stim_server(screen)
 
-    trajectory = RectangleTrajectory(x=[(0,0),(10,360)], y=90, w=30, h=180)
+    tv_pairs = [(0,0), (10, 360)]
+    theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
+    manager.load_stim(name='MovingPatch',width=90, height=180, phi=0, color=1, theta=theta_traj, hold=True, angle=45)
 
-    manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
     sleep(1)
 
     manager.start_stim()

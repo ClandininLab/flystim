@@ -12,7 +12,10 @@ class ConstantBackground(BaseProgram):
 
     def configure(self, color=[0.5, 0.5, 0.5, 1.0], center=[0,0,0], side_length=100):
         """
+        Big skybox to simulate a constant background behind stimuli
         :param color: [r,g,b,a]
+        :param center: [x,y,z]
+        :param side_length: meters, side length of cube
         """
 
         self.color = color
@@ -34,7 +37,9 @@ class Floor(BaseProgram):
 
     def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=0):
         """
+        Infinite floor
         :param color: [r,g,b,a]
+        :param z_level: meters, level at which the floor is on the z axis (-z is below the fly)
         """
 
         self.color = color
@@ -54,9 +59,9 @@ class MovingSpot(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, radius=10, sphere_radius=1, color=[1, 1, 1, 1], theta=-180, phi=0):
+    def configure(self, radius=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0):
         """
-        Stimulus consisting of a circular patch on the surface of a sphere
+        Stimulus consisting of a circular patch on the surface of a sphere. Patch is circular in spherical coordinates.
 
         :param radius: radius of circle in degrees
         :param sphere_radius: Radius of the sphere (meters)
@@ -91,9 +96,9 @@ class MovingPatch(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=-180, phi=0, angle=0):
+    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
         """
-        Stimulus consisting of a rectangular patch on the surface of a sphere
+        Stimulus consisting of a rectangular patch on the surface of a sphere. Patch is rectangular in spherical coordinates.
 
         :param width: Width in degrees (azimuth)
         :param height: Height in degrees (elevation)
@@ -129,38 +134,72 @@ class MovingPatch(BaseProgram):
         self.stim_object = GlSphericalRect(width=self.width,
                                            height=self.height,
                                            sphere_radius=self.sphere_radius,
-                                           color=self.color).rotx(np.radians(-self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
+                                           color=self.color).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
 
 
-class CylindricalGrating(BaseProgram):
+class TexturedCylinder(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
         self.use_texture = True
 
-    def configure(self, period=20, color=[1, 1, 1, 1], mean=0.5, contrast=1.0, angle=0.0, offset=0.0, cylinder_radius=1, cylinder_height=10, profile='sine'):
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0.0):
+        """
+        Parent class for a Cylinder with a texture painted on it. Designed for stimuli where the fly is
+        at (0, 0, 0)
+
+        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome.
+        :param cylinder_radius: meters
+        :param cylinder_height: meters
+        :param theta: degrees around z axis (azimuth)
+        :param phi: degrees around y axis (elevation)
+        :param angle: degrees roll angle of cylinder
+        """
+        self.color = color
+        self.cylinder_radius = cylinder_radius
+        self.cylinder_height = cylinder_height
+        self.theta = theta
+        self.phi = phi
+        self.angle = angle
+
+    def updateTexture(self):
+        # overwrite in subclass
+        pass
+
+    def eval_at(self, t):
+        # overwrite in subclass
+        pass
+
+
+class CylindricalGrating(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
+                  color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0.0):
         """
         Grating texture painted on a cylinder
 
         :param period: spatial period, degrees
-        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome.
-        :param mean: mean intensity of grating
-        :param contrast: contrast of grating (Weber)
-        :param angle: roll angle of cylinder, determines direction of motion
-        :param offset: phase offse, degrees
-        :param cylinder_radius: meters
-        :param cylinder_height: meters
-        :param profile: 'sine' or 'square'; spatial profile of grating
+        :param mean: mean intensity of grating texture
+        :param contrast: Weber contrast of grating texture
+        :param offset: phase offset of grating texture, degrees
+        :param profile: 'sine' or 'square'; spatial profile of grating texture
+
+        :params color, cylinder_radius, cylinder_height, theta, phi, angle: see parent class
         *Any of these params except cylinder_radius, cylinder_height and profile can be passed as a trajectory dict to vary as a function of time
         """
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
+
         self.period = period
-        self.color = color
         self.mean = mean
         self.contrast = contrast
-        self.angle = angle
         self.offset = offset
-        self.cylinder_radius = cylinder_radius
-        self.cylinder_height = cylinder_height
         self.profile = profile
+
+        if np.any([type(x) == dict for x in [period, mean, contrast, offset]]):
+            pass
+        else:
+            self.updateTexture()
 
     def updateTexture(self):
         # Only renders part of the cylinder if the period is not a divisor of 360
@@ -169,7 +208,7 @@ class CylindricalGrating(BaseProgram):
 
         # make the texture image
         sf = 1/np.radians(self.period)  # spatial frequency
-        xx = np.linspace(0, np.radians(self.cylinder_angular_extent), 256)
+        xx = np.linspace(0, np.radians(self.cylinder_angular_extent), 512)
 
         if self.profile == 'sine':
             self.texture_interpolation = 'LML'
@@ -211,22 +250,25 @@ class CylindricalGrating(BaseProgram):
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
-                                      texture=True).rotx(np.radians(self.angle))
+                                      texture=True).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
 
 
 class RotatingGrating(CylindricalGrating):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, period=20, rate=10, color=[1, 1, 1, 1], mean=0.5, contrast=1.0, angle=0.0, offset=0.0, cylinder_radius=1, cylinder_height=10, profile='sine'):
+    def configure(self, rate=10, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
+                  color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0):
         """
         Subclass of CylindricalGrating that rotates the grating along the varying axis of the grating
         Note that the rotation effect is achieved by translating the texture on a semi-cylinder. This
         allows for arbitrary spatial periods to be achieved with no discontinuities in the grating
 
         :param rate: rotation rate, degrees/sec
+        :other params: see CylindricalGrating, TexturedCylinder
         """
-        super().configure(period=period, color=color, mean=mean, contrast=contrast, angle=angle, offset=offset, cylinder_radius=cylinder_radius, profile=profile)
+        super().configure(period=period, mean=mean, contrast=contrast, offset=offset, profile=profile,
+                          color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
         self.rate = rate
         self.updateTexture()
 
@@ -237,49 +279,35 @@ class RotatingGrating(CylindricalGrating):
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
                                       texture=True,
-                                      texture_shift=(shift_u, 0)).rotx(np.radians(self.angle))
-
-
-class TexturedCylinder(BaseProgram):
-    def __init__(self, screen):
-        super().__init__(screen=screen)
-        self.use_texture = True
-
-    def configure(self, color=[1, 1, 1, 1], angle=0.0, cylinder_radius=1, cylinder_height=10):
-        """
-        Parent class for a Cylinder with a texture painted on it
-
-        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome.
-        :param angle: roll angle of cylinder
-        :param cylinder_radius: meters
-        :param cylinder_height: meters
-        """
-        self.color = color
-        self.angle = angle
-        self.cylinder_radius = cylinder_radius
-        self.cylinder_height = cylinder_height
-
-    def updateTexture(self):
-        pass
-
-    def eval_at(self, t):
-        pass
+                                      texture_shift=(shift_u, 0)).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
 
 
 class RandomBars(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, period=15, vert_extent=30, width=10, start_seed=0, update_rate=60.0,
-                  background=0.5, theta_offset=None, distribution_data=None,
-                  color=[1, 1, 1, 1], angle=0.0, cylinder_radius=1):
+    def configure(self, period=20, width=5, vert_extent=80, theta_offset=0, background=0.5,
+                  distribution_data=None, update_rate=60.0, start_seed=0,
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
+        """
+        Periodic bars of randomized intensity painted on the inside of a cylinder
+        :param period: spatial period (degrees) of bar locations
+        :param width: width (degrees) of each bar
+        :param vert_extent: vertical extent (degrees) of bars
+        :param theta_offset: offset of periodic bar pattern (degrees)
+        :param background: intensity (mono) of texture background, where no bars appear
+        :param distribution_data: dict. containing name and args/kwargs for random distribution (see flystim.distribution)
+        :param update_rate: Hz, update rate of bar intensity
+        :param start_seed: seed with which to start rng at the beginning of the stimulus presentation
 
+        :other params: see TexturedCylinder
+        """
         # assuming fly is at (0,0,0), calculate cylinder height required to achieve vert_extent (degrees)
         # tan(vert_extent/2) = (cylinder_height/2) / cylinder_radius
         assert vert_extent < 180
         cylinder_height = 2 * cylinder_radius * np.tan(np.radians(vert_extent/2))
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
 
-        super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height)
         # get the noise distribution
         if distribution_data is None:
             distribution_data = {'name': 'Uniform',
@@ -288,12 +316,12 @@ class RandomBars(TexturedCylinder):
         self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args',[]), **distribution_data.get('kwargs',{}))
 
         self.period = period
-        self.vert_extent = vert_extent
         self.width = width
-        self.start_seed = start_seed
-        self.update_rate = update_rate
-        self.background = background
+        self.vert_extent = vert_extent
         self.theta_offset = theta_offset
+        self.background = background
+        self.update_rate = update_rate
+        self.start_seed = start_seed
 
         # Only renders part of the cylinder if the period is not a divisor of 360
         self.n_bars = int(np.floor(360/self.period))
@@ -322,36 +350,56 @@ class RandomBars(TexturedCylinder):
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
-                                      texture=True).rotx(np.radians(self.angle))
+                                      texture=True).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
 
 
 class RandomGrid(TexturedCylinder):
-    # TODO: correct patch height for elevation on cylinder to make all patches the same solid angle
     def __init__(self, screen):
         super().__init__(screen=screen)
-        self.cylindrical_height_correction = True
+        self.cylindrical_height_correction = False # TODO change this when it gets fixed
 
-    def configure(self, patch_width=10, patch_height=10, start_seed=0, update_rate=60.0,
-                  distribution_data=None, color=[1, 1, 1, 1], angle=0.0, cylinder_radius=1, cylinder_height=10):
-        super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height)
+    def configure(self, patch_width=10, patch_height=10, cylinder_vertical_extent=160, cylinder_angular_extent=360,
+                  distribution_data=None, update_rate=60.0, start_seed=0,
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
+        """
+        Random square grid pattern painted on the inside of a cylinder
+
+        :param patch width: Azimuth extent (degrees) of each patch
+        :param patch height: Elevation extent (degrees) of each patch
+        :param cylinder_vertical_extent: Elevation extent of the entire cylinder (degrees)
+        :param cylinder_angular_extent: Azimuth extent of the cylinder texture (degrees)
+        :param distribution_data: dict. containing name and args/kwargs for random distribution (see flystim.distribution)
+        :param update_rate: Hz, update rate of bar intensity
+        :param start_seed: seed with which to start rng at the beginning of the stimulus presentation
+
+        :other params: see TexturedCylinder
+        """
+
+        # Only renders part of the cylinder if the period is not a divisor of cylinder_angular_extent
+        self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
+        self.cylinder_angular_extent = self.n_patches_width * patch_width
+
+        # assuming fly is at (0,0,0), calculate cylinder height required to achieve vert_extent (degrees)
+        # tan(vert_extent/2) = (cylinder_height/2) / cylinder_radius
+        assert cylinder_vertical_extent < 180
+        cylinder_height = 2 * cylinder_radius * np.tan(np.radians(cylinder_vertical_extent/2))
+        patch_height_m = cylinder_radius * np.tan(np.radians(patch_height))  # in meters
+        self.n_patches_height = int(np.floor(cylinder_height/patch_height_m))
+        cylinder_height = self.n_patches_height * patch_height_m
+
+        super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi)
 
         # get the noise distribution
         if distribution_data is None:
             distribution_data = {'name': 'Uniform',
                                  'args': [0, 1],
                                  'kwargs': {}}
-        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args',[]), **distribution_data.get('kwargs',{}))
+        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args', []), **distribution_data.get('kwargs',{}))
 
         self.patch_width = patch_width
         self.patch_height = patch_height
         self.start_seed = start_seed
         self.update_rate = update_rate
-
-        # Only renders part of the cylinder if the period is not a divisor of 360
-        self.n_patches_width = int(np.floor(360/self.patch_width))
-        self.cylinder_angular_extent = self.n_patches_width * self.patch_width
-        self.patch_height_m = self.cylinder_radius * np.tan(np.radians(self.patch_height))  # in meters
-        self.n_patches_height = int(np.floor(self.cylinder_height/self.patch_height_m))
 
     def eval_at(self, t):
         # set the seed
@@ -368,25 +416,40 @@ class RandomGrid(TexturedCylinder):
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
-                                      texture=True).rotx(np.radians(self.angle))
+                                      texture=True).rotz(np.radians(self.theta)-np.radians(self.cylinder_angular_extent)/2).roty(np.radians(self.phi)).rotx(np.radians(self.angle))
 
 
 class Checkerboard(TexturedCylinder):
-    # TODO adjust patch height for elevation on cylinder
-    def configure(self, patch_width=2, patch_height=2, vert_extent=120,
-                  color=[1, 1, 1, 1], angle=0.0, cylinder_radius=1):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.cylindrical_height_correction = False # TODO change this when it gets fixed
+
+    def configure(self, patch_width=2, patch_height=2, cylinder_vertical_extent=160, cylinder_angular_extent=360,
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
+        """
+        Periodic checkerboard pattern painted on the inside of a cylinder
+
+        :param patch width: Azimuth extent (degrees) of each patch
+        :param patch height: Elevation extent (degrees) of each patch
+        :param cylinder_vertical_extent: Elevation extent of the entire cylinder (degrees)
+        :param cylinder_angular_extent: Azimuth extent of the cylinder texture (degrees)
+
+        :other params: see TexturedCylinder
+        """
+
+        # Only renders part of the cylinder if the period is not a divisor of cylinder_angular_extent
+        self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
+        self.cylinder_angular_extent = self.n_patches_width * patch_width
 
         # assuming fly is at (0,0,0), calculate cylinder height required to achieve vert_extent (degrees)
         # tan(vert_extent/2) = (cylinder_height/2) / cylinder_radius
-        assert vert_extent < 180
-        cylinder_height = 2 * cylinder_radius * np.tan(np.radians(vert_extent/2))
+        assert cylinder_vertical_extent < 180
+        cylinder_height = 2 * cylinder_radius * np.tan(np.radians(cylinder_vertical_extent/2))
+        patch_height_m = cylinder_radius * np.tan(np.radians(patch_height))  # in meters
+        self.n_patches_height = int(np.floor(cylinder_height/patch_height_m))
+        cylinder_height = self.n_patches_height * patch_height_m
 
         super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height)
-        """
-        Patches surrounding the viewer are arranged in a periodic checkerboard.
-        :param patch_width: Horizontal angular extent of the checkerboard patches (degrees)
-        :param patch_height: Vertical angular extent of the checkerboard patches (degrees)
-        """
 
         self.patch_width = patch_width
         self.patch_height = patch_height
@@ -394,7 +457,8 @@ class Checkerboard(TexturedCylinder):
         # Only renders part of the cylinder if the period is not a divisor of 360
         self.n_patches_width = int(np.floor(360/self.patch_width))
         self.cylinder_angular_extent = self.n_patches_width * self.patch_width
-        self.n_patches_height = int(np.floor(180/self.patch_height))
+        self.patch_height_m = self.cylinder_radius * np.tan(np.radians(self.patch_height))  # in meters
+        self.n_patches_height = int(np.floor(self.cylinder_height/self.patch_height_m))
 
         # create the texture
         face_colors = np.zeros((self.n_patches_height, self.n_patches_width))
@@ -411,28 +475,34 @@ class Checkerboard(TexturedCylinder):
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
-                                      texture=True).rotx(np.radians(self.angle))
+                                      texture=True).rotz(np.radians(self.theta)-np.radians(self.cylinder_angular_extent)/2).roty(np.radians(self.phi)).rotx(np.radians(self.angle))
 
 
 class Tower(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, cylinder_radius=1, cylinder_height=10, cylinder_location=[0,0,0], color=[1, 1, 1, 1]):
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=2, cylinder_location=[+2, 0, 0], n_faces=16):
         """
-
+        Cylindrical tower object in arbitrary x, y, z coords
+        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome
+        :param cylinder_radius: meters
+        :param cylinder_height: meters
+        :param cylinder_location: [x, y, z] location of the center of the cylinder, meters
+        :param n_faces: number of quad faces to make the cylinder out of
 
         """
+        self.color = color
         self.cylinder_radius = cylinder_radius
         self.cylinder_height = cylinder_height
         self.cylinder_location = cylinder_location
-        self.color = color
+        self.n_faces = n_faces
 
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_location=self.cylinder_location,
                                       color=self.color,
-                                      n_faces=4)
+                                      n_faces=self.n_faces)
 
     def eval_at(self, t):
         pass

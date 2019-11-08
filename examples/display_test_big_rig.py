@@ -22,7 +22,7 @@ def main(use_server=False):
                    Screen(id=4, rotation=-pi/2, width=w, height=h, offset=(w/2, 0, h/2))]
         manager = StimManager(screens)
 
-    manager.load_stim(name='Checkerboard', theta_period=6, phi_period=6)
+    manager.load_stim(name='Checkerboard', patch_width=6, patch_height=6)
     manager.start_stim()
     manager.hide_corner_square()
 

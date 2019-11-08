@@ -92,6 +92,8 @@ class BaseProgram:
         pass
 
     def create_prog(self):
+        # TODO: conditional for cylindrical_height_correction is being ignored both in if and else parts. WTF
+        # Also correction seems to be off by a factor of 2 or something? For now. default to no height correction
         return self.ctx.program(
             vertex_shader='''
                 #version 330
@@ -128,11 +130,13 @@ class BaseProgram:
                 void main() {
                     if (use_texture) {
                         if (cylindrical_height_correction) {
-                            float n = 100;
+                            float n = 200;
                             float z = height*(v_tex_coord[1] - 0.5);
-                            float k = floor( (n/2) * ( 1- ( z / sqrt(pow(radius, 2)  + pow(z, 2)) )) );
+                            float k = floor( (n/2) * ( 1- ( z / sqrt(radius*radius  + z*z) )) );
                             float v = k / n;
                         } else {float v = v_tex_coord[1];}
+
+                        float v = v_tex_coord[1];
 
                         vec4 texFrag = texture(texture_matrix, vec2(v_tex_coord[0], v));
                         f_color.rgb = texFrag.r * v_color.rgb;

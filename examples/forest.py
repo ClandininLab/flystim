@@ -7,7 +7,7 @@ import numpy as np
 from time import sleep
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=True))
     z_level = -0.2
 
     # random walk trajectory
@@ -22,21 +22,15 @@ def main():
 
     manager.set_fly_trajectory(fly_x_trajectory, fly_y_trajectory, fly_theta_trajectory)
 
-
+    manager.set_global_fly_pos(0, 0, 0)
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0])
-    manager.load_stim(name='Floor', color=[0.25, 0.25, 0.25, 0.0], hold=True, z_level=z_level)
+    manager.load_stim(name='Floor', color=[0.25, 0.25, 0.25, 1.0], hold=True, z_level=z_level)
 
     height = 1.0
-    manager.load_stim(name='Tower', color = [1, 0, 0, 0.5], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[2, 0.5, z_level+height/2], hold=True)
-    manager.load_stim(name='Tower', color = [0, 1, 0, 0.5], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[-2, 0.5, z_level+height/2], hold=True)
-    manager.load_stim(name='Tower', color = [0, 0, 1, 0.5], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[-2, -0.5, z_level+height/2], hold=True)
-    manager.load_stim(name='Tower', color = [1, 1, 1, 0.5], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[2, -0.5, z_level+height/2], hold=True)
-
     n_trees = 10
 
-
     for tree in range(n_trees):
-        manager.load_stim(name='Tower', color = [0, 0, 0, 0.5], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[np.random.uniform(-20,0), np.random.uniform(-3, 3), z_level+height/2], hold=True)
+        manager.load_stim(name='Tower', color = [0, 0, 0, 1], cylinder_height=height, cylinder_radius=0.1, cylinder_location=[np.random.uniform(0,20), np.random.uniform(-3, 3), z_level+height/2], hold=True, n_faces=4)
 
     sleep(1)
 

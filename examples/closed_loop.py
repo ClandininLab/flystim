@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 
-# Example client program that walks through all available stimuli.
-
 from flystim.stim_server import launch_stim_server
 from flystim.screen import Screen
-from flystim.trajectory import RectangleTrajectory, Trajectory
 
 from time import sleep, time
+
 
 def main():
     manager = launch_stim_server(Screen(fullscreen=False, server_number=1))
 
-    manager.load_stim('RotatingBars', angle=0, rate=0)
+    manager.load_stim('RotatingGrating', angle=0, rate=0)
 
     manager.start_stim()
     t_start = time()

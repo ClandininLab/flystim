@@ -11,11 +11,16 @@ from flystim.screen import Screen
 
 
 def main():
-    stim_type = 'RandomBars'
     duration = 4.0
 
-    kwargs = {'name': 'RandomBars', 'period': 90, 'vert_extent': 180, 'width': 20, 'rand_min': 0,
-                      'rand_max': 0, 'start_seed': 0, 'update_rate': 10.0, 'background': 0.5, 'rgb':(0.0,1.0,0.0)}
+    distribution_data = {'name': 'Binary',
+                         'args': [],
+                         'kwargs': {'rand_min': 0.0,
+                                    'rand_max': 0.0}}
+
+    kwargs = {'name': 'RandomBars', 'period': 90, 'width': 20, 'vert_extent': 170, 'background': 0.5,
+              'distribution_data': distribution_data, 'update_rate':10.0, 'start_seed':0,
+              'color': [0, 1, 0, 1], 'cylinder_radius': 1, 'theta': -20}
     manager = launch_stim_server(Screen(fullscreen=False, server_number=1, id=0))
 
 

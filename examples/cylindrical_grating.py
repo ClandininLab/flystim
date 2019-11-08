@@ -8,11 +8,8 @@ from time import sleep
 def main():
     manager = launch_stim_server(Screen(fullscreen=False, server_number=1, id=0, vsync=True))
 
-    manager.load_stim(name='Checkerboard', patch_width=4, patch_height=4,
-                      color=[1, 1, 1, 1], angle=0.0,
-                      cylinder_radius=1, cylinder_vertical_extent=160, cylinder_angular_extent=360,
-                      theta=0, phi=0)
-
+    manager.load_stim(name='CylindricalGrating', period=10, mean=0.5, contrast=1.0, offset=0.0, profile='square',
+                  color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0)
     sleep(0.5)
 
     manager.start_stim()
@@ -20,7 +17,6 @@ def main():
 
     manager.stop_stim(print_profile=False)
     sleep(0.5)
-
 
 if __name__ == '__main__':
     main()

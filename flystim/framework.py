@@ -223,6 +223,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.stim_list = []
 
+        self.stim_started = False
         self.stim_start_time = None
 
         self.profile_frame_count = None
@@ -327,8 +328,16 @@ def get_perspective(fly_pos, theta, phi, screen=None):
 
     perspective = GenPerspective(pa=pa, pb=pb, pc=pc, pe=fly_pos)
 
-    # rotate screen and eye position
-    return perspective.roty(phi).rotz(theta).rotx(radians(180))
+    """
+    rotate screen and eye position
+    standard offset of 180 around x axis and 180 around z axis ensures that
+    absent any change in fly heading,  (i.e. theta, phi = 0, 0) fly is looking
+    down the positive x axis and above the fly is +z
+    +theta is ccw around z axis, -theta is cw around z axis (looking down at xy plane)
+    -phi tilts fly view up towards the sky (+z), +phi tilts down towards the ground (-z)
+
+    """
+    return perspective.roty(phi).rotx(radians(180)).rotz(radians(180)+theta)
 
 
 def make_qt_format(vsync):

@@ -7,14 +7,12 @@ from flystim.screen import Screen
 
 from time import sleep
 
+
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number=1, id=0, vsync=True))
 
-    stims = ['SineGrating', 'RotatingBars', 'ExpandingEdges', 'SequentialBars', 'RandomBars',
-             'RandomGrid', 'Checkerboard', 'MovingPatch']
-
-    stims = ['SineGrating', 'RotatingGrating', 'ExpandingEdges', 'SequentialBars', 'RandomBars',
-             'RandomGrid', 'Checkerboard', 'MovingPatch']
+    stims = ['MovingSpot', 'MovingPatch', 'CylindricalGrating',
+             'RotatingGrating', 'RandomBars', 'RandomGrid', 'Checkerboard', 'Tower']
 
     for stim in stims:
         manager.load_stim(stim)
