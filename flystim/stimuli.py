@@ -3,7 +3,7 @@ import numpy as np
 from flystim.base import BaseProgram
 from flystim.trajectory import Trajectory
 import flystim.distribution as distribution
-from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc
+from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices
 
 
 class ConstantBackground(BaseProgram):
@@ -503,6 +503,38 @@ class Tower(BaseProgram):
                                       cylinder_location=self.cylinder_location,
                                       color=self.color,
                                       n_faces=self.n_faces)
+
+    def eval_at(self, t):
+        pass
+
+
+class Forest(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=500)
+
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=2, n_faces=16, cylinder_locations=([0, 0, 0])):
+        """
+        Cylindrical tower object in arbitrary x, y, z coords
+        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome
+        :param cylinder_radius: meters
+        :param cylinder_height: meters
+        :param cylinder_location: [x, y, z] location of the center of the cylinder, meters
+        :param n_faces: number of quad faces to make the cylinder out of
+
+        """
+        self.color = color
+        self.cylinder_radius = cylinder_radius
+        self.cylinder_height = cylinder_height
+        self.cylinder_locations = cylinder_locations
+        self.n_faces = n_faces
+
+        self.stim_object = GlVertices()
+        for tree_loc in self.cylinder_locations:
+            self.stim_object.add(GlCylinder(cylinder_height=self.cylinder_height,
+                                            cylinder_radius=self.cylinder_radius,
+                                            cylinder_location=tree_loc,
+                                            color=self.color,
+                                            n_faces=self.n_faces))
 
     def eval_at(self, t):
         pass
