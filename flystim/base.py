@@ -11,6 +11,7 @@ class BaseProgram:
         self.num_tri = num_tri
         self.texture_image = None
         self.use_texture = False
+        self.cylindrical_height_correction = False
         self.texture_interpolation = 'LINEAR'
 
     def initialize(self, ctx):
@@ -35,12 +36,21 @@ class BaseProgram:
         data = self.stim_object.data
         self.update_vertex_objects()
 
+        if self.cylindrical_height_correction:
+            self.prog['cylindrical_height_correction'].value = True
+            self.prog['height'].value = self.cylinder_height
+            self.prog['radius'].value = self.cylinder_radius
+        else:
+            self.prog['cylindrical_height_correction'].value = False
+
         if self.use_texture:
             self.prog['use_texture'].value = True
+
             self.add_texture(self.texture_image)
             vertices = len(data) // 9
         else:
             self.prog['use_texture'].value = False
+
             vertices = len(data) // 7
 
         # write data to VBO
@@ -107,14 +117,24 @@ class BaseProgram:
                 in vec4 v_color;
                 in vec2 v_tex_coord;
 
+                uniform bool cylindrical_height_correction;
                 uniform bool use_texture;
+                uniform float height;
+                uniform float radius;
                 uniform sampler2D texture_matrix;
 
                 out vec4 f_color;
 
                 void main() {
                     if (use_texture) {
-                        vec4 texFrag = texture(texture_matrix, v_tex_coord);
+                        if (cylindrical_height_correction) {
+                            float n = 100;
+                            float z = height*(v_tex_coord[1] - 0.5);
+                            float k = floor( (n/2) * ( 1- ( z / sqrt(pow(radius, 2)  + pow(z, 2)) )) );
+                            float v = k / n;
+                        } else {float v = v_tex_coord[1];}
+
+                        vec4 texFrag = texture(texture_matrix, vec2(v_tex_coord[0], v));
                         f_color.rgb = texFrag.r * v_color.rgb;
                         f_color.a = v_color.a;
                     } else {

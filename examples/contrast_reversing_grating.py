@@ -21,7 +21,7 @@ def main():
     sleep(1)
 
     manager.start_stim()
-    sleep(6)
+    sleep(3)
 
     manager.stop_stim(print_profile=False)
     sleep(1)

@@ -16,10 +16,10 @@ def main():
 
     manager.load_stim(name='ConstantBackground', color=[1,1,1,1])
 
-    manager.load_stim(name='RandomGrid', patch_width=5, patch_height=5, start_seed=0, update_rate=30,
-                  distribution_data=distribution_data, color=[1, 1, 1, 1.0], angle=0.0, cylinder_radius=1, cylinder_height=10, hold=True)
+    manager.load_stim(name='RandomGrid', patch_width=10, patch_height=10, start_seed=0, update_rate=5,
+                  distribution_data=distribution_data, color=[1, 1, 1, 1.0], angle=0.0, cylinder_radius=2, cylinder_height=10, hold=True)
 
-    manager.load_stim(name='MovingSpot', radius=5, color=[1,1,1,0.5], hold=True)
+    manager.load_stim(name='MovingSpot', radius=10, phi=0, color=[1,1,1,1.0], hold=True)
 
     manager.set_global_fly_pos(+0,0,0)
 

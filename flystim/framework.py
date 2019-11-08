@@ -47,9 +47,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_list = []
 
         # stimulus state
-        self.stim_paused = True
+        self.stim_started = False
         self.stim_start_time = None
-        self.stim_offset_time = 0
 
         # profiling information
         self.profile_frame_count = None
@@ -90,9 +89,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.square_program.initialize(self.ctx)
 
     def get_stim_time(self, t):
-        stim_time = self.stim_offset_time
+        stim_time = 0
 
-        if not self.stim_paused:
+        if self.stim_started:
             stim_time += t - self.stim_start_time
 
         return stim_time
@@ -165,22 +164,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.fly_y_trajectory = Trajectory.from_dict(y_trajectory)
         self.fly_theta_trajectory = Trajectory.from_dict(theta_trajectory)
 
-    def update_stim(self, rate, t):
-        for stim, config_options in self.stim_list:
-            # TODO fix this
-            if isinstance(stim, (SineGrating, RotatingBars)):
-                # get the time that will be passed to the stimulus
-                t = self.get_stim_time(t)
-
-                # get the spatial period, rate, and offset (in degrees)
-                period = config_options.kwargs.get('period', 20)
-                old_rate = config_options.kwargs.get('rate', 10)
-                old_offset = config_options.kwargs.get('offset', 0)
-
-                # set the new rate and offset
-                config_options.kwargs['rate'] = rate
-                config_options.kwargs['offset'] = (rate - old_rate) * (360 / period) * t + old_offset
-
     def load_stim(self, name, hold=False, **kwargs):
         """
         Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
@@ -190,7 +173,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         if hold is False:
             self.stim_list = []
-            self.stim_offset_time = 0
 
         stim = getattr(stimuli, name)(screen=self.screen)
         stim.initialize(self.ctx)
@@ -209,12 +191,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.profile_last_time = None
         self.profile_frame_times = []
 
-        self.stim_paused = False
-        self.stim_start_time = t
-
-    def pause_stim(self, t):
-        self.stim_paused = True
-        self.stim_offset_time = t - self.stim_start_time + self.stim_offset_time
+        self.stim_started = True
         self.stim_start_time = t
 
     def stop_stim(self, print_profile=False):
@@ -245,9 +222,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # reset stim variables
 
         self.stim_list = []
-        self.stim_offset_time = 0
 
-        self.stim_paused = True
         self.stim_start_time = None
 
         self.profile_frame_count = None
@@ -407,8 +382,6 @@ def main():
     server.register_function(stim_display.load_stim)
     server.register_function(stim_display.start_stim)
     server.register_function(stim_display.stop_stim)
-    server.register_function(stim_display.pause_stim)
-    server.register_function(stim_display.update_stim)
     server.register_function(stim_display.start_corner_square)
     server.register_function(stim_display.stop_corner_square)
     server.register_function(stim_display.white_corner_square)

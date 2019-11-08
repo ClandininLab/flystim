@@ -329,10 +329,12 @@ class RandomGrid(TexturedCylinder):
     # TODO: correct patch height for elevation on cylinder to make all patches the same solid angle
     def __init__(self, screen):
         super().__init__(screen=screen)
+        self.cylindrical_height_correction = True
 
     def configure(self, patch_width=10, patch_height=10, start_seed=0, update_rate=60.0,
                   distribution_data=None, color=[1, 1, 1, 1], angle=0.0, cylinder_radius=1, cylinder_height=10):
         super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height)
+
         # get the noise distribution
         if distribution_data is None:
             distribution_data = {'name': 'Uniform',
@@ -348,7 +350,8 @@ class RandomGrid(TexturedCylinder):
         # Only renders part of the cylinder if the period is not a divisor of 360
         self.n_patches_width = int(np.floor(360/self.patch_width))
         self.cylinder_angular_extent = self.n_patches_width * self.patch_width
-        self.n_patches_height = int(np.floor(180/self.patch_height))
+        self.patch_height_m = self.cylinder_radius * np.tan(np.radians(self.patch_height))  # in meters
+        self.n_patches_height = int(np.floor(self.cylinder_height/self.patch_height_m))
 
     def eval_at(self, t):
         # set the seed
