@@ -13,6 +13,9 @@ def main():
     stims = ['SineGrating', 'RotatingBars', 'ExpandingEdges', 'SequentialBars', 'RandomBars',
              'RandomGrid', 'Checkerboard', 'MovingPatch']
 
+    stims = ['SineGrating', 'RotatingGrating', 'ExpandingEdges', 'SequentialBars', 'RandomBars',
+             'RandomGrid', 'Checkerboard', 'MovingPatch']
+
     for stim in stims:
         manager.load_stim(stim)
         sleep(500e-3)

@@ -146,7 +146,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # clear the buffer objects
         for stim in self.stim_list:
-            stim.vbo.release() 
+            stim.vbo.release()
             stim.vao.release()
 
 
@@ -223,16 +223,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
         """
         # clear texture
         self.ctx.clear_samplers()
-        
+
         for stim in self.stim_list:
             stim.prog.release()
 
         # print profiling information if applicable
 
         if (print_profile):
-
-            profile_duration = time.time() - self.profile_start_time
-
             # filter out frame times of duration zero
             fps_data = np.array(self.profile_frame_times)
             fps_data = fps_data[fps_data != 0]

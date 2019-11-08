@@ -1,6 +1,7 @@
 import numpy as np
 from math import radians
-from .util import get_rgba, rotx, roty, rotz, translate, scale
+from .util import rotx, roty, rotz, translate, scale
+
 
 class GlVertices:
     def __init__(self, vertices=None, colors=None, tex_coords=None):
@@ -50,6 +51,7 @@ class GlVertices:
             data = np.concatenate((self.vertices, self.colors), axis=0)
         return data.flatten(order='F')
 
+
 class GlTri(GlVertices):
     def __init__(self, v1, v2, v3, color, tc1=None, tc2=None, tc3=None, texture=None):
         vertices = np.concatenate((v1, v2, v3)).reshape((3, 3), order='F')
@@ -60,8 +62,9 @@ class GlTri(GlVertices):
             tex_coords = None
         super().__init__(vertices=vertices, colors=colors, tex_coords=tex_coords)
 
+
 class GlQuad(GlVertices):
-    def __init__(self, v1, v2, v3, v4, color, tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1), texture_shift=(0,0), use_texture=False):
+    def __init__(self, v1, v2, v3, v4, color, tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1), texture_shift=(0, 0), use_texture=False):
         super().__init__()
         if use_texture:
             self.add(GlTri(v1, v2, v3, color,
@@ -78,7 +81,7 @@ class GlQuad(GlVertices):
 
 
 class GlCube(GlVertices):
-    def __init__(self, colors=None, center=[0,0,0], side_length=1.0):
+    def __init__(self, colors=None, center=[0, 0, 0], side_length=1.0):
         # call the super constructor
         super().__init__()
 
@@ -139,7 +142,6 @@ class GlSphericalRect(GlVertices):
                 self.add(GlTri(v1, v2, v4, color))
                 self.add(GlTri(v1, v3, v4, color))
 
-
     def sphericalToCartesian(self, spherical_coords):
         r, theta, phi = spherical_coords
         cartesian_coords = (r * np.sin(phi) * np.cos(theta),
@@ -182,16 +184,17 @@ class GlSphericalCirc(GlVertices):
                             r * np.cos(phi))
         return cartesian_coords
 
+
 class GlCylinder(GlVertices):
     def __init__(self,
                  cylinder_height=10,  # meters
                  cylinder_radius=1,  # meters
                  cylinder_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of cylinder (r = 0 and z = height/2)
-                 cylinder_angular_extent=360, # degrees
+                 cylinder_angular_extent=360,  # degrees
                  color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
                  n_faces=32,
                  texture=False,
-                 texture_shift=(0, 0)): # (u,v) coordinates to translate texture on shape. + us right, up. +/-1 is shift back to where texture started
+                 texture_shift=(0, 0)):  # (u,v) coordinates to translate texture on shape. + us right, up.
 
         super().__init__()
         if type(color) is not list:

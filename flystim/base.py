@@ -1,11 +1,5 @@
-# note: the starting point for this code was the examples directory of the ModernGL project
-
 import moderngl
-import numpy as np
-import os.path
-from string import Template
-from math import pi, radians
-from flystim.trajectory import Trajectory
+
 
 class BaseProgram:
     def __init__(self, screen, num_tri=100):
@@ -64,13 +58,13 @@ class BaseProgram:
             self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color', 'in_tex_coord')
         else:
             # basic, no-texture vbo and vao:
-            self.vbo = self.ctx.buffer(reserve=self.num_tri*3*7*4) # 3 points, 7 values, 4 bytes per value
+            self.vbo = self.ctx.buffer(reserve=self.num_tri*3*7*4)  # 3 points, 7 values, 4 bytes per value
             self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
 
     def add_texture(self, texture_image):
         self.texture = self.ctx.texture(size=(texture_image.shape[1], texture_image.shape[0]),
                                         components=1,
-                                        data=texture_image.tobytes()) # size = (width, height)
+                                        data=texture_image.tobytes())  # size = (width, height)
         if self.texture_interpolation == 'NEAREST':
             self.texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
         elif self.texture_interpolation == 'LINEAR':
@@ -80,14 +74,12 @@ class BaseProgram:
 
         self.texture.use()
 
-
     def eval_at(self, t):
         """
         :param t: current time in seconds
         """
 
         pass
-
 
     def create_prog(self):
         return self.ctx.program(

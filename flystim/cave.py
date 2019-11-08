@@ -2,8 +2,7 @@
 
 import numpy as np
 import moderngl
-from flystim import normalize, rotx, roty, rotz, rel_path
-import os
+from flystim import normalize, rotx, roty, rotz
 
 class CaveSystem:
     def __init__(self, num_tri=200):

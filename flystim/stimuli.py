@@ -370,7 +370,7 @@ class RandomGrid(TexturedCylinder):
 
 class Checkerboard(TexturedCylinder):
     # TODO adjust patch height for elevation on cylinder
-    def configure(self, patch_width=2, patch_height=2, vert_extent = 120,
+    def configure(self, patch_width=2, patch_height=2, vert_extent=120,
                   color=[1, 1, 1, 1], angle=0.0, cylinder_radius=1):
 
         # assuming fly is at (0,0,0), calculate cylinder height required to achieve vert_extent (degrees)
@@ -417,6 +417,7 @@ class Tower(BaseProgram):
 
     def configure(self, cylinder_radius=1, cylinder_height=10, cylinder_location=[0,0,0], color=[1, 1, 1, 1]):
         """
+
 
         """
         self.cylinder_radius = cylinder_radius
