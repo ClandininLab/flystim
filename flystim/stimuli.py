@@ -356,7 +356,7 @@ class RandomBars(TexturedCylinder):
 class RandomGrid(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
-        self.cylindrical_height_correction = False # TODO change this when it gets fixed
+        self.cylindrical_height_correction = False
 
     def configure(self, patch_width=10, patch_height=10, cylinder_vertical_extent=160, cylinder_angular_extent=360,
                   distribution_data=None, update_rate=60.0, start_seed=0,
@@ -379,12 +379,11 @@ class RandomGrid(TexturedCylinder):
         self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
         self.cylinder_angular_extent = self.n_patches_width * patch_width
 
-        # assuming fly is at (0,0,0), calculate cylinder height required to achieve vert_extent (degrees)
-        # tan(vert_extent/2) = (cylinder_height/2) / cylinder_radius
+        # assuming fly is at (0,0,0), calculate cylinder height required to achieve (approx.) vert_extent (degrees)
+        # actual vert. extent is based on floor-nearest integer number of patch heights
         assert cylinder_vertical_extent < 180
-        cylinder_height = 2 * cylinder_radius * np.tan(np.radians(cylinder_vertical_extent/2))
+        self.n_patches_height = int(np.floor(cylinder_vertical_extent/patch_height))
         patch_height_m = cylinder_radius * np.tan(np.radians(patch_height))  # in meters
-        self.n_patches_height = int(np.floor(cylinder_height/patch_height_m))
         cylinder_height = self.n_patches_height * patch_height_m
 
         super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi)
@@ -422,9 +421,9 @@ class RandomGrid(TexturedCylinder):
 class Checkerboard(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
-        self.cylindrical_height_correction = False # TODO change this when it gets fixed
+        self.cylindrical_height_correction = False
 
-    def configure(self, patch_width=2, patch_height=2, cylinder_vertical_extent=160, cylinder_angular_extent=360,
+    def configure(self, patch_width=4, patch_height=4, cylinder_vertical_extent=160, cylinder_angular_extent=360,
                   color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
         """
         Periodic checkerboard pattern painted on the inside of a cylinder
@@ -441,13 +440,13 @@ class Checkerboard(TexturedCylinder):
         self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
         self.cylinder_angular_extent = self.n_patches_width * patch_width
 
-        # assuming fly is at (0,0,0), calculate cylinder height required to achieve vert_extent (degrees)
-        # tan(vert_extent/2) = (cylinder_height/2) / cylinder_radius
+        # assuming fly is at (0,0,0), calculate cylinder height required to achieve (approx.) vert_extent (degrees)
+        # actual vert. extent is based on floor-nearest integer number of patch heights
         assert cylinder_vertical_extent < 180
-        cylinder_height = 2 * cylinder_radius * np.tan(np.radians(cylinder_vertical_extent/2))
+        self.n_patches_height = int(np.floor(cylinder_vertical_extent/patch_height))
         patch_height_m = cylinder_radius * np.tan(np.radians(patch_height))  # in meters
-        self.n_patches_height = int(np.floor(cylinder_height/patch_height_m))
         cylinder_height = self.n_patches_height * patch_height_m
+
 
         super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height)
 

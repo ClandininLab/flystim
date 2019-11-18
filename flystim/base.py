@@ -11,6 +11,7 @@ class BaseProgram:
         self.num_tri = num_tri
         self.texture_image = None
         self.use_texture = False
+        self.cylindrical_height_correction = False
         self.texture_interpolation = 'LINEAR'
 
     def initialize(self, ctx):
@@ -34,6 +35,10 @@ class BaseProgram:
 
         data = self.stim_object.data
         self.update_vertex_objects()
+
+        if self.cylindrical_height_correction:
+            self.prog['height'].value = self.cylinder_height
+            self.prog['radius'].value = self.cylinder_radius
 
         if self.use_texture:
             self.prog['use_texture'].value = True
@@ -84,28 +89,64 @@ class BaseProgram:
         pass
 
     def create_prog(self):
-        # TODO: conditional for cylindrical_height_correction is being ignored both in if and else parts. WTF
-        # Also correction seems to be off by a factor of 2 or something? For now. default to no height correction
-        return self.ctx.program(
-            vertex_shader='''
+        # TODO: cylinder height correction seems to be off by a factor of 2 or something?
+
+        return self.ctx.program(vertex_shader=self.get_vertex_shader(), fragment_shader=self.get_fragment_shader())
+
+    def get_vertex_shader(self):
+        vertex_shader = '''
+            #version 330
+
+            in vec3 in_vert;
+            in vec4 in_color;
+            in vec2 in_tex_coord;
+
+            out vec4 v_color;
+            out vec2 v_tex_coord;
+
+            uniform mat4 Mvp;
+
+            void main() {
+                v_color = in_color;
+                v_tex_coord = in_tex_coord;
+                gl_Position = Mvp * vec4(in_vert, 1.0);
+            }
+        '''
+        return vertex_shader
+
+    def get_fragment_shader(self):
+        if self.cylindrical_height_correction:
+            fragment_shader = '''
                 #version 330
 
-                in vec3 in_vert;
-                in vec4 in_color;
-                in vec2 in_tex_coord;
+                in vec4 v_color;
+                in vec2 v_tex_coord;
 
-                out vec4 v_color;
-                out vec2 v_tex_coord;
+                uniform float height;
+                uniform float radius;
+                uniform bool use_texture;
+                uniform sampler2D texture_matrix;
 
-                uniform mat4 Mvp;
+                out vec4 f_color;
 
                 void main() {
-                    v_color = in_color;
-                    v_tex_coord = in_tex_coord;
-                    gl_Position = Mvp * vec4(in_vert, 1.0);
+                    if (use_texture) {
+                        float n = 100;
+                        float z = height*(v_tex_coord[1] - 0.5);
+                        float k = floor( (n/2) * ( 1- ( z / sqrt(pow(radius, 2)  + pow(z, 2)) )) );
+                        float v = k / (n-1);
+
+                        vec4 texFrag = texture(texture_matrix, vec2(v_tex_coord[0], v));
+                        f_color.rgb = texFrag.r * v_color.rgb;
+                        f_color.a = v_color.a;
+                    } else {
+                        f_color.rgb = v_color.rgb;
+                        f_color.a = v_color.a;
+                    }
                 }
-            ''',
-            fragment_shader='''
+            '''
+        else:  # standard texture mapping
+            fragment_shader = '''
                 #version 330
 
                 in vec4 v_color;
@@ -127,4 +168,5 @@ class BaseProgram:
                     }
                 }
             '''
-        )
+
+        return fragment_shader
