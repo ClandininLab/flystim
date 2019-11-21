@@ -123,6 +123,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
 
             for stim in self.stim_list:
+                if 'fly_pos' in stim.kwargs:
+                    stim.kwargs['fly_pos'] = self.global_fly_pos
                 stim.configure(**stim.kwargs)
                 stim.paint_at(self.get_stim_time(t), self.perspective)
 

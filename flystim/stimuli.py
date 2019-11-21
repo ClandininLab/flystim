@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import array
 
 from flystim.base import BaseProgram
 from flystim.trajectory import Trajectory
@@ -35,19 +37,20 @@ class Floor(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=0):
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=0, side_length=5):
         """
         Infinite floor
         :param color: [r,g,b,a]
         :param z_level: meters, level at which the floor is on the z axis (-z is below the fly)
+        :param side_length: meters
         """
 
         self.color = color
 
-        v1 = (-1000, -1000, z_level)
-        v2 = (1000, -1000, z_level)
-        v3 = (1000, 1000, z_level)
-        v4 = (-1000, 1000, z_level)
+        v1 = (-side_length, -side_length, z_level)
+        v2 = (side_length, -side_length, z_level)
+        v3 = (side_length, side_length, z_level)
+        v4 = (-side_length, side_length, z_level)
         color = self.color
         self.stim_object = GlQuad(v1, v2, v3, v4, color)
 
@@ -505,6 +508,87 @@ class Tower(BaseProgram):
 
     def eval_at(self, t):
         pass
+
+class TexturedGround(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.use_texture = True
+
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=0, side_length=5):
+        """
+        Infinite textured ground
+        :param color: [r,g,b,a]
+        :param z_level: meters, level at which the floor is on the z axis (-z is below the fly)
+        :param side_length: meters
+        """
+
+        self.color = color
+
+        v1 = (-side_length, -side_length, z_level)
+        v2 = (side_length, -side_length, z_level)
+        v3 = (side_length, side_length, z_level)
+        v4 = (-side_length, side_length, z_level)
+        color = self.color
+
+        self.stim_object = GlQuad(v1, v2, v3, v4, color,
+                                  tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1),
+                                  texture_shift=(0, 0), use_texture=True)
+
+        # create the texture
+        np.random.seed(0)
+        face_colors = np.random.uniform(size=(128,128))
+
+        # make and apply the texture
+        img = (255*face_colors).astype(np.uint8)
+        self.texture_interpolation = 'LINEAR'
+        self.texture_image = img
+
+    def eval_at(self, t):
+        pass
+
+class HorizonCylinder(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5, image_path=None, fly_pos=None):
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=0, phi=0, angle=0.0)
+        self.fly_pos=fly_pos
+
+        self.cylinder_location = (fly_pos[0], fly_pos[1] , self.cylinder_height/2)
+
+        if image_path is None:
+            load_image = False
+        elif os.path.isfile(image_path):
+            load_image = True
+        else:
+            load_image = False
+
+        if load_image:
+            with open(image_path, 'rb') as handle:
+               s = handle.read()
+            arr = array.array('H', s)
+            arr.byteswap()
+            img = np.array(arr, dtype='uint16').reshape(1024, 1536)
+            img = np.uint8(255*(img / np.max(img)))
+            img = img[:,:1024]
+
+        else:
+            # use a dummy texture
+            np.random.seed(0)
+            face_colors = np.random.uniform(size=(128,128))
+            img = (255*face_colors).astype(np.uint8)
+
+        self.texture_interpolation = 'LINEAR'
+        self.texture_image = img
+
+    def eval_at(self, t):
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_location=self.cylinder_location,
+                                      color=self.color,
+                                      texture=True).rotz(np.radians(180))
+
+
 
 
 class Forest(BaseProgram):

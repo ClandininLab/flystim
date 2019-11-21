@@ -106,7 +106,7 @@ class CaveSystem:
             self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
 
 class GenPerspective:
-    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.1, far=100):
+    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.001, far=10000):
         # save settings
         self.pa = pa
         self.pb = pb
