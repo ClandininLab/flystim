@@ -5,6 +5,7 @@ import time
 import hid
 from math import floor
 
+
 def clamp(x, min, max):
     if x < min:
         return min
@@ -12,6 +13,7 @@ def clamp(x, min, max):
         return max
     else:
         return x
+
 
 def make_dlpc350_objects():
     """
@@ -39,6 +41,7 @@ def make_dlpc350_objects():
         dlpc350_objects.append(DLPC350(device=device))
 
     return dlpc350_objects
+
 
 class DLPC350:
     def __init__(self, device, timeout=10, poll_period=0.1):

@@ -2,7 +2,7 @@
 
 import moderngl
 import numpy as np
-import os.path
+
 
 class SquareProgram:
     def __init__(self, screen):
@@ -22,13 +22,8 @@ class SquareProgram:
         # save context
         self.ctx = ctx
 
-        # find path to shader directory
-        this_file_path = os.path.realpath(os.path.expanduser(__file__))
-        shader_dir = os.path.join(os.path.dirname(os.path.dirname(this_file_path)), 'shaders')
-
         # create OpenGL program
-        self.prog = self.ctx.program(vertex_shader=open(os.path.join(shader_dir, 'square.vert'), 'r').read(),
-                                     fragment_shader=open(os.path.join(shader_dir, 'square.frag'), 'r').read())
+        self.prog = self.create_prog()
 
         # create VBO to represent vertex positions
         pts = self.make_vert_pts()
@@ -36,6 +31,32 @@ class SquareProgram:
 
         # create vertex array object
         self.vao = self.ctx.simple_vertex_array(self.prog, vbo, 'pos')
+
+    def create_prog(self):
+        return self.ctx.program(
+            vertex_shader='''
+                #version 330
+
+                in vec2 pos;
+
+                void main() {
+                    // assign gl_Position
+                    gl_Position = vec4(pos, 0.0, 1.0);
+                }
+            ''',
+            fragment_shader='''
+                #version 330
+
+                uniform float color;
+
+                out vec4 out_color;
+
+                void main() {
+                    // assign output color based on uniform input
+                    out_color = vec4(color, color, color, 1.0);
+                }
+            '''
+        )
 
     def make_vert_pts(self):
         """

@@ -2,8 +2,7 @@
 
 import numpy as np
 import moderngl
-from flystim import normalize, rotx, roty, rotz, rel_path
-import os
+from flystim import normalize, rotx, roty, rotz
 
 class CaveSystem:
     def __init__(self, num_tri=200):
@@ -107,7 +106,7 @@ class CaveSystem:
             self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
 
 class GenPerspective:
-    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.1, far=100):
+    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.001, far=10000):
         # save settings
         self.pa = pa
         self.pb = pb

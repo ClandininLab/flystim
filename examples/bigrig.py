@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-# Example client program that walks through all available stimuli.
 
 import json
 from flystim.stim_server import launch_stim_server
@@ -11,7 +10,7 @@ from math import pi
 
 from flystim.screen import Screen
 from flyrpc.multicall import MyMultiCall
-from flystim.trajectory import RectangleTrajectory
+from flystim.trajectory import Trajectory
 
 import os, os.path
 
@@ -59,8 +58,10 @@ def main():
 
     for name, value in angles:
 
-        trajectory = RectangleTrajectory(x=[(0,value),(10,value)], y=90, w=30, h=180)
-        manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
+        tv_pairs = [(0, value), (10, value)]
+        theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
+        manager.load_stim(name='MovingPatch',width=30, height=180, phi=0, color=1, theta=theta_traj)
+
         print(f'{name} ({value} deg)')
 
         sleep(5)

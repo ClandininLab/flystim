@@ -1,674 +1,623 @@
-import random
 import numpy as np
-import moderngl
-
-from math import pi, radians, ceil, cos, sin
+import os
+import array
 
 from flystim.base import BaseProgram
-from flystim.glsl import Uniform, Function, Variable, Texture
-from flystim.trajectory import RectangleTrajectory
+from flystim.trajectory import Trajectory
 import flystim.distribution as distribution
+from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices
+
 
 class ConstantBackground(BaseProgram):
-    # keep as-is
     def __init__(self, screen):
-        uniforms = [
-            Uniform('background', float)
-        ]
+        super().__init__(screen=screen)
 
-        calc_color = 'color = background;\n'
-
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-
-    def configure(self, background=0.0):
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], center=[0,0,0], side_length=100):
         """
-        :param background
+        Big skybox to simulate a constant background behind stimuli
+        :param color: [r,g,b,a]
+        :param center: [x,y,z]
+        :param side_length: meters, side length of cube
         """
 
-        self.prog['background'].value = background
+        self.color = color
+        self.center = center
+        self.side_length = side_length
+
+        colors = {'+x': self.color, '-x': self.color,
+                  '+y': self.color, '-y': self.color,
+                  '+z': self.color, '-z': self.color}
+        self.stim_object = GlCube(colors, center=self.center, side_length=self.side_length)
 
     def eval_at(self, t):
         pass
 
-class ContrastReversingGrating(BaseProgram):
-    # change to vertical bars with the cylinder itself rotating along 2 angles
+
+class Floor(BaseProgram):
     def __init__(self, screen):
-        uniforms = [
-            Uniform('contrast_scale', float),
-            Uniform('mean', float),
-            Uniform('k_theta', float),
-            Uniform('k_phi', float),
-            Uniform('contrast', float)
-        ]
+        super().__init__(screen=screen)
 
-        grating = Function(name='rect_grating',
-                           in_vars=[Variable('phase', float)],
-                           out_type=float,
-                           code='return (fract(phase/(2.0*M_PI)) <= 0.5) ? 1.0 : -1.0;')
-
-
-        calc_color = ''
-        calc_color += 'float spatial_contrast = {}(k_theta*theta + k_phi*phi);\n'.format(grating.name)
-        calc_color += 'color = mean + spatial_contrast*contrast*contrast_scale*mean;\n'
-
-        super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
-
-    def configure(self, spatial_period=10, temporal_frequency=1.0, contrast_scale=1.0, mean=0.5, angle=0.0, temporal_waveform='sine'):
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=0, side_length=5):
         """
-        Stationary periodic grating whose contrast is modulated as a function of time
-        :param spatial_period: Spatial period of the grating, in degrees.
-        :param temporal_frequency: temporal_frequency of the contrast modulation, in Hz
-        :param mean: Mean intensity of grating (midpoint of wave). Should be between [0,0.5] to prevent clipping
-        :param contrast_scale: multiplier on mean intensity to determine wave peak/trough
-            wave peak = mean + contrast_scale * mean
-            wave trough = mean - contrast_scale * mean
-            *spatial and temporal contrast values [-1,1] multiply variations above and below the mean
-        :param angle: Tilt angle (in degrees) of the grating.  0 degrees will align the grating with a line of
-        longitude.
+        Infinite floor
+        :param color: [r,g,b,a]
+        :param z_level: meters, level at which the floor is on the z axis (-z is below the fly)
+        :param side_length: meters
         """
-        # save settings
-        self.temporal_frequency = temporal_frequency
-        self.temporal_waveform = temporal_waveform
 
-        # compute wavevector
-        self.k = 2*pi/radians(spatial_period)
-        self.prog['k_theta'].value = self.k*cos(radians(angle))
-        self.prog['k_phi'].value   = self.k*sin(radians(angle))
+        self.color = color
 
-        # set color uniforms
-        self.prog['contrast_scale'].value = contrast_scale #[0, 1] contrast, relative to mean
-        self.prog['mean'].value = mean #[0,0.5], intensity
+        v1 = (-side_length, -side_length, z_level)
+        v2 = (side_length, -side_length, z_level)
+        v3 = (side_length, side_length, z_level)
+        v4 = (-side_length, side_length, z_level)
+        color = self.color
+        self.stim_object = GlQuad(v1, v2, v3, v4, color)
 
     def eval_at(self, t):
-        if self.temporal_waveform == 'sine':
-            self.prog['contrast'].value = sin(2 * pi * self.temporal_frequency * t) #lives on [-1, 1]
-        elif self.temporal_waveform == 'square':
-            self.prog['contrast'].value = np.sign(sin(2 * pi * self.temporal_frequency * t)) #element of [-1, 1]
+        pass
 
 
-class PeriodicGrating(BaseProgram):
-    def __init__(self, screen, grating):
-        uniforms = [
-            Uniform('face_color', float),
-            Uniform('background', float),
-            Uniform('k_theta', float),
-            Uniform('k_phi', float),
-            Uniform('omega', float),
-            Uniform('offset', float),
-            Uniform('t', float)
-        ]
+class MovingSpot(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
 
-        calc_color = ''
-        calc_color += 'float intensity = {}(k_theta*theta + k_phi*phi - omega*t + offset);\n'.format(grating.name)
-        calc_color += 'color = mix(background, face_color, intensity);\n'
-
-        super().__init__(screen=screen, uniforms=uniforms, functions=[grating], calc_color=calc_color)
-
-    def configure(self, period=20, rate=10, color=1.0, background=0.0, angle=45.0, offset=0.0):
+    def configure(self, radius=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0):
         """
-        Stimulus pattern in which a periodic grating moves as a wavefront
-        :param period: Spatial period of the grating, in degrees.
-        :param rate: Velocity of the grating movement, in degrees per second.  Can be positive or negative.
-        :param color: Color shown at peak intensity.
-        :param background: Color shown at minimum intensity.
-        :param angle: Tilt angle (in degrees) of the grating.  0 degrees will align the grating with a line of
-        longitude.
+        Stimulus consisting of a circular patch on the surface of a sphere. Patch is circular in spherical coordinates.
+
+        :param radius: radius of circle in degrees
+        :param sphere_radius: Radius of the sphere (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch
+        :param phi: degrees, elevation of the center of the patch
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
-
-        # save settings
-        self.rate = radians(rate)
-        self.offset = radians(offset)
-
-        # compute wavevector
-        self.k = 2*pi/radians(period)
-        self.prog['k_theta'].value = self.k*cos(radians(angle))
-        self.prog['k_phi'].value   = self.k*sin(radians(angle))
-
-        # push omega and offset to graphics card
-        self.push_changes()
-
-        # set color uniforms
-        self.prog['face_color'].value = color
-        self.prog['background'].value = background
-
-    def push_changes(self):
-        self.prog['omega'].value = self.rate * self.k
-        self.prog['offset'].value = self.offset
-
-    def update_stim(self, rate, t):
-        old_rate = self.rate
-        new_rate = radians(rate)
-
-        old_offset = self.offset
-        new_offset = (new_rate - old_rate)*self.k*t + old_offset
-
-        self.rate = new_rate
-        self.offset = new_offset
-
-        self.push_changes()
+        self.radius = radius
+        self.sphere_radius = sphere_radius
+        self.color = color
+        self.theta = theta
+        self.phi = phi
 
     def eval_at(self, t):
-        self.prog['t'].value = t
+        if type(self.radius) is dict:
+            self.radius = Trajectory.from_dict(self.radius).eval_at(t)
+        if type(self.color) is dict:
+            self.color = Trajectory.from_dict(self.color).eval_at(t)
+        if type(self.theta) is dict:
+            self.theta = Trajectory.from_dict(self.theta).eval_at(t)
+        if type(self.phi) is dict:
+            self.phi = Trajectory.from_dict(self.phi).eval_at(t)
 
-
-class SineGrating(PeriodicGrating):
-    # treated the same way as contrast reversing
-    def __init__(self, screen):
-        # define grating function
-        grating = Function(name='sine_grating',
-                           in_vars=[Variable('phase', float)],
-                           out_type=float,
-                           code='return 0.5*sin(phase) + 0.5;')
-
-        # call super constructor
-        super().__init__(screen=screen, grating=grating)
-
-
-class RectGrating(PeriodicGrating):
-    # treated the same way as contrast reversing
-    def __init__(self, screen):
-        # define grating function
-        grating = Function(name='rect_grating',
-                           in_vars=[Variable('phase', float)],
-                           out_type=float,
-                           uniforms=[Uniform('duty_cycle', float)],
-                           code='return (fract(phase/(2.0*M_PI)) <= duty_cycle) ? 1.0 : 0.0;')
-
-        # call super constructor
-        super().__init__(screen=screen, grating=grating)
-
-
-class RotatingBars(RectGrating):
-    # treated the same way as contrast reversing
-    def configure(self, duty_cycle=0.5, **kwargs):
-        """
-        Stimulus pattern in which rectangular bars rotate around the viewer.
-        :param duty_cycle: Duty cycle of each bar, which should be between 0 and 1.  A value of "0" means the bar has
-        zero width, and a value of "1" means that it occupies the entire period.
-        """
-
-        # set uniform
-        self.prog['duty_cycle'].value = duty_cycle
-
-        # call configuration method from parent class
-        super().configure(**kwargs)
-
-
-class ExpandingEdges(RectGrating):
-    # treated the same way as contrast reversing
-    def configure(self, init_width=2, expand_rate=10, period=15, rate=0, **kwargs):
-        """
-        Stimulus pattern in which bars surrounding the viewer get wider or narrower.
-        :param width: Starting angular width of each bar.
-        :param expand_rate: The rate at which each bar grows wider in the counter-clockwise direction.  Can be negative.
-        :param period: Spatial period of the grating, in degrees.
-        :param rate: Velocity of the grating movement, in degrees per second.  Typically left at zero for this stimulus.
-        """
-
-        # save settings
-        self.init_width = init_width
-        self.expand_rate = expand_rate
-        self.period = period
-
-        # call configuration method from parent class
-        super().configure(period=period, rate=rate, **kwargs)
-
-    def eval_at(self, t):
-        # adjust duty cycle
-        self.prog['duty_cycle'].value = (self.init_width + t*self.expand_rate)/self.period
-
-        # call evaluation method of the parent class
-        super().eval_at(t)
+        self.stim_object = GlSphericalCirc(circle_radius=self.radius,
+                                           sphere_radius=self.sphere_radius,
+                                           color=self.color,
+                                           n_steps=36).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
 
 
 class MovingPatch(BaseProgram):
-    # add circular patch, rectangular patch, using triangles to assemble the patches; they should never change shape
-    # this will be implemented with 3D rendering
     def __init__(self, screen):
-        uniforms = [
-            Uniform('theta_center', float),
-            Uniform('phi_center', float),
-            Uniform('theta_width', float),
-            Uniform('phi_width', float),
-            Uniform('face_color', float),
-            Uniform('angle', float),
-            Uniform('background', float),
-            Uniform('draw_background', float),
-            Uniform('use_alpha', float)
-        ]
+        super().__init__(screen=screen)
 
-        # reference for modular arithmetic: https://fgiesen.wordpress.com/2015/09/24/intervals-in-modular-arithmetic/
-
-        calc_color = '''
-            // compute relative x coordinates of pixel
-            float rx = mod(theta-theta_center, 2*M_PI);
-            if (rx >= M_PI) {
-                rx -= 2*M_PI;
-            }
-
-            // compute relative y coordinates of pixel
-            float ry = mod(phi-phi_center, 2*M_PI);
-            if (ry >= M_PI) {
-                ry -= 2*M_PI;
-            }
-
-            // compute displacement from center
-            float dx = dot(vec2(+cos(angle), +sin(angle)), vec2(rx, ry));
-            float dy = dot(vec2(-sin(angle), +cos(angle)), vec2(rx, ry));
-
-            // check if pixel is within face
-            if ((abs(dx) <= (0.5*theta_width)) && (abs(dy) <= (0.5*phi_width))){
-                if (use_alpha == 0.0) {
-                    color = face_color;
-                } else {
-                    color = background;
-                    alpha = face_color;
-                }
-
-            } else if (draw_background == 1.0) {
-                color = background;
-            } else {
-                alpha = 0.0;
-            }
-        '''
-
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-
-    def make_config_options(self, *args, trajectory=None, **kwargs):
-        # set default
-        if trajectory is None:
-            trajectory = RectangleTrajectory().to_dict()
-
-        # convert the input dictionary to a trajectory object
-        trajectory = RectangleTrajectory.from_dict(trajectory)
-
-        return super().make_config_options(*args, trajectory=trajectory, **kwargs)
-
-    def configure(self, trajectory=None, background=0.0, vary='intensity'):
+    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
         """
-        Stimulus consisting of a patch that moves along an arbitrary trajectory.
-        :param background: Background color (0.0 to 1.0)
-        :param trajectory: RectangleTrajectory converted to dictionary (to_dict method)
+        Stimulus consisting of a rectangular patch on the surface of a sphere. Patch is rectangular in spherical coordinates.
+
+        :param width: Width in degrees (azimuth)
+        :param height: Height in degrees (elevation)
+        :param sphere_radius: Radius of the sphere (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch
+        :param phi: degrees, elevation of the center of the patch
+        :param angle: degrees, roll. Or orientation of patch in spherical coordinates
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
-
-        # set the trajectory
-        self.trajectory = trajectory
-
-        # set uniforms
-        self.prog['use_alpha'].value = 0.0 if vary=='intensity' else 1.0
-        self.prog['draw_background'].value = 1.0 if background is not None else 0.0
-        if background is not None:
-            self.prog['background'].value = background
+        self.width = width
+        self.height = height
+        self.sphere_radius = sphere_radius
+        self.color = color
+        self.theta = theta
+        self.phi = phi
+        self.angle = angle
 
     def eval_at(self, t):
-        self.prog['theta_center'].value = radians(self.trajectory.x.eval_at(t))
-        self.prog['phi_center'].value = radians(self.trajectory.y.eval_at(t))
-        self.prog['theta_width'].value = radians(self.trajectory.w.eval_at(t))
-        self.prog['phi_width'].value = radians(self.trajectory.h.eval_at(t))
-        self.prog['angle'].value = radians(self.trajectory.angle.eval_at(t))
-        self.prog['face_color'].value = self.trajectory.color.eval_at(t)
+        if type(self.width) is dict:
+            self.width = Trajectory.from_dict(self.width).eval_at(t)
+        if type(self.height) is dict:
+            self.height = Trajectory.from_dict(self.height).eval_at(t)
+        if type(self.color) is dict:
+            self.color = Trajectory.from_dict(self.color).eval_at(t)
+        if type(self.theta) is dict:
+            self.theta = Trajectory.from_dict(self.theta).eval_at(t)
+        if type(self.phi) is dict:
+            self.phi = Trajectory.from_dict(self.phi).eval_at(t)
+        if type(self.angle) is dict:
+            self.angle = Trajectory.from_dict(self.angle).eval_at(t)
 
-class RandomBars(BaseProgram):
-    # cylindrical mode
-    def __init__(self, screen, max_face_colors=64):
-        self.max_face_colors = max_face_colors
+        self.stim_object = GlSphericalRect(width=self.width,
+                                           height=self.height,
+                                           sphere_radius=self.sphere_radius,
+                                           color=self.color).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
 
-        uniforms = [
-            Uniform('phi_min', float),
-            Uniform('phi_max', float),
-            Uniform('theta_min', float),
-            Uniform('theta_max', float),
-            Uniform('theta_period', float),
-            Uniform('theta_offset', float),
-            Uniform('theta_duty', float),
-            Uniform('background', float),
-            Uniform('face_colors', float, max_face_colors),
-            Uniform('red_gun', float),
-            Uniform('green_gun', float),
-            Uniform('blue_gun', float),
-        ]
 
-        calc_color = '''
-            float theta_rel = theta - theta_offset;
-            if ((phi_min <= phi) && (phi <= phi_max) && (fract(theta_rel/theta_period) <= theta_duty)){
-                if (theta_rel < 0) {
-                    theta_rel += 2*M_PI;
-                }
-                color = face_colors[int(theta_rel/theta_period)];
-            } else {
-                color = background;
-            }
-        '''
+class TexturedCylinder(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.use_texture = True
 
-        rgb = '''
-            red = red_gun;
-            green = green_gun;
-            blue = blue_gun;
-            '''
-
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color, rgb=rgb)
-
-    def configure(self, period=15, vert_extent=30, width=2, rand_min=0.0, rand_max=1.0, start_seed=0,
-                  update_rate=60.0, background=0.5, theta_offset=None, rgb=(1.0,1.0,1.0)):
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0.0):
         """
-        Bars surrounding the viewer change brightness randomly.
-        :param period: Period of the bars surrounding the viewer.
-        :param vert_extent: Vertical extent of each bar, in degrees.  With respect to the equator of the viewer, the
-        top of each bar is at +vert_extent (degrees) and the bottom is at -vert_extent (degrees)
-        :param width: Width of each bar in degrees.
-        :param rand_min: Minimum output of random number generator
-        :param rand_max: Maximum output of random number generator
-        :param start_seed: Starting seed for the random number generator
-        :param update_rate: Rate at which color is updated
-        :param background: Monochromatic background color (0.0 is black, 1.0 is white)
+        Parent class for a Cylinder with a texture painted on it. Designed for stimuli where the fly is
+        at (0, 0, 0)
+
+        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome.
+        :param cylinder_radius: meters
+        :param cylinder_height: meters
+        :param theta: degrees around z axis (azimuth)
+        :param phi: degrees around y axis (elevation)
+        :param angle: degrees roll angle of cylinder
         """
+        self.color = color
+        self.cylinder_radius = cylinder_radius
+        self.cylinder_height = cylinder_height
+        self.theta = theta
+        self.phi = phi
+        self.angle = angle
 
-        # save settings
-        self.rand_min = rand_min
-        self.rand_max = rand_max
-        self.start_seed = start_seed
-        self.update_rate = update_rate
+    def updateTexture(self):
+        # overwrite in subclass
+        pass
 
-        # create the bars
-        self.prog['phi_min'].value = pi/2-radians(vert_extent)
-        self.prog['phi_max'].value = pi/2+radians(vert_extent)
-        self.prog['theta_period'].value = radians(period)
-        if theta_offset is None:
-            self.prog['theta_offset'].value = -radians(period)/2.0
+    def eval_at(self, t):
+        # overwrite in subclass
+        pass
+
+
+class CylindricalGrating(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
+                  color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0.0):
+        """
+        Grating texture painted on a cylinder
+
+        :param period: spatial period, degrees
+        :param mean: mean intensity of grating texture
+        :param contrast: Weber contrast of grating texture
+        :param offset: phase offset of grating texture, degrees
+        :param profile: 'sine' or 'square'; spatial profile of grating texture
+
+        :params color, cylinder_radius, cylinder_height, theta, phi, angle: see parent class
+        *Any of these params except cylinder_radius, cylinder_height and profile can be passed as a trajectory dict to vary as a function of time
+        """
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
+
+        self.period = period
+        self.mean = mean
+        self.contrast = contrast
+        self.offset = offset
+        self.profile = profile
+
+        if np.any([type(x) == dict for x in [period, mean, contrast, offset]]):
+            pass
         else:
-            self.prog['theta_offset'].value = radians(theta_offset)
-        self.prog['theta_duty'].value = width/period
-        self.prog['background'].value = background
+            self.updateTexture()
 
-        self.prog['red_gun'].value = rgb[0]
-        self.prog['green_gun'].value = rgb[1]
-        self.prog['blue_gun'].value = rgb[2]
+    def updateTexture(self):
+        # Only renders part of the cylinder if the period is not a divisor of 360
+        n_cycles = np.floor(360/self.period)
+        self.cylinder_angular_extent = n_cycles * self.period
+
+        # make the texture image
+        sf = 1/np.radians(self.period)  # spatial frequency
+        xx = np.linspace(0, np.radians(self.cylinder_angular_extent), 512)
+
+        if self.profile == 'sine':
+            self.texture_interpolation = 'LML'
+            yy = np.sin(np.radians(self.offset) + sf*2*np.pi*xx)  # [-1, 1]
+        elif self.profile == 'square':
+            self.texture_interpolation = 'NEAREST'
+            yy = np.sin(np.radians(self.offset) + sf*2*np.pi*xx)
+            yy[yy >= 0] = 1
+            yy[yy < 0] = -1
+
+        yy = 255*(self.mean + self.contrast*self.mean*yy)  # shift/scale from [-1,1] to mean and contrast and scale to [0,255] for uint8
+        img = np.expand_dims(yy, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
+        self.texture_image = img
 
     def eval_at(self, t):
-        # set the seed
-        seed = int(round(self.start_seed + t*self.update_rate))
-        random.seed(seed)
+        need_to_update_texture = False
+        if type(self.period) is dict:
+            self.period = Trajectory.from_dict(self.period).eval_at(t)
+            need_to_update_texture = True
+        if type(self.mean) is dict:
+            self.mean = Trajectory.from_dict(self.mean).eval_at(t)
+            need_to_update_texture = True
+        if type(self.contrast) is dict:
+            self.contrast = Trajectory.from_dict(self.contrast).eval_at(t)
+            need_to_update_texture = True
+        if type(self.offset) is dict:
+            self.offset = Trajectory.from_dict(self.offset).eval_at(t)
+            need_to_update_texture = True
 
-        # compute the list of random values
-        rand_colors = [random.uniform(self.rand_min, self.rand_max) for _ in range(self.max_face_colors)]
+        if type(self.angle) is dict:
+            self.angle = Trajectory.from_dict(self.angle).eval_at(t)
+        if type(self.color) is dict:
+            self.color = Trajectory.from_dict(self.color).eval_at(t)
 
-        # write to GPU
-        self.prog['face_colors'].value = rand_colors
+        if need_to_update_texture:
+            self.updateTexture()
 
-class SequentialBars(BaseProgram):
-    # consider removing...
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      texture=True).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
+
+
+class RotatingGrating(CylindricalGrating):
     def __init__(self, screen):
-        uniforms = [
-            Uniform('theta_offset', float),
-            Uniform('theta_period', float),
-            Uniform('thresh_first', float),
-            Uniform('thresh_second', float),
-            Uniform('color_first', float),
-            Uniform('color_second', float),
-            Uniform('background', float),
-            Uniform('enable_first', bool),
-            Uniform('enable_second', bool)
-        ]
+        super().__init__(screen=screen)
 
-        calc_color = '''
-            float theta_fract = fract((theta - theta_offset)/theta_period);
-            if (enable_first && (theta_fract <= thresh_first)) {
-                color = color_first;
-            } else if (enable_second && (thresh_first < theta_fract) && (theta_fract <= thresh_second)) {
-                color = color_second;
-            } else {
-                color = background;
-            }
-        '''
-
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-
-    def configure(self, width=5, period=20, offset=0, first_active_bright=True, second_active_bright=True,
-                 first_active_time=1, second_active_time=2, background=0.5):
+    def configure(self, rate=10, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
+                  color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0):
         """
-        Stimulus in which one set of bars appears first, followed by a second set some time later.
-        :param width: Width of the bars (same for the first and second set).
-        :param period: Period of the bar pattern (same for the first and second set).
-        :param offset: Offset in degrees of the bar pattern, which can be used to rotate the entire pattern
-        around the viewer.
-        :param first_active_bright: Boolean value.  If True, the first set of bars appear white when active.  If
-        False, they will appear black when active.
-        :param second_active_bright: Boolean value.  If True, the second set of bars appear white when active.  If
-        False, they will appear black when active.
-        :param first_active_time: Time in seconds when the first set of bars become active.
-        :param second_active_time: Time in seconds when the second set of bars become active.
-        :param background: Monochromatic background color (0.0 is black, 1.0 is white)
+        Subclass of CylindricalGrating that rotates the grating along the varying axis of the grating
+        Note that the rotation effect is achieved by translating the texture on a semi-cylinder. This
+        allows for arbitrary spatial periods to be achieved with no discontinuities in the grating
+
+        :param rate: rotation rate, degrees/sec
+        :other params: see CylindricalGrating, TexturedCylinder
         """
-
-        # save settings
-        self.first_active_time  = first_active_time
-        self.second_active_time = second_active_time
-
-        # configure program
-        self.prog['theta_offset'].value  = offset
-        self.prog['theta_period'].value  = radians(period)
-        self.prog['thresh_first'].value  = 1.0*width/period
-        self.prog['thresh_second'].value = 2.0*width/period
-        self.prog['color_first'].value = 1.0 if first_active_bright else 0.0
-        self.prog['color_second'].value = 1.0 if second_active_time else 0.0
-        self.prog['background'].value = background
+        super().configure(period=period, mean=mean, contrast=contrast, offset=offset, profile=profile,
+                          color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
+        self.rate = rate
+        self.updateTexture()
 
     def eval_at(self, t):
-        self.prog['enable_first'].value = (t >= self.first_active_time)
-        self.prog['enable_second'].value = (t >= self.second_active_time)
-
-class GridStim(BaseProgram):
-    # render on a cylinder with the height of patches adjusted for equal solid angle.
-    # cylinder type stimulus
-    def __init__(self, screen, max_theta=256, max_phi=128):
-        # initialize the random map
-        self.max_theta = max_theta
-        self.max_phi = max_phi
-
-        uniforms = [
-            Uniform('phi_period', float),
-            Uniform('theta_period', float),
-            Texture('grid_values')
-        ]
-
-        calc_color = '''
-            if (theta < 0) {
-                theta += 2*M_PI;
-            }
-
-            int theta_int = int(theta/theta_period);
-            int phi_int = int(phi/phi_period);
-
-            color = texelFetch(grid_values, ivec2(theta_int, phi_int), 0).r;
-        '''
-
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-
-    def initialize(self, ctx):
-        # ref: https://github.com/cprogrammer1994/ModernGL/blob/6b0f5851539da4170596f62456bac0c22024e754/examples/conways_game_of_life.py
-        patches = np.zeros((self.max_phi, self.max_theta)).astype('f4')
-        self.texture = ctx.texture((self.max_theta, self.max_phi), 1, patches.tobytes(), dtype='f4')
-        self.texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
-        self.texture.swizzle = 'RRR1'
-        self.texture.use()
-
-        super().initialize(ctx)
+        shift_u = t*self.rate/self.cylinder_angular_extent
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      texture=True,
+                                      texture_shift=(shift_u, 0)).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
 
 
-class RandomGrid(GridStim):
-    def make_config_options(self, *args, distribution_data=None, **kwargs):
-        if distribution_data is None:
-            distribution_data = {'name':'Uniform',
-                                 'args':[0, 1],
-                                 'kwargs':{}}
+class RandomBars(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
 
-        noise_distribution = getattr(distribution,distribution_data['name'])(*distribution_data.get('args',[]), **distribution_data.get('kwargs',{}))
-
-        return super().make_config_options(*args, noise_distribution=noise_distribution, **kwargs)
-
-    def configure(self, theta_period=15, phi_period=15, start_seed=0, update_rate=60.0,
-                  noise_distribution = None):
+    def configure(self, period=20, width=5, vert_extent=80, theta_offset=0, background=0.5,
+                  distribution_data=None, update_rate=60.0, start_seed=0,
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
         """
-        Patches surrounding the viewer change brightness randomly.
-        :param theta_period: Longitude period of the checkerboard patches (degrees)
-        :param phi_period: Latitude period of the checkerboard patches (degrees)
-        :param start_seed: Starting seed for the random number generator
-        :param update_rate: Rate at which color is updated
-        :param distribution_data: dict of distribution type and args, see flystim.distribution method
+        Periodic bars of randomized intensity painted on the inside of a cylinder
+        :param period: spatial period (degrees) of bar locations
+        :param width: width (degrees) of each bar
+        :param vert_extent: vertical extent (degrees) of bars
+        :param theta_offset: offset of periodic bar pattern (degrees)
+        :param background: intensity (mono) of texture background, where no bars appear
+        :param distribution_data: dict. containing name and args/kwargs for random distribution (see flystim.distribution)
+        :param update_rate: Hz, update rate of bar intensity
+        :param start_seed: seed with which to start rng at the beginning of the stimulus presentation
+
+        :other params: see TexturedCylinder
         """
-
-        # save settings
-        self.start_seed = start_seed
-        self.update_rate = update_rate
-
-        # write program settings
-        self.prog['phi_period'].value = radians(phi_period)
-        self.prog['theta_period'].value = radians(theta_period)
+        # assuming fly is at (0,0,0), calculate cylinder height required to achieve vert_extent (degrees)
+        # tan(vert_extent/2) = (cylinder_height/2) / cylinder_radius
+        assert vert_extent < 180
+        cylinder_height = 2 * cylinder_radius * np.tan(np.radians(vert_extent/2))
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
 
         # get the noise distribution
-        self.noise_distribution = noise_distribution
+        if distribution_data is None:
+            distribution_data = {'name': 'Uniform',
+                                 'args': [0, 1],
+                                 'kwargs': {}}
+        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args',[]), **distribution_data.get('kwargs',{}))
+
+        self.period = period
+        self.width = width
+        self.vert_extent = vert_extent
+        self.theta_offset = theta_offset
+        self.background = background
+        self.update_rate = update_rate
+        self.start_seed = start_seed
+
+        # Only renders part of the cylinder if the period is not a divisor of 360
+        self.n_bars = int(np.floor(360/self.period))
+        self.cylinder_angular_extent = self.n_bars * self.period  # degrees
 
     def eval_at(self, t):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
+        # get the random values
+        bar_colors = self.noise_distribution.get_random_values(self.n_bars)
 
-        face_colors = self.noise_distribution.get_random_values((self.max_phi, self.max_theta))
+        # get the x-profile
+        xx = np.mod(np.linspace(0, self.cylinder_angular_extent, 256)[:-1] + self.theta_offset, 360)
+        profile = np.array([bar_colors[int(x/self.period)] for x in xx])
+        duty_cycle = self.width/self.period
+        inds = np.modf(xx/self.period)[0] > duty_cycle
+        profile[inds] = self.background
 
-        # write to GPU
-        self.texture.write(face_colors.astype('f4'))
-        self.texture.use()
+        # make the texture
+        img = np.expand_dims(255*profile, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
+        self.texture_interpolation = 'NEAREST'
+        self.texture_image = img
 
-class Checkerboard(GridStim):
-    # changing to cylinder style
-    def configure(self, theta_period=2, phi_period=2):
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      texture=True).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
+
+
+class RandomGrid(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.cylindrical_height_correction = False
+
+    def configure(self, patch_width=10, patch_height=10, cylinder_vertical_extent=160, cylinder_angular_extent=360,
+                  distribution_data=None, update_rate=60.0, start_seed=0,
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
         """
-        Patches surrounding the viewer are arranged in a periodic checkerboard.
-        :param theta_period: Longitude period of the checkerboard patches (degrees)
-        :param phi_period: Latitude period of the checkerboard patches (degrees)
+        Random square grid pattern painted on the inside of a cylinder
+
+        :param patch width: Azimuth extent (degrees) of each patch
+        :param patch height: Elevation extent (degrees) of each patch
+        :param cylinder_vertical_extent: Elevation extent of the entire cylinder (degrees)
+        :param cylinder_angular_extent: Azimuth extent of the cylinder texture (degrees)
+        :param distribution_data: dict. containing name and args/kwargs for random distribution (see flystim.distribution)
+        :param update_rate: Hz, update rate of bar intensity
+        :param start_seed: seed with which to start rng at the beginning of the stimulus presentation
+
+        :other params: see TexturedCylinder
         """
 
-        # write program settings
-        self.prog['phi_period'].value = radians(phi_period)
-        self.prog['theta_period'].value = radians(theta_period)
+        # Only renders part of the cylinder if the period is not a divisor of cylinder_angular_extent
+        self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
+        self.cylinder_angular_extent = self.n_patches_width * patch_width
 
-        # create the pattern
-        # row = y (phi) coord
-        # col = x (theta) coord
-        face_colors  = np.zeros((self.max_phi, self.max_theta))
+        # assuming fly is at (0,0,0), calculate cylinder height required to achieve (approx.) vert_extent (degrees)
+        # actual vert. extent is based on floor-nearest integer number of patch heights
+        assert cylinder_vertical_extent < 180
+        self.n_patches_height = int(np.floor(cylinder_vertical_extent/patch_height))
+        patch_height_m = cylinder_radius * np.tan(np.radians(patch_height))  # in meters
+        cylinder_height = self.n_patches_height * patch_height_m
+
+        super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi)
+
+        # get the noise distribution
+        if distribution_data is None:
+            distribution_data = {'name': 'Uniform',
+                                 'args': [0, 1],
+                                 'kwargs': {}}
+        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args', []), **distribution_data.get('kwargs',{}))
+
+        self.patch_width = patch_width
+        self.patch_height = patch_height
+        self.start_seed = start_seed
+        self.update_rate = update_rate
+
+    def eval_at(self, t):
+        # set the seed
+        seed = int(round(self.start_seed + t*self.update_rate))
+        np.random.seed(seed)
+        # get the random values
+        face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
+        # make the texture
+        img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        self.texture_interpolation = 'NEAREST'
+        self.texture_image = img
+
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      texture=True).rotz(np.radians(self.theta)-np.radians(self.cylinder_angular_extent)/2).roty(np.radians(self.phi)).rotx(np.radians(self.angle))
+
+
+class Checkerboard(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.cylindrical_height_correction = False
+
+    def configure(self, patch_width=4, patch_height=4, cylinder_vertical_extent=160, cylinder_angular_extent=360,
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
+        """
+        Periodic checkerboard pattern painted on the inside of a cylinder
+
+        :param patch width: Azimuth extent (degrees) of each patch
+        :param patch height: Elevation extent (degrees) of each patch
+        :param cylinder_vertical_extent: Elevation extent of the entire cylinder (degrees)
+        :param cylinder_angular_extent: Azimuth extent of the cylinder texture (degrees)
+
+        :other params: see TexturedCylinder
+        """
+
+        # Only renders part of the cylinder if the period is not a divisor of cylinder_angular_extent
+        self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
+        self.cylinder_angular_extent = self.n_patches_width * patch_width
+
+        # assuming fly is at (0,0,0), calculate cylinder height required to achieve (approx.) vert_extent (degrees)
+        # actual vert. extent is based on floor-nearest integer number of patch heights
+        assert cylinder_vertical_extent < 180
+        self.n_patches_height = int(np.floor(cylinder_vertical_extent/patch_height))
+        patch_height_m = cylinder_radius * np.tan(np.radians(patch_height))  # in meters
+        cylinder_height = self.n_patches_height * patch_height_m
+
+
+        super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height)
+
+        self.patch_width = patch_width
+        self.patch_height = patch_height
+
+        # Only renders part of the cylinder if the period is not a divisor of 360
+        self.n_patches_width = int(np.floor(360/self.patch_width))
+        self.cylinder_angular_extent = self.n_patches_width * self.patch_width
+        self.patch_height_m = self.cylinder_radius * np.tan(np.radians(self.patch_height))  # in meters
+        self.n_patches_height = int(np.floor(self.cylinder_height/self.patch_height_m))
+
+        # create the texture
+        face_colors = np.zeros((self.n_patches_height, self.n_patches_width))
         face_colors[0::2, 0::2] = 1
         face_colors[1::2, 1::2] = 1
 
-        # write the pattern
-        self.texture.write(face_colors.astype('f4'))
+        # make and apply the texture
+        img = (255*face_colors).astype(np.uint8)
+        self.texture_interpolation = 'NEAREST'
+        self.texture_image = img
 
     def eval_at(self, t):
-        self.texture.use()
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      texture=True).rotz(np.radians(self.theta)-np.radians(self.cylinder_angular_extent)/2).roty(np.radians(self.phi)).rotx(np.radians(self.angle))
 
-class ArbitraryGrid(BaseProgram):
-    # changing to cylinder style
+
+class Tower(BaseProgram):
     def __init__(self, screen):
-        uniforms = [
-            Uniform('stixel_size', float),
-            Uniform('min_y', float),
-            Uniform('max_y', float),
-            Uniform('min_x', float),
-            Uniform('max_x', float),
-            Uniform('background', float),
-            Texture('grid_values')
-        ]
+        super().__init__(screen=screen)
 
-        calc_color = '''
-            if (theta < 0) {
-                theta += 2*M_PI;
-            }
-            if (phi < 0) {
-                phi += M_PI;
-            }
-
-            if ((min_y <= phi) && (phi <= max_y) && (min_x <= theta) && (theta <= max_x)) {
-
-                    int theta_int = int((theta - min_x)/stixel_size);
-                    int phi_int = int((phi - min_y)/stixel_size);
-
-                    color = texelFetch(grid_values, ivec2(theta_int, phi_int), 0).r;
-            } else {
-                color = background;
-            }
-
-
-        '''
-        super().__init__(screen=screen, uniforms=uniforms, calc_color=calc_color)
-
-
-    def initialize(self, ctx):
-        self.ctx = ctx
-        super().initialize(self.ctx)
-
-    def initTexture(self, num_phi, num_theta):
-        # ref: https://github.com/cprogrammer1994/ModernGL/blob/6b0f5851539da4170596f62456bac0c22024e754/examples/conways_game_of_life.py
-        patches = self.background * np.ones((num_phi, num_theta)).astype('f4')
-        self.texture = self.ctx.texture((num_theta, num_phi), 1, patches.tobytes(), dtype='f4')
-        self.texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
-        self.texture.swizzle = 'RRR1'
-        self.texture.use()
-
-    def configure(self, stixel_size = 10, num_theta = 20, num_phi = 20, t_dim = 100, update_rate = 30,
-                  center_theta = 0, center_phi = 0, background = 0.5,
-                  stimulus_code = None, encoding_scheme = 'ternary_dense'):
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=2, cylinder_location=[+2, 0, 0], n_faces=16):
         """
-        Patches surrounding the viewer are arranged in an arbitrary grid stimulus
-        :param theta_period: Longitude period of the checkerboard patches (degrees)
-        :param phi_period: Latitude period of the checkerboard patches (degrees)
+        Cylindrical tower object in arbitrary x, y, z coords
+        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome
+        :param cylinder_radius: meters
+        :param cylinder_height: meters
+        :param cylinder_location: [x, y, z] location of the center of the cylinder, meters
+        :param n_faces: number of quad faces to make the cylinder out of
+
         """
-        self.stixel_size = stixel_size
-        self.num_theta = num_theta
-        self.num_phi = num_phi
-        self.t_dim = t_dim
-        self.update_rate = update_rate
-        self.background = background
+        self.color = color
+        self.cylinder_radius = cylinder_radius
+        self.cylinder_height = cylinder_height
+        self.cylinder_location = cylinder_location
+        self.n_faces = n_faces
 
-        self.stimulus_code = stimulus_code
-
-        width_phi = self.num_phi * self.stixel_size
-        width_theta = self.num_theta * self.stixel_size
-
-        # write program settings
-        self.prog['stixel_size'].value = radians(self.stixel_size)
-        self.prog['min_y'].value = radians(center_phi - width_phi / 2)
-        self.prog['max_y'].value = radians(center_phi + width_phi / 2)
-        self.prog['min_x'].value = radians(center_theta - width_theta / 2)
-        self.prog['max_x'].value = radians(center_theta + width_theta / 2)
-        self.prog['background'].value = self.background
-
-        # create the pattern
-        # row = y (phi) coord
-        # col = x (theta) coord
-        if stimulus_code is None:
-            self.stimulus_code = np.zeros((self.num_phi, self.num_theta, self.t_dim))
-
-        if encoding_scheme == 'ternary_dense':
-            self.xyt_stimulus = np.array(self.stimulus_code).reshape(self.num_phi, self.num_theta, self.t_dim)
-
-        elif encoding_scheme == 'single_spot':
-            row, col = self.getRowColumnFromLocation(self.stimulus_code, self.num_phi, self.num_theta)
-            self.xyt_stimulus = self.background * np.ones((self.num_phi,self.num_theta, self.t_dim))
-            for ff in range(self.xyt_stimulus.shape[2]):
-                self.xyt_stimulus[col[ff], row[ff], ff] = 1
-
-        # initialize texture
-        self.initTexture(self.num_phi, self.num_theta)
-
-    def getRowColumnFromLocation(self, location, y_dim, x_dim):
-        row = np.mod(location, x_dim) - 1
-        col = np.mod(location, y_dim) - 1
-        return row, col
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_location=self.cylinder_location,
+                                      color=self.color,
+                                      n_faces=self.n_faces)
 
     def eval_at(self, t):
-        if t > 0:
-            t_pull = int(np.floor((t*self.update_rate)))
-            face_colors = self.xyt_stimulus[:,:,np.min((t_pull, self.t_dim-1))].copy()
+        pass
 
-            # write to GPU
-            self.texture.write(face_colors.astype('f4'))
-            self.texture.use()
+class TexturedGround(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.use_texture = True
+
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=0, side_length=5):
+        """
+        Infinite textured ground
+        :param color: [r,g,b,a]
+        :param z_level: meters, level at which the floor is on the z axis (-z is below the fly)
+        :param side_length: meters
+        """
+
+        self.color = color
+
+        v1 = (-side_length, -side_length, z_level)
+        v2 = (side_length, -side_length, z_level)
+        v3 = (side_length, side_length, z_level)
+        v4 = (-side_length, side_length, z_level)
+        color = self.color
+
+        self.stim_object = GlQuad(v1, v2, v3, v4, color,
+                                  tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1),
+                                  texture_shift=(0, 0), use_texture=True)
+
+        # create the texture
+        np.random.seed(0)
+        face_colors = np.random.uniform(size=(128,128))
+
+        # make and apply the texture
+        img = (255*face_colors).astype(np.uint8)
+        self.texture_interpolation = 'LINEAR'
+        self.texture_image = img
+
+    def eval_at(self, t):
+        pass
+
+class HorizonCylinder(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5, image_path=None, fly_pos=None):
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=0, phi=0, angle=0.0)
+        self.fly_pos=fly_pos
+
+        self.cylinder_location = (fly_pos[0], fly_pos[1] , self.cylinder_height/2)
+
+        if image_path is None:
+            load_image = False
+        elif os.path.isfile(image_path):
+            load_image = True
+        else:
+            load_image = False
+
+        if load_image:
+            with open(image_path, 'rb') as handle:
+               s = handle.read()
+            arr = array.array('H', s)
+            arr.byteswap()
+            img = np.array(arr, dtype='uint16').reshape(1024, 1536)
+            img = np.uint8(255*(img / np.max(img)))
+            img = img[:,:1024]
+
+        else:
+            # use a dummy texture
+            np.random.seed(0)
+            face_colors = np.random.uniform(size=(128,128))
+            img = (255*face_colors).astype(np.uint8)
+
+        self.texture_interpolation = 'LINEAR'
+        self.texture_image = img
+
+    def eval_at(self, t):
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_location=self.cylinder_location,
+                                      color=self.color,
+                                      texture=True).rotz(np.radians(180))
+
+
+
+
+class Forest(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=500)
+
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=2, n_faces=16, cylinder_locations=([0, 0, 0])):
+        """
+        Cylindrical tower object in arbitrary x, y, z coords
+        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome
+        :param cylinder_radius: meters
+        :param cylinder_height: meters
+        :param cylinder_location: [x, y, z] location of the center of the cylinder, meters
+        :param n_faces: number of quad faces to make the cylinder out of
+
+        """
+        self.color = color
+        self.cylinder_radius = cylinder_radius
+        self.cylinder_height = cylinder_height
+        self.cylinder_locations = cylinder_locations
+        self.n_faces = n_faces
+
+        self.stim_object = GlVertices()
+        for tree_loc in self.cylinder_locations:
+            self.stim_object.add(GlCylinder(cylinder_height=self.cylinder_height,
+                                            cylinder_radius=self.cylinder_radius,
+                                            cylinder_location=tree_loc,
+                                            color=self.color,
+                                            n_faces=self.n_faces))
+
+    def eval_at(self, t):
+        pass
