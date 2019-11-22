@@ -28,7 +28,7 @@ def register_cave(display, omega=0):
     t0 = time()
     display.render_actions.append(lambda: cave.render(GlCube(colors=colors).rotz(radians(omega*(time()-t0)))))
 
-def test_color_cube(max_err=100):
+def test_color_cube(max_err=1000):
     # render image
     obs = run_headless(register_cave)
 
