@@ -29,7 +29,7 @@ class ConstantBackground(BaseProgram):
                   '+z': self.color, '-z': self.color}
         self.stim_object = GlCube(colors, center=self.center, side_length=self.side_length)
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         pass
 
 
@@ -37,7 +37,7 @@ class Floor(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=0, side_length=5):
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=-0.1, side_length=5):
         """
         Infinite floor
         :param color: [r,g,b,a]
@@ -54,7 +54,7 @@ class Floor(BaseProgram):
         color = self.color
         self.stim_object = GlQuad(v1, v2, v3, v4, color)
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         pass
 
 
@@ -69,8 +69,8 @@ class MovingSpot(BaseProgram):
         :param radius: radius of circle in degrees
         :param sphere_radius: Radius of the sphere (meters)
         :param color: [r,g,b,a] or mono. Color of the patch
-        :param theta: degrees, azimuth of the center of the patch
-        :param phi: degrees, elevation of the center of the patch
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
         *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
         self.radius = radius
@@ -79,7 +79,7 @@ class MovingSpot(BaseProgram):
         self.theta = theta
         self.phi = phi
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         if type(self.radius) is dict:
             self.radius = Trajectory.from_dict(self.radius).eval_at(t)
         if type(self.color) is dict:
@@ -92,7 +92,7 @@ class MovingSpot(BaseProgram):
         self.stim_object = GlSphericalCirc(circle_radius=self.radius,
                                            sphere_radius=self.sphere_radius,
                                            color=self.color,
-                                           n_steps=36).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
+                                           n_steps=36).rotate(np.radians(self.theta), np.radians(self.phi), 0 )
 
 
 class MovingPatch(BaseProgram):
@@ -107,9 +107,9 @@ class MovingPatch(BaseProgram):
         :param height: Height in degrees (elevation)
         :param sphere_radius: Radius of the sphere (meters)
         :param color: [r,g,b,a] or mono. Color of the patch
-        :param theta: degrees, azimuth of the center of the patch
-        :param phi: degrees, elevation of the center of the patch
-        :param angle: degrees, roll. Or orientation of patch in spherical coordinates
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
         *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
         self.width = width
@@ -120,7 +120,7 @@ class MovingPatch(BaseProgram):
         self.phi = phi
         self.angle = angle
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         if type(self.width) is dict:
             self.width = Trajectory.from_dict(self.width).eval_at(t)
         if type(self.height) is dict:
@@ -137,8 +137,7 @@ class MovingPatch(BaseProgram):
         self.stim_object = GlSphericalRect(width=self.width,
                                            height=self.height,
                                            sphere_radius=self.sphere_radius,
-                                           color=self.color).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
-
+                                           color=self.color).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 class TexturedCylinder(BaseProgram):
     def __init__(self, screen):
@@ -153,9 +152,9 @@ class TexturedCylinder(BaseProgram):
         :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome.
         :param cylinder_radius: meters
         :param cylinder_height: meters
-        :param theta: degrees around z axis (azimuth)
-        :param phi: degrees around y axis (elevation)
-        :param angle: degrees roll angle of cylinder
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
         """
         self.color = color
         self.cylinder_radius = cylinder_radius
@@ -168,7 +167,7 @@ class TexturedCylinder(BaseProgram):
         # overwrite in subclass
         pass
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         # overwrite in subclass
         pass
 
@@ -177,7 +176,7 @@ class CylindricalGrating(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
+    def configure(self, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='sine',
                   color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0.0):
         """
         Grating texture painted on a cylinder
@@ -226,7 +225,7 @@ class CylindricalGrating(TexturedCylinder):
         img = np.expand_dims(yy, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
         self.texture_image = img
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         need_to_update_texture = False
         if type(self.period) is dict:
             self.period = Trajectory.from_dict(self.period).eval_at(t)
@@ -253,7 +252,7 @@ class CylindricalGrating(TexturedCylinder):
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
-                                      texture=True).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
+                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 
 class RotatingGrating(CylindricalGrating):
@@ -275,14 +274,14 @@ class RotatingGrating(CylindricalGrating):
         self.rate = rate
         self.updateTexture()
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         shift_u = t*self.rate/self.cylinder_angular_extent
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
                                       texture=True,
-                                      texture_shift=(shift_u, 0)).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
+                                      texture_shift=(shift_u, 0)).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 
 class RandomBars(TexturedCylinder):
@@ -330,7 +329,7 @@ class RandomBars(TexturedCylinder):
         self.n_bars = int(np.floor(360/self.period))
         self.cylinder_angular_extent = self.n_bars * self.period  # degrees
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
@@ -353,7 +352,7 @@ class RandomBars(TexturedCylinder):
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
-                                      texture=True).rotx(np.radians(self.angle)).rotz(np.radians(self.theta)).roty(np.radians(self.phi))
+                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 
 class RandomGrid(TexturedCylinder):
@@ -403,7 +402,7 @@ class RandomGrid(TexturedCylinder):
         self.start_seed = start_seed
         self.update_rate = update_rate
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
@@ -418,7 +417,7 @@ class RandomGrid(TexturedCylinder):
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
-                                      texture=True).rotz(np.radians(self.theta)-np.radians(self.cylinder_angular_extent)/2).roty(np.radians(self.phi)).rotx(np.radians(self.angle))
+                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 
 class Checkerboard(TexturedCylinder):
@@ -472,19 +471,19 @@ class Checkerboard(TexturedCylinder):
         self.texture_interpolation = 'NEAREST'
         self.texture_image = img
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
-                                      texture=True).rotz(np.radians(self.theta)-np.radians(self.cylinder_angular_extent)/2).roty(np.radians(self.phi)).rotx(np.radians(self.angle))
+                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 
 class Tower(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=2, cylinder_location=[+2, 0, 0], n_faces=16):
+    def configure(self, color=[1, 0, 0, 1], cylinder_radius=0.5, cylinder_height=0.5, cylinder_location=[+5, 0, 0], n_faces=16):
         """
         Cylindrical tower object in arbitrary x, y, z coords
         :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome
@@ -506,7 +505,7 @@ class Tower(BaseProgram):
                                       color=self.color,
                                       n_faces=self.n_faces)
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         pass
 
 class TexturedGround(BaseProgram):
@@ -514,7 +513,7 @@ class TexturedGround(BaseProgram):
         super().__init__(screen=screen)
         self.use_texture = True
 
-    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=0, side_length=5):
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=-0.1, side_length=5, rand_seed=0):
         """
         Infinite textured ground
         :param color: [r,g,b,a]
@@ -523,19 +522,19 @@ class TexturedGround(BaseProgram):
         """
 
         self.color = color
+        self.rand_seed = rand_seed
 
         v1 = (-side_length, -side_length, z_level)
         v2 = (side_length, -side_length, z_level)
         v3 = (side_length, side_length, z_level)
         v4 = (-side_length, side_length, z_level)
-        color = self.color
 
-        self.stim_object = GlQuad(v1, v2, v3, v4, color,
+        self.stim_object = GlQuad(v1, v2, v3, v4,  self.color,
                                   tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1),
                                   texture_shift=(0, 0), use_texture=True)
 
         # create the texture
-        np.random.seed(0)
+        np.random.seed(self.rand_seed)
         face_colors = np.random.uniform(size=(128,128))
 
         # make and apply the texture
@@ -543,18 +542,15 @@ class TexturedGround(BaseProgram):
         self.texture_interpolation = 'LINEAR'
         self.texture_image = img
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         pass
 
 class HorizonCylinder(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5, image_path=None, fly_pos=None):
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5, image_path=None):
         super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=0, phi=0, angle=0.0)
-        self.fly_pos=fly_pos
-
-        self.cylinder_location = (fly_pos[0], fly_pos[1] , self.cylinder_height/2)
 
         if image_path is None:
             load_image = False
@@ -581,21 +577,20 @@ class HorizonCylinder(TexturedCylinder):
         self.texture_interpolation = 'LINEAR'
         self.texture_image = img
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        cyl_position = [0, 0, 0]
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
-                                      cylinder_location=self.cylinder_location,
+                                      cylinder_location=(cyl_position[0], cyl_position[1] , self.cylinder_height/2),
                                       color=self.color,
                                       texture=True).rotz(np.radians(180))
-
-
 
 
 class Forest(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen, num_tri=500)
 
-    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=2, n_faces=16, cylinder_locations=([0, 0, 0])):
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=0.5, cylinder_height=0.5, n_faces=16, cylinder_locations=[[+5, 0, 0]]):
         """
         Cylindrical tower object in arbitrary x, y, z coords
         :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome
@@ -603,6 +598,7 @@ class Forest(BaseProgram):
         :param cylinder_height: meters
         :param cylinder_location: [x, y, z] location of the center of the cylinder, meters
         :param n_faces: number of quad faces to make the cylinder out of
+        :param cylinder_locations: tuple (len = num trees) of lists [x, y, z] of tree locations
 
         """
         self.color = color
@@ -619,5 +615,5 @@ class Forest(BaseProgram):
                                             color=self.color,
                                             n_faces=self.n_faces))
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         pass

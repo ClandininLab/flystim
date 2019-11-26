@@ -119,14 +119,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
                                         self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
                                         0)
                 self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))  # deg -> radians
-
-            self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
+            self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
             for stim in self.stim_list:
-                if 'fly_pos' in stim.kwargs:
-                    stim.kwargs['fly_pos'] = self.global_fly_pos
                 stim.configure(**stim.kwargs)
-                stim.paint_at(self.get_stim_time(t), self.perspective)
+                stim.paint_at(self.get_stim_time(t), self.perspective, fly_position=self.global_fly_pos.copy())
 
             try:
                 self.profile_frame_count += 1
@@ -241,7 +238,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.set_global_fly_pos(0, 0, 0)
         self.set_global_theta_offset(0)
         self.set_global_phi_offset(0)
-        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset)
+        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
     def start_corner_square(self):
         """
@@ -312,21 +309,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.global_phi_offset = radians(value)
 
 
-def get_perspective(fly_pos, theta, phi, screen=None):
+def get_perspective(fly_pos, theta, phi, screen):
     """
     :param fly_pos: (x, y, z) position of fly, meters
     :param theta: fly heading angle along azimuth, radians
     :param phi: fly heading angle along elevation, radians
     :param screen: flystim.screen object
     """
-    if screen is None:
-        pa = (+1, -1, -1)
-        pb = (+1, +1, -1)
-        pc = (+1, -1, 1)
-    else:
-        pa = screen.tri_list[0].pa.cart  # [x, y, z] in meters
-        pb = screen.tri_list[0].pb.cart
-        pc = screen.tri_list[0].pc.cart
+    pa = screen.tri_list[0].pa.cart  # [x, y, z] in meters
+    pb = screen.tri_list[0].pb.cart
+    pc = screen.tri_list[0].pc.cart
 
     perspective = GenPerspective(pa=pa, pb=pb, pc=pc, pe=fly_pos)
 
@@ -339,7 +331,7 @@ def get_perspective(fly_pos, theta, phi, screen=None):
     -phi tilts fly view up towards the sky (+z), +phi tilts down towards the ground (-z)
 
     """
-    return perspective.roty(phi).rotx(radians(180)).rotz(radians(180)+theta)
+    return perspective.roty(phi).rotx(radians(0)).rotz(radians(0)+theta)
 
 
 def make_qt_format(vsync):
