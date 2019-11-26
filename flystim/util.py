@@ -17,6 +17,15 @@ def normalize(vec):
 # rotation matrix reference:
 # https://en.wikipedia.org/wiki/Rotation_matrix
 
+def rotate(pts, yaw, pitch, roll):
+    """
+    :param yaw: rotation around z axis, radians
+    :param pitch: rotation around y axis, radians
+    :param roll: rotation around x axis, radians
+    """
+    R = rotz_mat(yaw) @ roty_mat(pitch) @ rotx_mat(roll)
+    return R @ pts
+
 def rotx(pts, th):
     return rotx_mat(th).dot(pts)
 

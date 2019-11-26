@@ -26,6 +26,9 @@ def draw_screens(screens):
 
     # draw fly in the center
     ax.scatter(0, 0, 0, c='g')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
 
     plt.show()
 

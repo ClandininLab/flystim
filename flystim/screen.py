@@ -1,4 +1,4 @@
-from math import sin, cos
+from math import sin, cos, radians
 
 class ScreenPoint:
     def __init__(self, ndc, cart):
@@ -78,9 +78,9 @@ class Screen:
         if height is None:
             height = 0.207
         if rotation is None:
-            rotation = 0.0
+            rotation = radians(-90.0) #looking down positive x axis
         if offset is None:
-            offset = (0.0, 0.3, 0.0)
+            offset = (0.3, 0.0, 0.0)
         if server_number is None:
             server_number = 0
         if id is None:

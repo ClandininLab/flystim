@@ -1,6 +1,6 @@
 import numpy as np
 from math import radians
-from .util import rotx, roty, rotz, translate, scale
+from .util import rotx, roty, rotz, translate, scale, rotate
 
 
 class GlVertices:
@@ -27,6 +27,14 @@ class GlVertices:
             self.tex_coords = obj.tex_coords
         else:
             self.tex_coords = np.concatenate((self.tex_coords, obj.tex_coords), axis=1)
+
+    def rotate(self, z, y, x):
+        """
+        :param z: rotation around z axis, radians
+        :param y: rotation around y axis, radians
+        :param x: rotation around x axis, radians
+        """
+        return GlVertices(vertices=rotate(self.vertices, z, y, x), colors=self.colors, tex_coords=self.tex_coords)
 
     def rotx(self, th):
         return GlVertices(vertices=rotx(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
@@ -204,11 +212,12 @@ class GlCylinder(GlVertices):
                 color = [color, color, color, 1]
 
         d_theta = np.radians(cylinder_angular_extent) / n_faces
+        theta_start = -np.radians(cylinder_angular_extent)/2
         for face in range(n_faces):
-            v1 = self.cylindricalToCartesian((cylinder_radius, face*d_theta, cylinder_height/2))
-            v2 = self.cylindricalToCartesian((cylinder_radius, face*d_theta, -cylinder_height/2))
-            v3 = self.cylindricalToCartesian((cylinder_radius, (face+1)*d_theta, -cylinder_height/2))
-            v4 = self.cylindricalToCartesian((cylinder_radius, (face+1)*d_theta, cylinder_height/2))
+            v1 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, cylinder_height/2))
+            v2 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, -cylinder_height/2))
+            v3 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, -cylinder_height/2))
+            v4 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, cylinder_height/2))
 
             if texture:
                 self.add(GlQuad(v1, v2, v3, v4, color,

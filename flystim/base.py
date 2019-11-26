@@ -27,11 +27,11 @@ class BaseProgram:
     def configure(self, *args, **kwargs):
         pass
 
-    def paint_at(self, t, perspective):
+    def paint_at(self, t, perspective, fly_position=[0, 0, 0]):
         """
         :param t: current time in seconds
         """
-        self.eval_at(t)
+        self.eval_at(t, fly_position=fly_position)
 
         data = self.stim_object.data
         self.update_vertex_objects()
@@ -81,7 +81,7 @@ class BaseProgram:
 
         self.texture.use()
 
-    def eval_at(self, t):
+    def eval_at(self, t, fly_position=[0, 0, 0]):
         """
         :param t: current time in seconds
         """
