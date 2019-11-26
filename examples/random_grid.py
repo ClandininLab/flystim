@@ -13,12 +13,13 @@ def main():
                          'kwargs': {'rand_mean': 0.5,
                                     'rand_stdev': 0.3}}
 
-    manager.set_global_fly_pos(0,0,0)
-    manager.load_stim(name='RandomGrid', patch_width=20, patch_height=5, start_seed=0, update_rate=0,
+    manager.load_stim(name='RandomGrid', patch_width=5, patch_height=5, start_seed=0, update_rate=0,
                       distribution_data=distribution_data, color=[1, 1, 1, 1], angle=0,
-                      cylinder_radius=1.0, cylinder_vertical_extent=160, cylinder_angular_extent=180, theta=0, phi=0, hold=True)
+                      cylinder_radius=2, cylinder_vertical_extent=10, cylinder_angular_extent=40, theta=0, phi=10, hold=True)
 
-    manager.load_stim(name='MovingPatch', width=20, height=10, phi=0, color=1.0, theta=0, hold=True, sphere_radius=0.99)
+    manager.load_stim(name='Tower', color=[1, 0, 0, 1], cylinder_location=[0, 1, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) #red +x
+
+    manager.load_stim(name='MovingPatch', width=10, height=10, phi=10, color=1.0, theta=0, hold=True, sphere_radius=1)
     sleep(0.5)
 
     manager.start_stim()

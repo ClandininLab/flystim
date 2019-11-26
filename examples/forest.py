@@ -8,14 +8,14 @@ import os
 from time import sleep
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=True))
     z_level = -0.01
 
     # random walk trajectory
     tt = np.linspace(0 ,4, 100) #sec
-    dx = -0.01 * np.ones(shape=(100,1)) # meters
-    dy = 0 * np.ones(shape=(100,1)) # meters
-    dtheta = 1*np.random.normal(size=100) # degrees
+    dx = 0.00 * np.ones(shape=(100,1)) # meters
+    dy = -0.000 * np.ones(shape=(100,1)) # meters
+    dtheta = 0*np.random.normal(size=100) # degrees
 
     fly_x_trajectory = Trajectory(list(zip(tt, np.cumsum(dx)))).to_dict()
     fly_y_trajectory = Trajectory(list(zip(tt, np.cumsum(dy)))).to_dict()
@@ -31,13 +31,13 @@ def main():
     manager.load_stim(name='HorizonCylinder',image_path=os.path.join(base_dir, fn))
     manager.load_stim(name='TexturedGround', color=[0.25, 0.25, 0.25, 1.0], hold=True, z_level=z_level)
 
-    height = 1.0
-    n_trees = 20
-    tree_locations = []
-    for tree in range(n_trees):
-        tree_locations.append([np.random.uniform(-5,5), np.random.uniform(-5, 5), z_level+height/2])
+    manager.load_stim(name='Tower', color=[1, 1, 1, 1], cylinder_location=[+0.5, +1, 0], cylinder_radius=0.05, hold=True) #white front right
+    manager.load_stim(name='Tower', color=[0, 0, 0, 1], cylinder_location=[-0.5, +1, 0], cylinder_radius=0.05, hold=True) #black front left
 
-    # manager.load_stim(name='Forest', color = [1, 0, 0, 1], cylinder_height=height, cylinder_radius=0.05, cylinder_locations=tree_locations, hold=True, n_faces=4)
+    manager.load_stim(name='Tower', color=[1, 0, 0, 1], cylinder_location=[0, 1, 0], cylinder_radius=0.05, hold=True) #red +y
+    manager.load_stim(name='Tower', color=[0, 1, 0, 1], cylinder_location=[0, -1, 0], cylinder_radius=0.2, hold=True) #green -y
+    manager.load_stim(name='Tower', color=[0, 0, 1, 1], cylinder_location=[1, 0, 0], cylinder_radius=0.2, hold=True) # blue +x
+    manager.load_stim(name='Tower', color=[1, 1, 1, 1], cylinder_location=[-1, 0, 0], cylinder_radius=0.2, hold=True) # white -x
 
     sleep(1)
 
