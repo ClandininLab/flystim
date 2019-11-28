@@ -10,32 +10,38 @@ from flystim.stim_server import launch_stim_server
 from time import sleep
 
 def dir_to_tri_list(dir):
-    # set screen width and height
-    w = 1
-    h = 1
+
+    north_w = 3.0e-2
+    side_w = 2.96e-2
 
     # set coordinates as a function of direction
     if dir == 'w':
-        pts = [
-            ((-0.6, -0.6), (-w/2, -w/2, -h/2)),
-            ((-0.2, -0.6), (-w/2, +w/2, -h/2)),
-            ((-0.2, -0.2), (-w/2, +w/2, +h/2)),
-            ((-0.6, -0.2), (-w/2, -w/2, +h/2))
+       # set screen width and height
+       h = 2.94e-2
+       pts = [
+            ((+0.4602, -0.3159), (-north_w/2, -side_w/2, -h/2)),
+            ((+0.4502, -0.6347), (-north_w/2, +side_w/2, -h/2)),
+            ((+0.2527, -0.6234), (-north_w/2, +side_w/2, +h/2)),
+            ((+0.2527, -0.3034), (-north_w/2, -side_w/2, +h/2))
         ]
     elif dir == 'n':
-        pts = [
-            ((-0.6, +0.2), (-w/2, +w/2, -h/2)),
-            ((-0.2, +0.2), (+w/2, +w/2, -h/2)),
-            ((-0.2, +0.6), (+w/2, +w/2, +h/2)),
-            ((-0.6, +0.6), (-w/2, +w/2, +h/2))
+       # set screen width and height
+       h = 3.29e-2
+       pts = [
+            ((+0.1295, +0.6278), (-north_w/2, +side_w/2, -h/2)),
+            ((+0.1297, +0.3233), (+north_w/2, +side_w/2, -h/2)),
+            ((-0.0675, +0.3213), (+north_w/2, +side_w/2, +h/2)),
+            ((-0.0675, +0.6175), (-north_w/2, +side_w/2, +h/2))
         ]
 
     elif dir == 'e':
+        # set screen width and height
+        h = 3.18e-2
         pts = [
-            ((+0.2, +0.2), (+w/2, +w/2, -h/2)),
-            ((+0.6, +0.2), (+w/2, -w/2, -h/2)),
-            ((+0.6, +0.6), (+w/2, -w/2, +h/2)),
-            ((+0.2, +0.6), (+w/2, +w/2, +h/2))
+            ((-0.1973, -0.2634), (+north_w/2, +side_w/2, -h/2)),
+            ((-0.1873, -0.5509), (+north_w/2, -side_w/2, -h/2)),
+            ((-0.3986, -0.5734), (+north_w/2, -side_w/2, +h/2)),
+            ((-0.4023, -0.2791), (+north_w/2, +side_w/2, +h/2))
         ]
     else:
         raise ValueError('Invalid direction.')
@@ -46,14 +52,14 @@ def make_tri_list():
     return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
 
 def main():
-    screen = Screen(server_number=1, id=1,fullscreen=False, tri_list=make_tri_list())
+    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list())
     print(screen)
 
     #####################################################
     # part 1: draw the screen configuration
     #####################################################
 
-    draw_screens(screen)
+    #draw_screens(screen)
 
     #####################################################
     # part 2: display a stimulus
