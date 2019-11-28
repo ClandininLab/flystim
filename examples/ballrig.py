@@ -3,7 +3,7 @@
 # Example program showing rendering onto three subscreens
 
 from flystim.draw import draw_screens
-from flystim.trajectory import RectangleTrajectory
+from flystim.trajectory import Trajectory
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
 
@@ -50,8 +50,8 @@ def make_tri_list():
 
 def main():
     #screen = Screen(fullscreen=False, tri_list=make_tri_list())
-    #screen = Screen(server_number=1, id=0, fullscreen=False, tri_list=make_tri_list())
-    screen = Screen(server_number=1, id=1, tri_list=make_tri_list())
+    screen = Screen(server_number=1, id=0, fullscreen=False, tri_list=make_tri_list())
+    # screen = Screen(server_number=1, id=1, tri_list=make_tri_list())
 
     #####################################################
     # part 1: draw the screen configuration
@@ -63,18 +63,20 @@ def main():
     # part 2: display a stimulus
     #####################################################
 
+
+
     manager = launch_stim_server(screen)
+    manager.load_stim(name='RotatingGrating', angle=90, rate=20, period=20, contrast=1.0, profile='square', cylinder_radius=2)
 
-    #trajectory = RectangleTrajectory(x=[(0,-90),(15,270)], y=90, w=30, h=50)
-    #trajectory = RectangleTrajectory(x=[(0,45),(15,45)], y=90, w=30, h=50)
-    manager.load_stim('RotatingBars', angle=90)
-    #manager.load_stim('MovingPatch', trajectory=trajectory.to_dict(), vary='alpha', background=0.5, hold=True)
 
-    #manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
+    tv_pairs = [(0,-90), (5,270)]
+    theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
+    manager.load_stim(name='MovingPatch',width=30, height=50, phi=0, color=1, theta=theta_traj, angle=45, hold=True)
+
     sleep(1)
 
     manager.start_stim()
-    sleep(15)
+    sleep(5)
 
     manager.stop_stim()
     sleep(1)

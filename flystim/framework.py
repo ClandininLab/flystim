@@ -8,14 +8,17 @@ import numpy as np
 import pandas as pd
 import platform
 
-from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
-from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground, ArbitraryGrid
+from flystim import stimuli
+from flystim.trajectory import Trajectory
+
+from flystim import GenPerspective
 from flystim.square import SquareProgram
 from flystim.screen import Screen
 from math import radians
 
 from flyrpc.transceiver import MySocketServer
 from flyrpc.util import get_kwargs
+
 
 class StimDisplay(QtOpenGL.QGLWidget):
     """
@@ -44,9 +47,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_list = []
 
         # stimulus state
-        self.stim_paused = True
+        self.stim_started = False
         self.stim_start_time = None
-        self.stim_offset_time = 0
 
         # profiling information
         self.profile_frame_count = None
@@ -59,11 +61,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.server = server
         self.app = app
 
-        # make OpenGL programs that are used by stimuli
-        cls_list = [ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid,
-                    MovingPatch, Checkerboard, ConstantBackground, ArbitraryGrid]
-        self.render_programs = {cls.__name__: cls(screen=screen) for cls in cls_list}
-
         # make program for rendering the corner square
         self.square_program = SquareProgram(screen=screen)
 
@@ -71,24 +68,30 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.idle_background = 0.5
 
         # set the closed-loop parameters
-        self.global_theta_offset = 0
-        self.global_fly_pos = np.array([0, 0, 0], dtype=float)
+        self.set_global_fly_pos(0, 0, 0)
+        self.set_global_theta_offset(0) # deg -> radians
+        self.set_global_phi_offset(0) # deg -> radians
+
+        self.use_fly_trajectory = False
+        self.fly_x_trajectory = None
+        self.fly_y_trajectory = None
+        self.fly_theta_trajectory = None
+
+        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
     def initializeGL(self):
         # get OpenGL context
         self.ctx = moderngl.create_context()
-
-        # initialize stimuli programs
-        for render_program in self.render_programs.values():
-            render_program.initialize(self.ctx)
+        self.ctx.enable(moderngl.DEPTH_TEST)
+        self.ctx.enable(moderngl.BLEND)
 
         # initialize square program
         self.square_program.initialize(self.ctx)
 
     def get_stim_time(self, t):
-        stim_time = self.stim_offset_time
+        stim_time = 0
 
-        if not self.stim_paused:
+        if self.stim_started:
             stim_time += t - self.stim_start_time
 
         return stim_time
@@ -111,14 +114,18 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             self.ctx.clear(0, 0, 0, 1)
             self.ctx.enable(moderngl.BLEND)
+            if self.use_fly_trajectory:
+                self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
+                                        self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
+                                        0)
+                self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))  # deg -> radians
+            self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
-            for stim, config_options in self.stim_list:
-                stim.apply_config_options(config_options)
-                stim.paint_at(self.get_stim_time(t), global_fly_pos=self.global_fly_pos,
-                              global_theta_offset=self.global_theta_offset)
+            for stim in self.stim_list:
+                stim.configure(**stim.kwargs)
+                stim.paint_at(self.get_stim_time(t), self.perspective, fly_position=self.global_fly_pos.copy())
 
             try:
-                # TODO: make sure that profile information is still accurate
                 self.profile_frame_count += 1
                 if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
                     self.profile_frame_times.append(t - self.profile_last_time)
@@ -132,28 +139,31 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.square_program.paint()
 
         # update the window
+        self.ctx.finish()
         self.update()
+
+        # clear the buffer objects
+        for stim in self.stim_list:
+            stim.vbo.release()
+            stim.vao.release()
+
 
     ###########################################
     # control functions
     ###########################################
 
-    def update_stim(self, rate, t):
-        for stim, config_options in self.stim_list:
-            if isinstance(stim, (SineGrating, RotatingBars)):
-                # get the time that will be passed to the stimulus
-                t = self.get_stim_time(t)
+    def set_fly_trajectory(self, x_trajectory, y_trajectory, theta_trajectory):
+        """
+        :param x_trajectory: meters, dict from Trajectory including time, value pairs
+        :param y_trajectory: meters, dict from Trajectory including time, value pairs
+        :param theta_trajectory: degrees on the azimuthal plane, dict from Trajectory including time, value pairs
+        """
+        self.use_fly_trajectory = True
+        self.fly_x_trajectory = Trajectory.from_dict(x_trajectory)
+        self.fly_y_trajectory = Trajectory.from_dict(y_trajectory)
+        self.fly_theta_trajectory = Trajectory.from_dict(theta_trajectory)
 
-                # get the spatial period, rate, and offset (in degrees)
-                period = config_options.kwargs.get('period', 20)
-                old_rate = config_options.kwargs.get('rate', 10)
-                old_offset = config_options.kwargs.get('offset', 0)
-
-                # set the new rate and offset
-                config_options.kwargs['rate'] = rate
-                config_options.kwargs['offset'] = (rate - old_rate) * (360 / period) * t + old_offset
-
-    def load_stim(self, name, hold=False, *args, **kwargs):
+    def load_stim(self, name, hold=False, **kwargs):
         """
         Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
         background color is changed to the one specified in the stimulus, and the stimulus is evaluated at time 0.
@@ -162,12 +172,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         if hold is False:
             self.stim_list = []
-            self.stim_offset_time = 0
 
-        stim = self.render_programs[name]
-        config_options = stim.make_config_options(*args, **kwargs)
-
-        self.stim_list.append((stim, config_options))
+        stim = getattr(stimuli, name)(screen=self.screen)
+        stim.initialize(self.ctx)
+        stim.kwargs = kwargs
+        self.stim_list.append(stim)
 
     def start_stim(self, t):
         """
@@ -181,34 +190,29 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.profile_last_time = None
         self.profile_frame_times = []
 
-        self.stim_paused = False
+        self.stim_started = True
         self.stim_start_time = t
 
-    def pause_stim(self, t):
-        self.stim_paused = True
-        self.stim_offset_time = t - self.stim_start_time + self.stim_offset_time
-        self.stim_start_time = t
-
-    def stop_stim(self, print_profile = True):
+    def stop_stim(self, print_profile=False):
         """
         Stops the stimulus animation and removes it from the display.
         """
+        # clear texture
+        self.ctx.clear_samplers()
+
+        for stim in self.stim_list:
+            stim.prog.release()
 
         # print profiling information if applicable
 
-        if ((self.profile_frame_count is not None) and
-            (self.profile_start_time is not None) and
-            (self.stim_list)):
-
-            profile_duration = time.time() - self.profile_start_time
-
+        if (print_profile):
             # filter out frame times of duration zero
             fps_data = np.array(self.profile_frame_times)
             fps_data = fps_data[fps_data != 0]
 
             if len(fps_data) > 0:
                 fps_data = pd.Series(1.0/fps_data)
-                stim_names = ', '.join([type(stim).__name__ for stim, _ in self.stim_list])
+                stim_names = ', '.join([type(stim).__name__ for stim in self.stim_list])
                 if print_profile:
                     print('*** ' + stim_names + ' ***')
                     print(fps_data.describe(percentiles=[0.01, 0.05, 0.1, 0.9, 0.95, 0.99]))
@@ -217,9 +221,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # reset stim variables
 
         self.stim_list = []
-        self.stim_offset_time = 0
 
-        self.stim_paused = True
+        self.stim_started = False
         self.stim_start_time = None
 
         self.profile_frame_count = None
@@ -227,6 +230,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.profile_last_time = None
         self.profile_frame_times = None
+
+        self.use_fly_trajectory = False
+        self.fly_x_trajectory = None
+        self.fly_y_trajectory = None
+        self.fly_theta_trajectory = None
+        self.set_global_fly_pos(0, 0, 0)
+        self.set_global_theta_offset(0)
+        self.set_global_phi_offset(0)
+        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
     def start_corner_square(self):
         """
@@ -293,6 +305,35 @@ class StimDisplay(QtOpenGL.QGLWidget):
     def set_global_theta_offset(self, value):
         self.global_theta_offset = radians(value)
 
+    def set_global_phi_offset(self, value):
+        self.global_phi_offset = radians(value)
+
+
+def get_perspective(fly_pos, theta, phi, screen):
+    """
+    :param fly_pos: (x, y, z) position of fly, meters
+    :param theta: fly heading angle along azimuth, radians
+    :param phi: fly heading angle along elevation, radians
+    :param screen: flystim.screen object
+    """
+    pa = screen.tri_list[0].pa.cart  # [x, y, z] in meters
+    pb = screen.tri_list[0].pb.cart
+    pc = screen.tri_list[0].pc.cart
+
+    perspective = GenPerspective(pa=pa, pb=pb, pc=pc, pe=fly_pos)
+
+    """
+    rotate screen and eye position
+    standard offset of 180 around x axis and 180 around z axis ensures that
+    absent any change in fly heading,  (i.e. theta, phi = 0, 0) fly is looking
+    down the positive x axis and above the fly is +z
+    +theta is ccw around z axis, -theta is cw around z axis (looking down at xy plane)
+    -phi tilts fly view up towards the sky (+z), +phi tilts down towards the ground (-z)
+
+    """
+    return perspective.roty(phi).rotx(radians(0)).rotz(radians(0)+theta)
+
+
 def make_qt_format(vsync):
     """
     Initializes the Qt OpenGL format.
@@ -340,11 +381,10 @@ def main():
     stim_display = StimDisplay(screen=screen, server=server, app=app)
 
     # register functions
+    server.register_function(stim_display.set_fly_trajectory)
     server.register_function(stim_display.load_stim)
     server.register_function(stim_display.start_stim)
     server.register_function(stim_display.stop_stim)
-    server.register_function(stim_display.pause_stim)
-    server.register_function(stim_display.update_stim)
     server.register_function(stim_display.start_corner_square)
     server.register_function(stim_display.stop_corner_square)
     server.register_function(stim_display.white_corner_square)
@@ -355,6 +395,7 @@ def main():
     server.register_function(stim_display.set_idle_background)
     server.register_function(stim_display.set_global_fly_pos)
     server.register_function(stim_display.set_global_theta_offset)
+    server.register_function(stim_display.set_global_phi_offset)
 
     # display the stimulus
     if screen.fullscreen:

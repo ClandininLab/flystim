@@ -6,6 +6,7 @@ from collections import Iterable
 
 COLOR_LIST = ['b', 'g', 'r', 'c', 'm', 'y']
 
+
 def draw_screens(screens):
     if not isinstance(screens, Iterable):
         screens = [screens]
@@ -25,8 +26,12 @@ def draw_screens(screens):
 
     # draw fly in the center
     ax.scatter(0, 0, 0, c='g')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
 
     plt.show()
+
 
 def tri_draw(p1, p2, p3, ax, color=None, alpha=0.8):
     coll = Poly3DCollection([[p1, p2, p3]])
