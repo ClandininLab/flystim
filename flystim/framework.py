@@ -51,10 +51,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_start_time = None
 
         # profiling information
-        self.profile_frame_count = None
-        self.profile_start_time = None
-        self.profile_last_time = None
-        self.profile_frame_times = None
+        self.profile_frame_times = []
 
         # save handles to screen and server
         self.screen = screen
@@ -125,13 +122,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 stim.configure(**stim.kwargs)
                 stim.paint_at(self.get_stim_time(t), self.perspective, fly_position=self.global_fly_pos.copy())
 
-            try:
-                self.profile_frame_count += 1
-                if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
-                    self.profile_frame_times.append(t - self.profile_last_time)
-                self.profile_last_time = t
-            except:
-                pass
+            self.profile_frame_times.append(t)
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
@@ -184,10 +175,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         :param t: Time corresponding to t=0 of the animation
         """
 
-        self.profile_frame_count = 0
-        self.profile_start_time = time.time()
-
-        self.profile_last_time = None
         self.profile_frame_times = []
 
         self.stim_started = True
@@ -207,7 +194,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         if (print_profile):
             # filter out frame times of duration zero
-            fps_data = np.array(self.profile_frame_times)
+            fps_data = np.diff(np.array(self.profile_frame_times))
             fps_data = fps_data[fps_data != 0]
 
             if len(fps_data) > 0:
@@ -216,7 +203,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 if print_profile:
                     print('*** ' + stim_names + ' ***')
                     print(fps_data.describe(percentiles=[0.01, 0.05, 0.1, 0.9, 0.95, 0.99]))
-                    print()
+                    print('*** end of statistics ***')
 
         # reset stim variables
 
@@ -225,11 +212,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_started = False
         self.stim_start_time = None
 
-        self.profile_frame_count = None
-        self.profile_start_time = None
-
-        self.profile_last_time = None
-        self.profile_frame_times = None
+        self.profile_frame_times = []
 
         self.use_fly_trajectory = False
         self.fly_x_trajectory = None
