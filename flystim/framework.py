@@ -119,8 +119,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
             for stim in self.stim_list:
-                stim.configure(**stim.kwargs)
-                stim.paint_at(self.get_stim_time(t), self.perspective, fly_position=self.global_fly_pos.copy())
+                if self.stim_started:
+                    stim.configure(**stim.kwargs)
+                    stim.paint_at(self.get_stim_time(t), self.perspective, fly_position=self.global_fly_pos.copy())
+                else:
+                    self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
             self.profile_frame_times.append(t)
         else:
@@ -135,8 +138,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # clear the buffer objects
         for stim in self.stim_list:
-            stim.vbo.release()
-            stim.vao.release()
+            if self.stim_started:
+                stim.vbo.release()
+                stim.vao.release()
 
 
     ###########################################
@@ -222,6 +226,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.set_global_theta_offset(0)
         self.set_global_phi_offset(0)
         self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
+
+    # def set_stim_visible(self):
+    #     for stim in self.stim_list:
+    #         stim.kwargs['color'][3] = 1
+    #         stim.configure(**stim.kwargs)
+    #
+    # def set_stim_invisible(self):
+    #     for stim in self.stim_list:
+    #         stim.kwargs['color'][3] = 1
+    #         stim.configure(**stim.kwargs)
 
     def start_corner_square(self):
         """
