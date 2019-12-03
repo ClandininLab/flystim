@@ -11,8 +11,8 @@ from flystim.stim_server import launch_stim_server
 
 from time import sleep
 
-SPHERE_RADIUS = 1   # in meters
-PROJECTOR_DIST = 1  # distance from the projector to the surface of the sphere in meters
+SPHERE_RADIUS = 1.0   # in meters
+PROJECTOR_DIST = 0.5  # distance from the projector to the surface of the sphere in meters
 THROW_RATIO = 1.75  # projector throw ratio (D/W)
 ASPECT_RATIO = 16/9 # projector aspect ratio (W/H)
 
@@ -44,7 +44,7 @@ def make_patch(lon, lat, d_lon, d_lat):
     # convert ScreenPoints to triangle list
     return Screen.quad_to_tri_list(*pts)
 
-def make_tri_list(n_lon=10, n_lat=10):
+def make_tri_list(n_lon=6, n_lat=6):
     # input validation
     assert 360 % n_lon == 0, f'n_lon={n_lon} does not divide 360'
     assert  90 % n_lat == 0, f'n_lat={n_lat} does not divide 90'
@@ -64,7 +64,7 @@ def make_tri_list(n_lon=10, n_lat=10):
     return tri_list
 
 def main():
-    screen = Screen(fullscreen=False, tri_list=make_tri_list())
+    screen = Screen(fullscreen=False, tri_list=make_tri_list(), id = 0, vsync=True)
 
     #####################################################
     # part 1: draw the screen configuration
@@ -78,9 +78,11 @@ def main():
 
     manager = launch_stim_server(screen)
 
-    tv_pairs = [(0,0),(10,360)]
+    tv_pairs = [(0,0),(5,360)]
     theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
-    manager.load_stim(name='MovingPatch',width=30, height=180, phi=0, color=1, theta=theta_traj, hold=True, angle=45)
+    manager.load_stim(name='MovingPatch',width=90, height=90, phi=0, color=1, theta=theta_traj, hold=True, angle=0, sphere_radius=1)
+    # manager.load_stim(name='RotatingGrating', rate=20, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
+                      # color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0)
 
     sleep(1)
 
