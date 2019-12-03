@@ -14,7 +14,7 @@ setup(
         'numpy',
         'pyglet',
         'moderngl',
-	    'PyQt5',
+	    'PyQt5==5.11.2',
 	    'hidapi',
         'pandas',
         'json-rpc',
