@@ -227,16 +227,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.set_global_phi_offset(0)
         self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
-    # def set_stim_visible(self):
-    #     for stim in self.stim_list:
-    #         stim.kwargs['color'][3] = 1
-    #         stim.configure(**stim.kwargs)
-    #
-    # def set_stim_invisible(self):
-    #     for stim in self.stim_list:
-    #         stim.kwargs['color'][3] = 1
-    #         stim.configure(**stim.kwargs)
-
     def start_corner_square(self):
         """
         Start toggling the corner square.
@@ -321,13 +311,13 @@ def get_perspective(fly_pos, theta, phi, screen):
 
     """
     rotate screen and eye position
-    standard offset of 180 around x axis and 180 around z axis ensures that
-    absent any change in fly heading,  (i.e. theta, phi = 0, 0) fly is looking
+    Absent any change in fly heading,  (i.e. theta, phi = 0, 0) fly is looking
     down the positive x axis and above the fly is +z
     +theta is ccw around z axis, -theta is cw around z axis (looking down at xy plane)
     -phi tilts fly view up towards the sky (+z), +phi tilts down towards the ground (-z)
 
     """
+    # theta, phi, angle?
     return perspective.roty(phi).rotx(radians(0)).rotz(radians(0)+theta)
 
 
