@@ -13,6 +13,8 @@ import math
 import socket
 import os, subprocess
 
+import matplotlib.pyplot as plt
+
 def dir_to_tri_list(dir):
 
     north_w = 3.0e-2
@@ -68,7 +70,7 @@ def fictrac_get_data(sock):
 
     # Fixme: sometimes we read more than one line at a time,
     # should handle that rather than just dropping extra data...
-    if ((len(toks) < 24) | (toks[0] != "FT")):
+    if ((len(toks) < 26) | (toks[0] != "FT")):
         print('Bad read')
         #continue
 
@@ -77,8 +79,10 @@ def fictrac_get_data(sock):
     posx = float(toks[15])
     posy = float(toks[16])
     heading = float(toks[17])
+    sync_illum = int(toks[24])
+    sync_mean = float(toks[25])
 
-    return (posx, posy, heading)
+    return (posx, posy, heading, sync_illum, sync_mean)
 
 
 def main():
@@ -99,28 +103,28 @@ def main():
     # part 2: display a stimulus
     #####################################################
 
-    stim_length = 60 #sec
+    stim_length = 30 #sec
 
     manager = launch_stim_server(screen)
 
-    trajectory = RectangleTrajectory(x=[(0,90),(stim_length,90)], y=90, w=5, h=60)
+    trajectory = RectangleTrajectory(x=[(0,90),(stim_length,180)], y=90, w=5, h=60)
     manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
 
-    p = subprocess.Popen(["/home/clandinin/fictrac/bin/fictrac","/home/clandinin/fictrac/config1.txt"])
+    p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config1.txt"])
     sleep(2)
 
-    hi = 60
+    sync_means = []
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.connect((HOST, PORT))
 
         manager.start_stim()
 
         t_start = time()
-        prev_x, prev_y, prev_theta = fictrac_get_data(sock)
+        #prev_x, prev_y, prev_theta = fictrac_get_data(sock)
 
         while (time() -  t_start) < stim_length:
             #print(time() -  t_start)
-            posx, posy, theta_rad = fictrac_get_data(sock)
+            posx, posy, theta_rad, sync_illum, sync_mean = fictrac_get_data(sock)
             #dx = posx-prev_x
             #dy = posy-prev_y
             #dtheta = theta - prev_theta
@@ -133,11 +137,17 @@ def main():
             manager.set_global_theta_offset(theta_deg)
             #prev_x, prev_y, prev_theta = posx, posy, theta
 
+            sync_means.append(sync_mean)
+
 
         manager.stop_stim()
         sleep(2)
     p.terminate()
     p.kill()
+
+    sync_means = np.array(sync_means)
+    plt.plot(sync_means)
+    plt.show()
 
 if __name__ == '__main__':
     main()
