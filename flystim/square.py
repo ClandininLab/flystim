@@ -82,5 +82,5 @@ class SquareProgram:
             self.vao.render(mode=moderngl.TRIANGLE_STRIP)
 
         if self.toggle:
-            if random.random() < self.square_toggle_prob:
+            if random.random() < self.toggle_prob:
                 self.color = 1.0 - self.color
