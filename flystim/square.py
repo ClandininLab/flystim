@@ -3,6 +3,7 @@
 import moderngl
 import numpy as np
 import os.path
+import random
 
 class SquareProgram:
     def __init__(self, screen):

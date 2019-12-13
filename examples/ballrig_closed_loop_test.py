@@ -86,7 +86,7 @@ def fictrac_get_data(sock):
 
 
 def main():
-    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), square_side=0.08, square_loc='ur')
+    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), square_side=0.08, square_loc='ur', square_toggle_prob=.5)
     print(screen)
 
     HOST = '127.0.0.1'  # The server's hostname or IP address
