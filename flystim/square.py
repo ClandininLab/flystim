@@ -12,6 +12,7 @@ class SquareProgram:
         # initialize settings
         self.color = 1.0
         self.toggle = True
+        self.toggle_prob = screen.square_toggle_prob
         self.draw = True
 
     def initialize(self, ctx):
@@ -80,4 +81,5 @@ class SquareProgram:
             self.vao.render(mode=moderngl.TRIANGLE_STRIP)
 
         if self.toggle:
-            self.color = 1.0 - self.color
+            if random.random() < self.square_toggle_prob:
+                self.color = 1.0 - self.color
