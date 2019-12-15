@@ -52,7 +52,8 @@ class Screen:
     """
 
     def __init__(self, width=None, height=None, rotation=None, offset=None, server_number=None, id=None,
-                 fullscreen=None, vsync=None, square_side=None, square_loc=None, square_toggle_prob=None, name=None, tri_list=None):
+                 fullscreen=None, vsync=None, square_side=None, square_loc=None, square_toggle_prob=None,
+                 save_square_history=None, name=None, tri_list=None):
         """
         :param width: width of the screen (meters)
         :param height: height of the screen (meters)
@@ -95,6 +96,8 @@ class Screen:
             square_loc = 'll'
         if square_toggle_prob is None:
             square_toggle_prob = 1.0
+        if save_square_history is None:
+            save_square_history = False
         if name is None:
             name = 'Screen' + str(id)
 
@@ -120,6 +123,7 @@ class Screen:
         self.square_side = square_side
         self.square_loc = square_loc
         self.square_toggle_prob = square_toggle_prob
+        self.save_square_history = save_square_history
         self.name = name
 
     @classmethod
@@ -157,7 +161,7 @@ class Screen:
 
     def serialize(self):
         # get all variables needed to reconstruct the screen object
-        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_side', 'square_loc', 'square_toggle_prob', 'name']
+        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_side', 'square_loc', 'square_toggle_prob', 'save_square_history', 'name']
         data = {var: getattr(self, var) for var in vars}
 
         # special handling for tri_list since it could contain numpy values

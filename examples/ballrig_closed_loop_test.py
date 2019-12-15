@@ -86,11 +86,12 @@ def fictrac_get_data(sock):
 
 
 def main():
-    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), square_side=0.08, square_loc='ur', square_toggle_prob=.5)
+    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), \
+                    square_side=0.08, square_loc='ur', square_toggle_prob=0.5, save_square_history=True)
     print(screen)
 
-    HOST = '127.0.0.1'  # The server's hostname or IP address
-    PORT = 33334         # The port used by the server
+    FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
+    FICTRAC_PORT = 33334         # The port used by the server
     RADIUS = 0.0045 # in meters; i.e. 4.5mm
 
     #####################################################
@@ -103,9 +104,10 @@ def main():
     # part 2: display a stimulus
     #####################################################
 
-    stim_length = 30 #sec
+    stim_length = 5 #sec
 
     manager = launch_stim_server(screen)
+    manager.set_save_history_flag(True)
 
     trajectory = RectangleTrajectory(x=[(0,90),(stim_length,180)], y=90, w=5, h=60)
     manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
@@ -114,8 +116,8 @@ def main():
     sleep(2)
 
     sync_means = []
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((HOST, PORT))
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as fictrac_sock:
+        fictrac_sock.connect((FICTRAC_HOST, FICTRAC_PORT))
 
         manager.start_stim()
 
@@ -124,7 +126,7 @@ def main():
 
         while (time() -  t_start) < stim_length:
             #print(time() -  t_start)
-            posx, posy, theta_rad, sync_illum, sync_mean = fictrac_get_data(sock)
+            posx, posy, theta_rad, sync_illum, sync_mean = fictrac_get_data(fictrac_sock)
             #dx = posx-prev_x
             #dy = posy-prev_y
             #dtheta = theta - prev_theta
@@ -144,6 +146,12 @@ def main():
         sleep(2)
     p.terminate()
     p.kill()
+
+    # Save things
+    manager.set_save_path("/home/clandinin")
+    manager.save_history()
+
+
 
     sync_means = np.array(sync_means)
     plt.plot(sync_means)

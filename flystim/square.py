@@ -12,6 +12,8 @@ class SquareProgram:
 
         # initialize settings
         self.color = 1.0
+        self.square_history = []
+        self.save_square_history = screen.save_square_history
         self.toggle = True
         self.toggle_prob = screen.square_toggle_prob
         self.draw = True
@@ -73,6 +75,10 @@ class SquareProgram:
         # return vertex point data
         return np.array([x_min, y_min, x_max, y_min, x_min, y_max, x_max, y_max])
 
+    def toggle_square(self):
+        if random.random() < self.toggle_prob: # probablistic toggling
+            self.color = 1.0 - self.color
+
     def paint(self):
         if self.draw:
             # write color
@@ -81,6 +87,9 @@ class SquareProgram:
             # render to screen
             self.vao.render(mode=moderngl.TRIANGLE_STRIP)
 
+        # Save the square color at each call of paint
+        if self.save_square_history:
+            self.square_history.append(int(self.color))
+
         if self.toggle:
-            if random.random() < self.toggle_prob:
-                self.color = 1.0 - self.color
+            self.toggle_square()

@@ -75,6 +75,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.global_phi_offset = 0
         self.global_fly_pos = np.array([0, 0, 0], dtype=float)
 
+        # history for stim-behavior alignment
+        self.save_history_flag = False
+        self.save_path = "/home/clandinin"
+        self.stim_time_history = []
+        self.global_fly_pos_history = []
+        self.global_theta_offset_history = []
+        self.global_phi_offset_history = []
+
     def initializeGL(self):
         # get OpenGL context
         self.ctx = moderngl.create_context()
@@ -107,15 +115,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.ctx.viewport = (0, 0, self.width()*self.devicePixelRatio(), self.height()*self.devicePixelRatio())
 
         # draw the stimulus
+        t = time.time()
+        stim_time = self.get_stim_time(t)
         if self.stim_list:
-            t = time.time()
-
             self.ctx.clear(0, 0, 0, 1)
             self.ctx.enable(moderngl.BLEND)
 
             for stim, config_options in self.stim_list:
                 stim.apply_config_options(config_options)
-                stim.paint_at(self.get_stim_time(t), global_fly_pos=self.global_fly_pos,
+                stim.paint_at(stim_time, global_fly_pos=self.global_fly_pos,
                               global_theta_offset=self.global_theta_offset,
                               global_phi_offset=self.global_phi_offset)
 
@@ -132,6 +140,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # draw the corner square
         self.square_program.paint()
+
+        # Save stim_time AND global positions and offsets
+        if self.save_history_flag:
+            self.stim_time_history.append(stim_time)
+            self.global_fly_pos_history.append(self.global_fly_pos)
+            self.global_theta_offset_history.append(self.global_theta_offset)
+            self.global_phi_offset_history.append(self.global_phi_offset)
 
         # update the window
         self.update()
@@ -298,6 +313,19 @@ class StimDisplay(QtOpenGL.QGLWidget):
     def set_global_phi_offset(self, value):
         self.global_phi_offset = radians(value)
 
+    def set_save_history_flag(self, save_history_flag=True):
+        self.save_history_flag = save_history_flag
+
+    def set_save_path(self, save_path):
+        self.save_path = save_path
+
+    def save_history(self):
+        np.savetxt(self.save_path+'/square.txt', np.array(self.square_program.square_history), delimiter='\n')
+        np.savetxt(self.save_path+'/frame_times.txt', np.array(self.stim_time_history), delimiter='\n')
+        #np.savetxt(self.save_path+'/fly_pos.txt', np.array(self.global_fly_pos_history), delimiter='\n')
+        np.savetxt(self.save_path+'/theta_offset.txt', np.array(self.global_theta_offset_history), delimiter='\n')
+        #np.savetxt(self.save_path+'/phi_offset.txt', np.array(self.global_phi_offset_history), delimiter='\n')
+
 def make_qt_format(vsync):
     """
     Initializes the Qt OpenGL format.
@@ -361,6 +389,9 @@ def main():
     server.register_function(stim_display.set_global_fly_pos)
     server.register_function(stim_display.set_global_theta_offset)
     server.register_function(stim_display.set_global_phi_offset)
+    server.register_function(stim_display.set_save_history_flag)
+    server.register_function(stim_display.set_save_path)
+    server.register_function(stim_display.save_history)
 
     # display the stimulus
     if screen.fullscreen:
