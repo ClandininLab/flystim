@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import matlib
 from math import radians
 from .util import rotx, roty, rotz, translate, scale, rotate
 
@@ -64,6 +65,7 @@ class GlTri(GlVertices):
     def __init__(self, v1, v2, v3, color, tc1=None, tc2=None, tc3=None, texture=None):
         vertices = np.concatenate((v1, v2, v3)).reshape((3, 3), order='F')
         colors = np.concatenate((color, color, color)).reshape((4, 3), order='F')
+
         if tc1 is not None:
             tex_coords = np.concatenate((tc1, tc2, tc3)).reshape((2, 3), order='F')
         else:
@@ -191,6 +193,35 @@ class GlSphericalCirc(GlVertices):
                             r * np.sin(phi) * np.sin(theta),
                             r * np.cos(phi))
         return cartesian_coords
+
+class GlSphericalPoints(GlVertices):
+    def __init__(self,
+                 sphere_radius=1,  # meters
+                 color=[1, 1, 1, 1],
+                 theta=[0],
+                 phi=[0]):
+        if type(color) is not list:
+            if type(color) is tuple:
+                color = list(color)
+            else:
+                color = [color, color, color, 1]
+
+        cartesian_coords = []
+        for pt in range(len(theta)):
+            cartesian_coords.append(self.sphericalToCartesian((sphere_radius, radians(theta[pt]), np.pi/2 + radians(phi[pt]))))
+
+        vertices = np.vstack(cartesian_coords).T # 3 x n_points
+        colors = matlib.repmat(color, len(theta), 1).T # 4 x n_points
+
+        super().__init__(vertices=vertices, colors=colors)
+
+    def sphericalToCartesian(self, spherical_coords):
+        r, theta, phi = spherical_coords
+        cartesian_coords = (r * np.sin(phi) * np.cos(theta),
+                            r * np.sin(phi) * np.sin(theta),
+                            r * np.cos(phi))
+        return cartesian_coords
+
 
 
 class GlCylinder(GlVertices):

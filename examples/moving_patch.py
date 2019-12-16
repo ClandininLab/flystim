@@ -8,7 +8,7 @@ from time import sleep
 
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=True))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=False))
 
     manager.load_stim(name='ConstantBackground', color = [0.5, 0.5, 0.5, 1.0], side_length=100)
     manager.load_stim(name='Tower', color=[1, 0, 0, 1], cylinder_location=[1, 0, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) #red +x

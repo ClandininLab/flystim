@@ -5,7 +5,7 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import Trajectory
 import flystim.distribution as distribution
-from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices
+from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints
 
 
 class ConstantBackground(BaseProgram):
@@ -588,18 +588,11 @@ class HorizonCylinder(TexturedCylinder):
 
 class Forest(BaseProgram):
     def __init__(self, screen):
-        super().__init__(screen=screen, num_tri=500)
+        super().__init__(screen=screen, num_tri=1000)
 
     def configure(self, color=[1, 1, 1, 1], cylinder_radius=0.5, cylinder_height=0.5, n_faces=16, cylinder_locations=[[+5, 0, 0]]):
         """
-        Cylindrical tower object in arbitrary x, y, z coords
-        :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome
-        :param cylinder_radius: meters
-        :param cylinder_height: meters
-        :param cylinder_location: [x, y, z] location of the center of the cylinder, meters
-        :param n_faces: number of quad faces to make the cylinder out of
-        :param cylinder_locations: tuple (len = num trees) of lists [x, y, z] of tree locations
-
+        Collection of tower objects created with a single shader program
         """
         self.color = color
         self.cylinder_radius = cylinder_radius
@@ -617,3 +610,40 @@ class Forest(BaseProgram):
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         pass
+
+
+class CoherentMotionDotField(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=10000)
+        self.draw_mode = 'POINTS'
+
+    def configure(self, point_size=20, sphere_radius=1, color=[1, 1, 1, 1], theta_locations=[0], phi_locations=[0], theta_trajectory=0, phi_trajectory=0):
+        """
+        Collection of moving points created with a single shader
+        Each point can have a distinct offset (center), and all move with a single coherent motion trajectory along a sphere
+        Note that points are all the same size, so no area correction is made for perspective
+        """
+        self.point_size = point_size
+        self.sphere_radius = sphere_radius
+        self.color = color
+        self.theta_locations = theta_locations
+        self.phi_locations = phi_locations
+        self.theta_trajectory = theta_trajectory
+        self.phi_trajectory = phi_trajectory
+
+        self.stim_object = GlSphericalPoints(sphere_radius=self.sphere_radius,
+                                             color=self.color,
+                                             theta=self.theta_locations,
+                                             phi=self.phi_locations)
+
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        if type(self.theta_trajectory) is dict:
+            theta = Trajectory.from_dict(self.theta_trajectory).eval_at(t)
+        else:
+            theta = self.theta_trajectory
+        if type(self.phi_trajectory) is dict:
+            phi = Trajectory.from_dict(self.phi_trajectory).eval_at(t)
+        else:
+            phi = self.phi_trajectory
+
+        self.stim_object = self.stim_object.rotate(np.radians(theta), np.radians(phi), 0)

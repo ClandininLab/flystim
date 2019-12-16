@@ -2,7 +2,7 @@ import moderngl
 
 
 class BaseProgram:
-    def __init__(self, screen, num_tri=100):
+    def __init__(self, screen, num_tri=500):
         """
         :param screen: Object containing screen size information
         """
@@ -12,7 +12,9 @@ class BaseProgram:
         self.texture_image = None
         self.use_texture = False
         self.cylindrical_height_correction = False
-        self.texture_interpolation = 'LINEAR'
+        self.texture_interpolation = 'LINEAR' # LINEAR, NEAREST
+        self.draw_mode = 'TRIANGLES' # TRIANGLES, POINTS
+        self.point_size = 2 # pixels on screen, only for POINTS draw_mode
 
     def initialize(self, ctx):
         """
@@ -56,7 +58,13 @@ class BaseProgram:
         # set the perspective matrix
         self.prog['Mvp'].write(perspective.matrix.astype('f4').tobytes(order='F'))
         # render the objects
-        self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
+
+        if self.draw_mode == 'POINTS':
+            self.vao.render(mode=moderngl.POINTS, vertices=vertices)
+            self.ctx.point_size=self.point_size
+        elif self.draw_mode == 'TRIANGLES':
+            self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
+
 
     def update_vertex_objects(self):
         if self.use_texture:
