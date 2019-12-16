@@ -71,7 +71,8 @@ def fictrac_get_data(sock):
     # Fixme: sometimes we read more than one line at a time,
     # should handle that rather than just dropping extra data...
     if ((len(toks) < 26) | (toks[0] != "FT")):
-        print('Bad read')
+        #print('Bad read')
+        return fictrac_get_data(sock)
         #continue
 
     #dr_lab = [float(toks[6]), float(toks[7]), float(toks[8])]
@@ -79,15 +80,16 @@ def fictrac_get_data(sock):
     posx = float(toks[15])
     posy = float(toks[16])
     heading = float(toks[17])
+    timestamp = float(toks[22])
     sync_illum = int(toks[24])
     sync_mean = float(toks[25])
 
-    return (posx, posy, heading, sync_illum, sync_mean)
+    return (posx, posy, heading, timestamp, sync_illum, sync_mean)
 
 
 def main():
     screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), \
-                    square_side=0.08, square_loc='ur', square_toggle_prob=0.5, save_square_history=True)
+                    square_side=0.08, square_loc='ur', square_toggle_prob=0.9, save_square_history=True)
     print(screen)
 
     FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
@@ -105,56 +107,70 @@ def main():
     #####################################################
 
     stim_length = 5 #sec
+    n_trials=2
+    save_path = "/home/clandinin/minseung_cl_data"
+    save_prefix = "fly0"
+
 
     manager = launch_stim_server(screen)
     manager.set_save_history_flag(True)
 
     trajectory = RectangleTrajectory(x=[(0,90),(stim_length,180)], y=90, w=5, h=60)
-    manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
 
-    p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config1.txt"])
+    p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config1.txt"], start_new_session=True)
     sleep(2)
 
-    sync_means = []
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as fictrac_sock:
         fictrac_sock.connect((FICTRAC_HOST, FICTRAC_PORT))
 
-        manager.start_stim()
+        for t in range(n_trials):
+            _=fictrac_sock.recv(1024) #clear trash
+            manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict())
+            # begin trial
+            ft_sync_means = []
+            ft_timestamps = []
+            ft_posx = []
+            ft_posy = []
+            ft_theta = []
+            manager.start_stim()
+            t_start = time()
+            posx_0, posy_0, theta_0, _, _, _ = fictrac_get_data(fictrac_sock)
 
-        t_start = time()
-        #prev_x, prev_y, prev_theta = fictrac_get_data(sock)
+            while (time() -  t_start) < stim_length:
+                #posx, posy, theta_rad, timestamp, sync_illum, sync_mean = fictrac_get_data(fictrac_sock)
+                posx, posy, theta_rad, timestamp, _, sync_mean = fictrac_get_data(fictrac_sock)
+                posx = posx - theta_0
+                posy = posy - theta_0
+                theta_rad = theta_rad - theta_0
 
-        while (time() -  t_start) < stim_length:
-            #print(time() -  t_start)
-            posx, posy, theta_rad, sync_illum, sync_mean = fictrac_get_data(fictrac_sock)
-            #dx = posx-prev_x
-            #dy = posy-prev_y
-            #dtheta = theta - prev_theta
-            # manager.set_global_fly_pos(manager.global_fly_pos[0]+dx, manager.global_fly_pos[1]+dy, 0)
-            # manager.set_global_theta_offset(manager.global_theta_offset+dtheta)
+                #manager.set_global_fly_pos(posx*RADIUS, posy*RADIUS, 0)
+                theta_deg = (theta_rad*180/math.pi) % 360 - 360
+                manager.set_global_theta_offset(theta_deg)
 
-            #manager.set_global_fly_pos(posx*RADIUS, posy*RADIUS, 0)
-            #manager.set_global_theta_offset(theta * 180 / math.pi)
-            theta_deg = (theta_rad*180/math.pi) % 360 - 360
-            manager.set_global_theta_offset(theta_deg)
-            #prev_x, prev_y, prev_theta = posx, posy, theta
+                ft_sync_means.append(sync_mean)
+                ft_timestamps.append(timestamp)
+                ft_posx.append(posx)
+                ft_posy.append(posy)
+                ft_theta.append(theta_rad)
+            manager.stop_stim()
+            # Save things
+            manager.set_save_path(save_path)
+            save_prefix_with_trial = save_prefix+"_t"+f'{t:03}'
+            manager.set_save_prefix(save_prefix_with_trial)
+            manager.save_history()
+            np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_square.txt', np.array(ft_sync_means), delimiter='\n')
+            np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_timestamps.txt', np.array(ft_timestamps), delimiter='\n')
+            np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_posx.txt', np.array(ft_posx), delimiter='\n')
+            np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_posy.txt', np.array(ft_posy), delimiter='\n')
+            np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_theta.txt', np.array(ft_theta), delimiter='\n')
+            sleep(2)
 
-            sync_means.append(sync_mean)
-
-
-        manager.stop_stim()
-        sleep(2)
     p.terminate()
     p.kill()
 
-    # Save things
-    manager.set_save_path("/home/clandinin")
-    manager.save_history()
 
-
-
-    sync_means = np.array(sync_means)
-    plt.plot(sync_means)
+    sync_means = np.array(ft_sync_means)
+    plt.plot(ft_sync_means)
     plt.show()
 
 if __name__ == '__main__':

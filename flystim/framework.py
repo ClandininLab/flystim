@@ -7,6 +7,7 @@ import moderngl
 import numpy as np
 import pandas as pd
 import platform
+import os
 
 from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
 from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground, ArbitraryGrid
@@ -77,11 +78,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # history for stim-behavior alignment
         self.save_history_flag = False
-        self.save_path = "/home/clandinin"
+        self.save_path = ""
+        self.save_prefix = ""
         self.stim_time_history = []
-        self.global_fly_pos_history = []
+        self.global_fly_posx_history = []
+        self.global_fly_posy_history = []
+        #self.global_fly_posz_history = []
         self.global_theta_offset_history = []
-        self.global_phi_offset_history = []
+        #self.global_phi_offset_history = []
 
     def initializeGL(self):
         # get OpenGL context
@@ -138,15 +142,17 @@ class StimDisplay(QtOpenGL.QGLWidget):
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
-        # draw the corner square
-        self.square_program.paint()
-
         # Save stim_time AND global positions and offsets
         if self.save_history_flag:
             self.stim_time_history.append(stim_time)
-            self.global_fly_pos_history.append(self.global_fly_pos)
+            self.global_fly_posx_history.append(self.global_fly_pos[0])
+            self.global_fly_posy_history.append(self.global_fly_pos[1])
+            #self.global_fly_posz_history.append(self.global_fly_pos[2])
             self.global_theta_offset_history.append(self.global_theta_offset)
-            self.global_phi_offset_history.append(self.global_phi_offset)
+            #self.global_phi_offset_history.append(self.global_phi_offset)
+
+        # draw the corner square
+        self.square_program.paint() #must come after saving history to match length??
 
         # update the window
         self.update()
@@ -319,12 +325,17 @@ class StimDisplay(QtOpenGL.QGLWidget):
     def set_save_path(self, save_path):
         self.save_path = save_path
 
+    def set_save_prefix(self, save_prefix):
+        self.save_prefix = save_prefix
+
     def save_history(self):
-        np.savetxt(self.save_path+'/square.txt', np.array(self.square_program.square_history), delimiter='\n')
-        np.savetxt(self.save_path+'/frame_times.txt', np.array(self.stim_time_history), delimiter='\n')
-        #np.savetxt(self.save_path+'/fly_pos.txt', np.array(self.global_fly_pos_history), delimiter='\n')
-        np.savetxt(self.save_path+'/theta_offset.txt', np.array(self.global_theta_offset_history), delimiter='\n')
-        #np.savetxt(self.save_path+'/phi_offset.txt', np.array(self.global_phi_offset_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_square.txt', np.array(self.square_program.square_history), fmt='%i', delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.stim_time_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posx.txt', np.array(self.global_fly_posx_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posy.txt', np.array(self.global_fly_posy_history), delimiter='\n')
+        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_fly_posz.txt', np.array(self.global_fly_posz_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_theta.txt', np.array(self.global_theta_offset_history), delimiter='\n')
+        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_phi_offset.txt', np.array(self.global_phi_offset_history), delimiter='\n')
 
 def make_qt_format(vsync):
     """
@@ -391,6 +402,7 @@ def main():
     server.register_function(stim_display.set_global_phi_offset)
     server.register_function(stim_display.set_save_history_flag)
     server.register_function(stim_display.set_save_path)
+    server.register_function(stim_display.set_save_prefix)
     server.register_function(stim_display.save_history)
 
     # display the stimulus
