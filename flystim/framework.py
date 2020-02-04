@@ -317,7 +317,6 @@ def get_perspective(fly_pos, theta, phi, screen):
     -phi tilts fly view up towards the sky (+z), +phi tilts down towards the ground (-z)
 
     """
-    # theta, phi, angle?
     return perspective.roty(phi).rotx(radians(0)).rotz(radians(0)+theta)
 
 
