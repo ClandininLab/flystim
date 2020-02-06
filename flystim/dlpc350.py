@@ -156,12 +156,23 @@ class DLPC350:
         # stop sequence mode
         self.stop_sequence()
 
+        # 2.4.1 display mode selection
         # set display to pattern mode
         self.write(cmd2=0x1a, cmd3=0x1b, data=[0x01])
 
-        # pattern data streamed over video
-        self.write(cmd2=0x1a, cmd3=0x22, data=[0x00])
+        # 2.3.4.2 input source selection
+        # set display to take input from the parallel interface with a bit depth of 8
+        # NOTE: see http://www.ti.com/lit/ug/dlpu010g/dlpu010g.pdf
+        # TODO: how many bits for bit depth selection??
 
+        # parallel interface, 8 bit depth
+        data = 0b00001010
+
+        # parallel interface, 24 bit depth
+        #data = 0b00000010
+        self.write(cmd2=0x1a, cmd3=0x00, data=[data])
+
+        # NOTE: I think this can be omitted since we are streaming patterns
         # pattern LUT
         # 0x00 = One entry
         # 0x01 = Always repeat the pattern sequence, once a sequence is completed
