@@ -25,6 +25,9 @@ def main():
 
     print('Found {} lightcrafters.'.format(len(dlpc350_objects)))
 
+    if not dlpc350_objects:
+        raise RuntimeError("No dlpc devices found")
+
     for dlpc350_object in dlpc350_objects:
         dlpc350_object.set_current(red=args.red_current, green=args.green_current, blue=args.blue_current)
 
