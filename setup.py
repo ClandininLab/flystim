@@ -14,11 +14,12 @@ setup(
         'numpy',
         'pyglet',
         'moderngl',
-	    'PyQt5==5.11.2',
-	    'hidapi',
+        'PyQt5==5.11.2',
+        'hidapi',
         'pandas',
         'json-rpc',
-        'matplotlib'
+        'matplotlib',
+        'flyrpc'
     ],
     entry_points={
         'console_scripts': [
