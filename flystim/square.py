@@ -12,11 +12,12 @@ class SquareProgram:
 
         # initialize settings
         self.color = 1.0
-        self.square_history = []
-        self.save_square_history = screen.save_square_history
+        #self.save_square_history = screen.save_square_history
         self.toggle = True
         self.toggle_prob = screen.square_toggle_prob
         self.draw = True
+
+        #self.profile_frame_count = 0
 
     def initialize(self, ctx):
         """
@@ -88,8 +89,8 @@ class SquareProgram:
             self.vao.render(mode=moderngl.TRIANGLE_STRIP)
 
         # Save the square color at each call of paint
-        if self.save_square_history:
-            self.square_history.append(int(self.color))
+        #if self.save_square_history:
+        #    self.square_history[self.profile_frame_count] = int(self.color)
 
         if self.toggle:
             self.toggle_square()

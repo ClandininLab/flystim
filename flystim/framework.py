@@ -80,6 +80,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.save_history_flag = False
         self.save_path = ""
         self.save_prefix = ""
+        self.square_history = []
         self.stim_time_history = []
         self.global_fly_posx_history = []
         self.global_fly_posy_history = []
@@ -134,8 +135,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
             try:
                 # TODO: make sure that profile information is still accurate
                 self.profile_frame_count += 1
-                if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
-                    self.profile_frame_times.append(t - self.profile_last_time)
+                #if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
+                    #self.profile_frame_times.append(t - self.profile_last_time)
                 self.profile_last_time = t
             except:
                 pass
@@ -143,12 +144,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
         # Save stim_time AND global positions and offsets
-        if self.save_history_flag:
-            self.stim_time_history.append(stim_time)
-            self.global_fly_posx_history.append(self.global_fly_pos[0])
-            self.global_fly_posy_history.append(self.global_fly_pos[1])
+        if self.profile_frame_count is not None and self.save_history_flag:
+            self.square_history[self.profile_frame_count-1] = int(self.square_program.color) #stim_time
+            self.stim_time_history[self.profile_frame_count-1] = t #stim_time
+            self.global_fly_posx_history[self.profile_frame_count-1] = self.global_fly_pos[0]
+            self.global_fly_posy_history[self.profile_frame_count-1] = self.global_fly_pos[1]
             #self.global_fly_posz_history.append(self.global_fly_pos[2])
-            self.global_theta_offset_history.append(self.global_theta_offset)
+            self.global_theta_offset_history[self.profile_frame_count-1] = self.global_theta_offset
             #self.global_phi_offset_history.append(self.global_phi_offset)
 
         # draw the corner square
@@ -206,6 +208,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.stim_paused = False
         self.stim_start_time = t
+
+        fs_frame_rate_estimate = 120
+        stim_duration = 65
+
+        self.square_history = np.zeros(fs_frame_rate_estimate * stim_duration)
+        self.stim_time_history = np.zeros(fs_frame_rate_estimate * stim_duration)
+        self.global_fly_posx_history = np.zeros(fs_frame_rate_estimate * stim_duration)
+        self.global_fly_posy_history = np.zeros(fs_frame_rate_estimate * stim_duration)
+        #self.global_fly_posz_history = np.zeros(fs_frame_rate_estimate * stim_duration)
+        self.global_theta_offset_history = np.zeros(fs_frame_rate_estimate * stim_duration)
 
     def pause_stim(self, t):
         self.stim_paused = True
@@ -329,7 +341,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.save_prefix = save_prefix
 
     def save_history(self):
-        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_square.txt', np.array(self.square_program.square_history), fmt='%i', delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_square.txt', np.array(self.square_history), fmt='%i', delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.stim_time_history), delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posx.txt', np.array(self.global_fly_posx_history), delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posy.txt', np.array(self.global_fly_posy_history), delimiter='\n')
