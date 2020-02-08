@@ -1,9 +1,12 @@
 # ref: https://github.com/cprogrammer1994/ModernGL/blob/master/examples/julia_fractal.py
 
-import moderngl
-import numpy as np
 import os.path
 import random
+from time import time
+
+
+import moderngl
+import numpy as np
 
 class SquareProgram:
     def __init__(self, screen):
@@ -16,6 +19,7 @@ class SquareProgram:
         self.save_square_history = screen.save_square_history
         self.toggle = True
         self.toggle_prob = screen.square_toggle_prob
+        self.last_toggle = time()
         self.draw = True
 
     def initialize(self, ctx):
@@ -76,8 +80,14 @@ class SquareProgram:
         return np.array([x_min, y_min, x_max, y_min, x_min, y_max, x_max, y_max])
 
     def toggle_square(self):
-        if random.random() < self.toggle_prob: # probablistic toggling
-            self.color = 1.0 - self.color
+        # probablistic toggling
+        if random.random() < self.toggle_prob:
+            elapsed = time() - self.last_toggle
+            # NOTE: limit toggle rate to 60hz to stay well within nyquist limit
+            #  (camera capture rate is 240hz)
+            if elapsed > (1 / 60):
+                self.color = 1.0 - self.color
+                self.last_toggle = time()
 
     def paint(self):
         if self.draw:
