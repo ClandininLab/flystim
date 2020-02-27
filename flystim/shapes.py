@@ -263,7 +263,9 @@ class GlCylinder(GlVertices):
 
     def cylindricalToCartesian(self, cylindrical_coords):
         r, theta, z = cylindrical_coords
-        cartesian_coords = (r * np.cos(theta),
-                            r * np.sin(theta),
-                            z)
+        cartesian_coords = (
+            r * np.cos(theta),
+            z,
+            r * np.sin(theta)
+        )
         return cartesian_coords
