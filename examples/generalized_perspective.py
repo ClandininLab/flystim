@@ -16,9 +16,9 @@ def main():
     screen = Screen(
         fullscreen=False,
         server_number=1,
-        id=0,
+        screen_id=0,
         vsync=True,
-        rotation=radians(180),
+        azimuth=radians(0),
         offset=(0, 0, 0.3)
     )
 
@@ -32,7 +32,7 @@ def main():
     manager.load_stim(
         name='Tower',
         color=[1, 0, 0, 1],
-        cylinder_location=[-0.25, 0, 1],
+        cylinder_location=[-0.25, 0, -1],
         cylinder_height=0.1,
         cylinder_radius=0.05,
         hold=True
@@ -41,7 +41,7 @@ def main():
     manager.load_stim(
         name='Tower',
         color=[0, 1, 0, 1],
-        cylinder_location=[0, 0.25, 1],
+        cylinder_location=[0, 0.25, -1],
         cylinder_height=0.1,
         cylinder_radius=0.05,
         hold=True
@@ -50,7 +50,7 @@ def main():
     manager.load_stim(
         name='Tower',
         color=[0, 0, 1, 1],
-        cylinder_location=[0.25, 0, 1],
+        cylinder_location=[0.25, 0, -1],
         cylinder_height=0.1,
         cylinder_radius=0.05,
         hold=True
