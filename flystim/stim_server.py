@@ -27,6 +27,8 @@ def launch_screen(screen):
 
 
 class StimServer(MySocketServer):
+    """ A StimServer that simply dispatches requests to its clients (screens)
+    """
     time_stamp_commands = ['start_stim', 'pause_stim', 'update_stim']
 
     def __init__(self, screens, host=None, port=None, auto_stop=None):
@@ -37,6 +39,8 @@ class StimServer(MySocketServer):
         self.clients = [launch_screen(screen=screen) for screen in screens]
 
     def handle_request_list(self, request_list):
+        """ Preprocess request list and write to clients
+        """
         # make sure that request list is actually a list...
         if not isinstance(request_list, list):
             return
