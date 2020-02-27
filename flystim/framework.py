@@ -72,6 +72,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.use_fly_trajectory = False
         self.fly_x_trajectory = None
         self.fly_y_trajectory = None
+        self.fly_z_trajectory = None
         self.fly_theta_trajectory = None
 
         self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
@@ -112,9 +113,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.ctx.clear(0, 0, 0, 1)
             self.ctx.enable(moderngl.BLEND)
             if self.use_fly_trajectory:
-                self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
-                                        self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
-                                        0)
+                self.set_global_fly_pos(
+                    self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
+                    self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
+                    self.fly_z_trajectory.eval_at(self.get_stim_time(t))
+                )
                 self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))  # deg -> radians
             self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
@@ -147,15 +150,17 @@ class StimDisplay(QtOpenGL.QGLWidget):
     # control functions
     ###########################################
 
-    def set_fly_trajectory(self, x_trajectory, y_trajectory, theta_trajectory):
+    def set_fly_trajectory(self, x_trajectory, y_trajectory, z_trajectory, theta_trajectory):
         """
         :param x_trajectory: meters, dict from Trajectory including time, value pairs
         :param y_trajectory: meters, dict from Trajectory including time, value pairs
+        :param z_trajectory: meters, dict from Trajectory including time, value pairs
         :param theta_trajectory: degrees on the azimuthal plane, dict from Trajectory including time, value pairs
         """
         self.use_fly_trajectory = True
         self.fly_x_trajectory = Trajectory.from_dict(x_trajectory)
         self.fly_y_trajectory = Trajectory.from_dict(y_trajectory)
+        self.fly_z_trajectory = Trajectory.from_dict(z_trajectory)
         self.fly_theta_trajectory = Trajectory.from_dict(theta_trajectory)
 
     def load_stim(self, name, hold=False, **kwargs):
@@ -307,7 +312,7 @@ def get_perspective(fly_pos, theta, phi, screen):
     pb = screen.tri_list[0].pb.cart
     pc = screen.tri_list[0].pc.cart
 
-    perspective = GenPerspective(pa=pa, pb=pb, pc=pc, pe=fly_pos)
+    perspective = GenPerspective(pa=pa, pb=pb, pc=pc, fly_pos=fly_pos)
 
     """
     rotate screen and eye position
