@@ -106,7 +106,7 @@ class CaveSystem:
             self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
 
 class GenPerspective:
-    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.01, far=1000):
+    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.01, far=1000, fly_pos=(0, 0, 0)):
         # save settings
         self.pa = pa
         self.pb = pb
@@ -114,6 +114,7 @@ class GenPerspective:
         self.pe = pe
         self.near = near
         self.far = far
+        self.fly_pos = fly_pos
 
     @property
     def matrix(self):
@@ -122,6 +123,7 @@ class GenPerspective:
         pb = np.array(self.pb, dtype=float)
         pc = np.array(self.pc, dtype=float)
         pe = np.array(self.pe, dtype=float)
+        fly_pos = np.array(self.fly_pos, dtype=float)
 
         # make aliases for "near" and "far" so that the code is easier to read
         n = self.near
@@ -153,9 +155,9 @@ class GenPerspective:
                       [vr[1], vu[1], vn[1], 0],
                       [vr[2], vu[2], vn[2], 0],
                       [    0,     0,     0, 1]], dtype=float)
-        T = np.array([[1, 0, 0, -pe[0]],
-                      [0, 1, 0, -pe[1]],
-                      [0, 0, 1, -pe[2]],
+        T = np.array([[1, 0, 0, -fly_pos[0]],
+                      [0, 1, 0, -fly_pos[1]],
+                      [0, 0, 1, -fly_pos[2]],
                       [0, 0, 0,      1]], dtype=float)
 
         # return overall projection matrix
@@ -165,12 +167,12 @@ class GenPerspective:
 
     def rotx(self, th):
         return GenPerspective(pa=rotx(self.pa, th), pb=rotx(self.pb, th), pc=rotx(self.pc, th),
-                              pe=rotx(self.pe, th), near=self.near, far=self.far)
+                              pe=rotx(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos)
 
     def roty(self, th):
         return GenPerspective(pa=roty(self.pa, th), pb=roty(self.pb, th), pc=roty(self.pc, th),
-                              pe=roty(self.pe, th), near=self.near, far=self.far)
+                              pe=roty(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos)
 
     def rotz(self, th):
         return GenPerspective(pa=rotz(self.pa, th), pb=rotz(self.pb, th), pc=rotz(self.pc, th),
-                              pe=rotz(self.pe, th), near=self.near, far=self.far)
+                              pe=rotz(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos)
