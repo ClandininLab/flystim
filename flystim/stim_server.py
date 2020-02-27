@@ -21,7 +21,7 @@ def launch_screen(screen):
     # set the arguments as necessary
     new_env_vars = {}
     if platform.system() in ['Linux', 'Darwin']:
-        new_env_vars['DISPLAY'] = ':{}.{}'.format(screen.server_number, screen.id)
+        new_env_vars['DISPLAY'] = ':{}.{}'.format(screen.server_number, screen.screen_id)
     # launch the server and return the resulting client
     return launch_server(flystim.framework, screen=screen.serialize(), new_env_vars=new_env_vars)
 

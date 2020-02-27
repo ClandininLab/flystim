@@ -22,7 +22,7 @@ def draw_screens(screens):
             pc = np.array(tri.pc.cart)
 
             # draw the triangle
-            tri_draw(pa, pb, pc, ax=ax, color=COLOR_LIST[screen.id % len(COLOR_LIST)])
+            tri_draw(pa, pb, pc, ax=ax, color=COLOR_LIST[screen.screen_id % len(COLOR_LIST)])
 
     # draw fly in the center
     ax.scatter(0, 0, 0, c='g')
