@@ -19,7 +19,7 @@ def main():
         screen_id=0,
         vsync=True,
         azimuth=radians(0),
-        offset=(0, 0, 0.3)
+        offset=(0, 0, -0.3)
     )
 
     print(screen.tri_list[0])
@@ -57,20 +57,24 @@ def main():
     )
 
     tt = np.arange(0, 10, 0.01) # seconds
-    velocity_x = 0.02 # meters per sec
+    velocity_x = 0.0 # meters per sec
     velocity_y = 0.0
+    velocity_z = -0.02
 
     xx = tt * velocity_x
     yy = tt * velocity_y
+    zz = tt * velocity_z
 
     theta = tt * 0
 
 
     fly_x_trajectory = Trajectory(list(zip(tt, xx))).to_dict()
     fly_y_trajectory = Trajectory(list(zip(tt, yy))).to_dict()
+    fly_z_trajectory = Trajectory(list(zip(tt, zz))).to_dict()
     fly_theta_trajectory = Trajectory(list(zip(tt, theta))).to_dict()
     manager.set_fly_trajectory(fly_x_trajectory,
                                fly_y_trajectory,
+                               fly_z_trajectory,
                                fly_theta_trajectory)
 
 
