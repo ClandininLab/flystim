@@ -49,15 +49,17 @@ class Screen:
     """
     Class representing the configuration of a single screen used in the display of stimuli.
     Parameters such as screen coordinates and the ID # are represented.
+
+    Follows standard computer graphics coordinate conventions (camera looks down -z)
     """
 
-    def __init__(self, width=None, height=None, rotation=None, offset=None, server_number=None, screen_id=None,
+    def __init__(self, width=None, height=None, azimuth=0, offset=None, server_number=None, screen_id=None,
                  fullscreen=None, vsync=None, square_side=None, square_loc=None, name=None, tri_list=None):
         """
         :param width: width of the screen (meters)
         :param height: height of the screen (meters)
-        :param rotation: rotation of the screen about the z axis (radians).  a value of zero corresponds to the screen
-        width being aligned along the x axis.
+        :param azimuth: rotation about the +y axis (radians).
+          By default, the screen is parallel to the xy axes
         :param offset: position of the center of the screen (3-vector in meters).
         :param server_number: ID # of the X server
         :param screen_id: ID # of the screen
@@ -77,10 +79,10 @@ class Screen:
             width = 0.332
         if height is None:
             height = 0.207
-        if rotation is None:
-            rotation = radians(-90.0) #looking down positive x axis
+        if azimuth is None:
+            azimuth = radians(0) #looking down positive x axis
         if offset is None:
-            offset = (0.3, 0.0, 0.0)
+            offset = (0.0, 0.0, 0.3)
         if server_number is None:
             server_number = 0
         if id is None:
@@ -98,10 +100,10 @@ class Screen:
 
         # Construct a default triangle list if needed
         if tri_list is None:
-            ll = self.screen_corner(name='ll', width=width, height=height, offset=offset, rotation=rotation)
-            lr = self.screen_corner(name='lr', width=width, height=height, offset=offset, rotation=rotation)
-            ur = self.screen_corner(name='ur', width=width, height=height, offset=offset, rotation=rotation)
-            ul = self.screen_corner(name='ul', width=width, height=height, offset=offset, rotation=rotation)
+            ll = self.screen_corner(name='ll', width=width, height=height, offset=offset, azimuth=azimuth)
+            lr = self.screen_corner(name='lr', width=width, height=height, offset=offset, azimuth=azimuth)
+            ur = self.screen_corner(name='ur', width=width, height=height, offset=offset, azimuth=azimuth)
+            ul = self.screen_corner(name='ul', width=width, height=height, offset=offset, azimuth=azimuth)
 
             tri_list = self.quad_to_tri_list(ll, lr, ur, ul)
 
@@ -112,6 +114,7 @@ class Screen:
         self.offset = offset
         self.width = width
         self.height = height
+        self.azimuth = azimuth
         self.screen_id = screen_id
         self.server_number = server_number
         self.fullscreen = fullscreen
@@ -120,6 +123,8 @@ class Screen:
         self.square_loc = square_loc
         self.name = name
 
+
+    # TODO: is this ever actually used as a class method??
     @classmethod
     def name_to_ndc(cls, name):
         return {
@@ -129,15 +134,16 @@ class Screen:
             'ul': (-1, +1)
         }[name.lower()]
 
+    # TODO: is this ever actually used as a class method??
     @classmethod
-    def screen_corner(cls, name, width, height, offset, rotation):
+    def screen_corner(cls, name, width, height, offset, azimuth):
         # figure out the NDC coordinates of the named screen corner
         ndc = cls.name_to_ndc(name)
 
         # compute the 3D cartesian coordinates of the screen corner
-        cart_x = 0.5 * width  * cos(rotation) * ndc[0] + offset[0]
-        cart_y = 0.5 * width  * sin(rotation) * ndc[0] + offset[1]
-        cart_z = 0.5 * height                 * ndc[1] + offset[2]
+        cart_x = 0.5 * width * cos(azimuth) * ndc[0] + offset[0]
+        cart_y = 0.5 * height * ndc[1] + offset[1]
+        cart_z = 0.5 * width * sin(azimuth) * ndc[0] + offset[2]
 
         # return the 3D coordinate
         return ScreenPoint(ndc=ndc, cart=(cart_x, cart_y, cart_z))
@@ -174,7 +180,7 @@ class Screen:
         return Screen(**kwargs)
 
 def main():
-    screen = Screen(offset=(0.0, +0.3, 0.0), rotation=0)
+    screen = Screen(offset=(0.0, +0.3, 0.0), azimuth=0)
 
 if __name__ == '__main__':
     main()
