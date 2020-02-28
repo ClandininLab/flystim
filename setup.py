@@ -9,6 +9,7 @@ setup(
     author='Steven Herbst',
     author_email='sherbst@stanford.edu',
     packages=['flystim'],
+    python_requires='>=3.5',
     install_requires=[
         'scipy',
         'numpy',
