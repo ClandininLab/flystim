@@ -11,7 +11,7 @@ import platform
 from flystim import stimuli
 from flystim.trajectory import Trajectory
 
-from flystim import GenPerspective
+from flystim.perspective import GenPerspective
 from flystim.square import SquareProgram
 from flystim.screen import Screen
 from math import radians
@@ -307,7 +307,7 @@ def get_perspective(fly_pos, theta, phi, screen):
     pb = screen.tri_list[0].pb.cart
     pc = screen.tri_list[0].pc.cart
 
-    perspective = GenPerspective(pa=pa, pb=pb, pc=pc, pe=fly_pos)
+    perspective = GenPerspective(pa=pa, pb=pb, pc=pc, fly_pos=fly_pos)
 
     """
     rotate screen and eye position

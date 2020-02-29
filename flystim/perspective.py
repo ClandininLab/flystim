@@ -68,12 +68,12 @@ class GenPerspective:
 
     def rotx(self, th):
         return GenPerspective(pa=rotx(self.pa, th), pb=rotx(self.pb, th), pc=rotx(self.pc, th),
-                              pe=rotx(self.pe, th), near=self.near, far=self.far)
+                              pe=rotx(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos)
 
     def roty(self, th):
         return GenPerspective(pa=roty(self.pa, th), pb=roty(self.pb, th), pc=roty(self.pc, th),
-                              pe=roty(self.pe, th), near=self.near, far=self.far)
+                              pe=roty(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos)
 
     def rotz(self, th):
         return GenPerspective(pa=rotz(self.pa, th), pb=rotz(self.pb, th), pc=rotz(self.pc, th),
-                              pe=rotz(self.pe, th), near=self.near, far=self.far)
+                              pe=rotz(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos)
