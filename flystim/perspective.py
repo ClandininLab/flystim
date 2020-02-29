@@ -62,7 +62,7 @@ class GenPerspective:
                       [0, 0, 0,      1]], dtype=float)
 
         # return overall projection matrix
-        return P.dot((M.T).dot(T))
+        return P.dot((M.T).dot(T)).astype('f4').tobytes(order='F')
 
     # rotating the screen on three axes is mostly for testing purposes
 

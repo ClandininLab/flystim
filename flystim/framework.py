@@ -317,7 +317,7 @@ def get_perspective(fly_pos, theta, phi, screen):
     -phi tilts fly view up towards the sky (+z), +phi tilts down towards the ground (-z)
 
     """
-    return perspective.roty(phi).rotx(radians(0)).rotz(radians(0)+theta)
+    return perspective.roty(phi).rotx(radians(0)).rotz(radians(0)+theta).matrix
 
 
 def make_qt_format(vsync):
