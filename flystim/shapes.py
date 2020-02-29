@@ -74,7 +74,14 @@ class GlTri(GlVertices):
 
 
 class GlQuad(GlVertices):
+
+
     def __init__(self, v1, v2, v3, v4, color, tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1), texture_shift=(0, 0), use_texture=False):
+        """ Construct a quad
+
+        NOTE: vertex order is not arbitrary. must be numbered sequentially
+        """
+
         super().__init__()
         if use_texture:
             self.add(GlTri(v1, v2, v3, color,
