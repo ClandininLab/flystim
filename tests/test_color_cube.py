@@ -2,7 +2,8 @@ from math import radians
 from time import time
 from PIL import Image
 
-from flystim import GenPerspective, GlCube, CaveSystem, rel_path
+from flystim import GenPerspective, GlCube, CaveSystem
+from flystim.util import package_path
 from common import run_qt, run_headless, get_img_err
 
 def get_perspective(theta, phi):
@@ -33,7 +34,8 @@ def test_color_cube(max_err=1000):
     obs = run_headless(register_cave)
 
     # load image for comparison
-    ref = Image.open(rel_path('tests', 'data', 'color_cube.png'))
+    ref_img_path = f'{package_path()}/tests/data/color_cube.png'
+    ref = Image.open(ref_img_path)
 
     # compute error
     error = get_img_err(obs, ref)
