@@ -1,14 +1,20 @@
 from setuptools import setup, find_packages
 
+with open("README.md", "r") as fh:
+    LONG_DESCRIPTION = fh.read()
+
 setup(
     name='flystim',
     version='0.0.1',
+    license='MIT',
     description='Visual stimulus generator for fruit fly experiments.',
-    long_description='Multi-monitor perspective-corrected visual stimulus generator for fruit fly experiments.',
-    url='https://github.com/sgherbst/flystim',
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type='text/markdown',
+    url='https://github.com/clandininLab/flystim',
     author='Steven Herbst',
     author_email='sherbst@stanford.edu',
-    packages=['flystim'],
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
     python_requires='>=3.5',
     install_requires=[
         'scipy',
