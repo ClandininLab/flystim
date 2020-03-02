@@ -8,3 +8,4 @@ examples/*.avi
 examples/*.dat
 examples/*.log
 .tox/
+.hypothesis/
