@@ -1,3 +1,8 @@
+""" Module for misc. utility methods
+"""
+
+import sys
+
 from math import sin, cos
 from numbers import Number
 import numpy as np
@@ -97,3 +102,10 @@ def get_rgba(val, def_alpha=1):
         return val
     else:
         raise ValueError(f'Cannot use value with length {len(val)}.')
+
+def package_path(package_name='flystim'):
+    """ Returns the absolute path to package base directory
+    """
+    path = [fpath for fpath in sys.path if package_name in fpath][0]
+    prefix = path.split(package_name)[0]
+    return "{}{}".format(prefix, package_name)
