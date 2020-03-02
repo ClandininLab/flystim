@@ -124,6 +124,32 @@ class Screen:
         self.name = name
 
 
+    def __eq__(self, other):
+        if self.offset != other.offset:
+            return False
+        if self.width != other.width:
+            return False
+        if self.height != other.height:
+            return False
+        if self.azimuth != other.azimuth:
+            return False
+        if self.screen_id != other.screen_id:
+            return False
+        if self.server_number != other.server_number:
+            return False
+        if self.fullscreen != other.fullscreen:
+            return False
+        if self.vsync != other.vsync:
+            return False
+        if self.square_side != other.square_side:
+            return False
+        if self.square_loc != other.square_loc:
+            return False
+        if self.name != other.name:
+            return False
+        return True
+
+
     # TODO: is this ever actually used as a class method??
     @classmethod
     def name_to_ndc(cls, name):
