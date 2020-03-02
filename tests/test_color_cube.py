@@ -8,7 +8,7 @@ from common import run_qt, run_headless, get_img_err
 
 def get_perspective(theta, phi):
     # nominal position
-    perspective = GenPerspective(pa=(+1, -1, -1), pb=(+1, +1, -1), pc=(+1, -1, 1), pe=(+5, 0, 0))
+    perspective = GenPerspective(pa=(+1, -1, -1), pb=(+1, +1, -1), pc=(+1, -1, 1), pe=(+5, 0, 0), fly_pos=(+5, 0, 0))
 
     # rotate screen and eye position
     return perspective.roty(-radians(phi)).rotz(radians(theta))
