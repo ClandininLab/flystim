@@ -56,7 +56,7 @@ class BaseProgram:
         self.vbo.write(data.astype('f4'))
 
         # set the perspective matrix
-        self.prog['Mvp'].write(perspective.matrix.astype('f4').tobytes(order='F'))
+        self.prog['Mvp'].write(perspective)
         # render the objects
 
         if self.draw_mode == 'POINTS':
