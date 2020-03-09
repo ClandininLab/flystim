@@ -139,6 +139,7 @@ class MovingPatch(BaseProgram):
                                            sphere_radius=self.sphere_radius,
                                            color=self.color).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
+
 class TexturedCylinder(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
@@ -290,7 +291,7 @@ class RandomBars(TexturedCylinder):
 
     def configure(self, period=20, width=5, vert_extent=80, theta_offset=0, background=0.5,
                   distribution_data=None, update_rate=60.0, start_seed=0,
-                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0, cylinder_location=(0, 0, 0)):
         """
         Periodic bars of randomized intensity painted on the inside of a cylinder
         :param period: spatial period (degrees) of bar locations
@@ -324,12 +325,16 @@ class RandomBars(TexturedCylinder):
         self.background = background
         self.update_rate = update_rate
         self.start_seed = start_seed
+        self.cylinder_location = cylinder_location
 
         # Only renders part of the cylinder if the period is not a divisor of 360
         self.n_bars = int(np.floor(360/self.period))
         self.cylinder_angular_extent = self.n_bars * self.period  # degrees
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
+        if type(self.theta) is dict:
+            self.theta = Trajectory.from_dict(self.theta).eval_at(t)
+
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
@@ -352,6 +357,7 @@ class RandomBars(TexturedCylinder):
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
+                                      cylinder_location=self.cylinder_location,
                                       texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 
