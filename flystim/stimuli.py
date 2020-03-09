@@ -545,6 +545,7 @@ class TexturedGround(BaseProgram):
     def eval_at(self, t, fly_position=[0, 0, 0]):
         pass
 
+
 class HorizonCylinder(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
@@ -578,10 +579,10 @@ class HorizonCylinder(TexturedCylinder):
         self.texture_image = img
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
-        cyl_position = [0, 0, 0]
+        cyl_position = fly_position.copy()
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
-                                      cylinder_location=(cyl_position[0], cyl_position[1] , self.cylinder_height/2),
+                                      cylinder_location=(cyl_position[0], cyl_position[1], self.cylinder_height/2),
                                       color=self.color,
                                       texture=True).rotz(np.radians(180))
 
