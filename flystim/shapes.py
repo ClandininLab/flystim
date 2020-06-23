@@ -3,7 +3,6 @@ from numpy import matlib
 from math import radians
 from .util import rotx, roty, rotz, translate, scale, rotate
 
-
 class GlVertices:
     def __init__(self, vertices=None, colors=None, tex_coords=None):
         self.vertices = vertices
@@ -16,6 +15,7 @@ class GlVertices:
             self.vertices = obj.vertices
         else:
             self.vertices = np.concatenate((self.vertices, obj.vertices), axis=1)
+
 
         # add colors
         if self.colors is None:

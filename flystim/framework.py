@@ -94,6 +94,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         return stim_time
 
     def paintGL(self):
+        # t0 = time.time()
         # quit if desired
         if self.server.shutdown_flag.is_set():
             self.app.quit()
@@ -125,6 +126,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                     self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
             self.profile_frame_times.append(t)
+
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
@@ -141,6 +143,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 stim.vbo.release()
                 stim.vao.release()
 
+        # print('paintGL {:.2f} ms'.format((time.time()-t0)*1000))
 
     ###########################################
     # control functions

@@ -6,6 +6,8 @@ from flystim.base import BaseProgram
 from flystim.trajectory import Trajectory
 import flystim.distribution as distribution
 from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints
+import time # for debugging and benchmarking
+import copy
 
 
 class ConstantBackground(BaseProgram):
@@ -608,12 +610,17 @@ class Forest(BaseProgram):
         self.n_faces = n_faces
 
         self.stim_object = GlVertices()
+
+        # This step is slow. Make template once then use .translate() on copies to make cylinders
+        cylinder = GlCylinder(cylinder_height=self.cylinder_height,
+                                        cylinder_radius=self.cylinder_radius,
+                                        cylinder_location=[0,0,0],
+                                        color=self.color,
+                                        n_faces=self.n_faces)
+
         for tree_loc in self.cylinder_locations:
-            self.stim_object.add(GlCylinder(cylinder_height=self.cylinder_height,
-                                            cylinder_radius=self.cylinder_radius,
-                                            cylinder_location=tree_loc,
-                                            color=self.color,
-                                            n_faces=self.n_faces))
+            new_cyl = copy.copy(cylinder).translate(tree_loc)
+            self.stim_object.add(new_cyl)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         pass
