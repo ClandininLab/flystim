@@ -79,8 +79,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
     def initializeGL(self):
         # get OpenGL context
         self.ctx = moderngl.create_context()
-        self.ctx.enable(moderngl.DEPTH_TEST)
-        self.ctx.enable(moderngl.BLEND)
+        self.ctx.enable(moderngl.BLEND) # enable alpha blending
+        self.ctx.enable(moderngl.DEPTH_TEST) # enable depth test
 
         # initialize square program
         self.square_program.initialize(self.ctx)
@@ -110,7 +110,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
             t = time.time()
 
             self.ctx.clear(0, 0, 0, 1)
-            self.ctx.enable(moderngl.BLEND)
             if self.use_fly_trajectory:
                 self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
                                         self.fly_y_trajectory.eval_at(self.get_stim_time(t)),

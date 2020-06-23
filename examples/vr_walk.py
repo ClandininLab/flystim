@@ -8,13 +8,14 @@ from time import sleep
 
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number = 1, id = 0, vsync=True))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=True))
 
     manager.load_stim(name='ConstantBackground', color = [0.5, 0.5, 0.5, 1.0], side_length=100)
-    manager.load_stim(name='Tower', color=[1, 0, 0, 1], cylinder_location=[1, +0.25, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # red, +x, left
-    manager.load_stim(name='Tower', color=[0, 1, 0, 1], cylinder_location=[1, 0, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # green, +x, center
-    manager.load_stim(name='Tower', color=[0, 0, 1, 1], cylinder_location=[1, -0.25, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # blue, +x, right
 
+    manager.load_stim(name='Tower', color=[1, 0, 0, 1.0], cylinder_location=[1, +0.25, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # red
+    manager.load_stim(name='Tower', color=[0, 1, 0, 1.0], cylinder_location=[0.5, 0, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # green, +x, center
+    manager.load_stim(name='Tower', color=[0, 0, 1, 1], cylinder_location=[1, -0.25, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # blue, +x, right
+    #
     tt = np.arange(0, 4, 0.01) # seconds
     velocity_x = 0.25 # meters per sec
     velocity_y = 0.00
@@ -33,9 +34,6 @@ def main():
                                fly_y_trajectory,
                                fly_theta_trajectory)
 
-    tv_pairs = [(0,0), (4, 180)]
-    theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
-    manager.load_stim(name='MovingPatch',width=10, height=10, phi=0, color=1, theta=90, hold=True, angle=0)
     sleep(0.5)
 
     manager.start_stim()

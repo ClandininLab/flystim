@@ -93,12 +93,17 @@ class SquareProgram:
         return np.array([x_min, y_min, x_max, y_min, x_min, y_max, x_max, y_max])
 
     def paint(self):
+
         if self.draw:
+            self.ctx.disable(moderngl.DEPTH_TEST) # disable depth test so square is painted on top always
+
             # write color
             self.prog['color'].value = self.color
 
             # render to screen
             self.vao.render(mode=moderngl.TRIANGLE_STRIP)
+
+            self.ctx.enable(moderngl.DEPTH_TEST) # re-enable depth test for subsequent draws
 
         if self.toggle:
             self.color = 1.0 - self.color
