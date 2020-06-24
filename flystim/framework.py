@@ -94,7 +94,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         return stim_time
 
     def paintGL(self):
-        # t0 = time.time()
+        # t0 = time.time() #benchmarking
         # quit if desired
         if self.server.shutdown_flag.is_set():
             self.app.quit()
@@ -109,7 +109,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # draw the stimulus
         if self.stim_list:
             t = time.time()
-
             self.ctx.clear(0, 0, 0, 1)
             if self.use_fly_trajectory:
                 self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
@@ -120,7 +119,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             for stim in self.stim_list:
                 if self.stim_started:
-                    stim.configure(**stim.kwargs)
                     stim.paint_at(self.get_stim_time(t), self.perspective, fly_position=self.global_fly_pos.copy())
                 else:
                     self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
@@ -143,7 +141,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 stim.vbo.release()
                 stim.vao.release()
 
-        # print('paintGL {:.2f} ms'.format((time.time()-t0)*1000))
+        # print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmarking
 
     ###########################################
     # control functions
@@ -173,6 +171,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         stim = getattr(stimuli, name)(screen=self.screen)
         stim.initialize(self.ctx)
         stim.kwargs = kwargs
+        stim.configure(**stim.kwargs) #Configure stim on load
         self.stim_list.append(stim)
 
     def start_stim(self, t):

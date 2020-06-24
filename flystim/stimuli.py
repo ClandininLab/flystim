@@ -1,14 +1,12 @@
 import numpy as np
 import os
 import array
-
 from flystim.base import BaseProgram
 from flystim.trajectory import Trajectory
 import flystim.distribution as distribution
 from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints
 import time # for debugging and benchmarking
 import copy
-
 
 class ConstantBackground(BaseProgram):
     def __init__(self, screen):
@@ -82,19 +80,16 @@ class MovingSpot(BaseProgram):
         self.phi = phi
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
-        if type(self.radius) is dict:
-            self.radius = Trajectory.from_dict(self.radius).eval_at(t)
-        if type(self.color) is dict:
-            self.color = Trajectory.from_dict(self.color).eval_at(t)
-        if type(self.theta) is dict:
-            self.theta = Trajectory.from_dict(self.theta).eval_at(t)
-        if type(self.phi) is dict:
-            self.phi = Trajectory.from_dict(self.phi).eval_at(t)
-
-        self.stim_object = GlSphericalCirc(circle_radius=self.radius,
+        radius = return_for_time_t(self.radius, t)
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        color = return_for_time_t(self.color, t)
+        # TODO: is there a way to make this object once in configure then update with radius in eval_at?
+        self.stim_object = GlSphericalCirc(circle_radius=radius,
                                            sphere_radius=self.sphere_radius,
-                                           color=self.color,
-                                           n_steps=36).rotate(np.radians(self.theta), np.radians(self.phi), 0 )
+                                           color=color,
+                                           n_steps=36).rotate(np.radians(theta), np.radians(phi), 0 )
+
 
 
 class MovingPatch(BaseProgram):
@@ -123,23 +118,17 @@ class MovingPatch(BaseProgram):
         self.angle = angle
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
-        if type(self.width) is dict:
-            self.width = Trajectory.from_dict(self.width).eval_at(t)
-        if type(self.height) is dict:
-            self.height = Trajectory.from_dict(self.height).eval_at(t)
-        if type(self.color) is dict:
-            self.color = Trajectory.from_dict(self.color).eval_at(t)
-        if type(self.theta) is dict:
-            self.theta = Trajectory.from_dict(self.theta).eval_at(t)
-        if type(self.phi) is dict:
-            self.phi = Trajectory.from_dict(self.phi).eval_at(t)
-        if type(self.angle) is dict:
-            self.angle = Trajectory.from_dict(self.angle).eval_at(t)
-
-        self.stim_object = GlSphericalRect(width=self.width,
-                                           height=self.height,
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        color = return_for_time_t(self.color, t)
+        # TODO: is there a way to make this object once in configure then update with width/height in eval_at?
+        self.stim_object = GlSphericalRect(width=width,
+                                           height=height,
                                            sphere_radius=self.sphere_radius,
-                                           color=self.color).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+                                           color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 
 class TexturedCylinder(BaseProgram):
@@ -200,63 +189,63 @@ class CylindricalGrating(TexturedCylinder):
         self.contrast = contrast
         self.offset = offset
         self.profile = profile
+        self.period = period
 
-        if np.any([type(x) == dict for x in [period, mean, contrast, offset]]):
-            pass
-        else:
-            self.updateTexture()
-
-    def updateTexture(self):
         # Only renders part of the cylinder if the period is not a divisor of 360
         n_cycles = np.floor(360/self.period)
         self.cylinder_angular_extent = n_cycles * self.period
 
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=[1, 1, 1, 1],
+                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+
+        if np.any([type(x) == dict for x in [mean, contrast, offset]]):
+            pass
+        else:
+            self.updateTexture(self.mean, self.contrast, self.offset)
+
+    def updateTexture(self, mean, contrast, offset):
         # make the texture image
         sf = 1/np.radians(self.period)  # spatial frequency
         xx = np.linspace(0, np.radians(self.cylinder_angular_extent), 512)
 
         if self.profile == 'sine':
             self.texture_interpolation = 'LML'
-            yy = np.sin(np.radians(self.offset) + sf*2*np.pi*xx)  # [-1, 1]
+            yy = np.sin(np.radians(offset) + sf*2*np.pi*xx)  # [-1, 1]
         elif self.profile == 'square':
             self.texture_interpolation = 'NEAREST'
-            yy = np.sin(np.radians(self.offset) + sf*2*np.pi*xx)
+            yy = np.sin(np.radians(offset) + sf*2*np.pi*xx)
             yy[yy >= 0] = 1
             yy[yy < 0] = -1
 
-        yy = 255*(self.mean + self.contrast*self.mean*yy)  # shift/scale from [-1,1] to mean and contrast and scale to [0,255] for uint8
+        yy = 255*(mean + contrast*mean*yy)  # shift/scale from [-1,1] to mean and contrast and scale to [0,255] for uint8
         img = np.expand_dims(yy, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
         self.texture_image = img
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         need_to_update_texture = False
-        if type(self.period) is dict:
-            self.period = Trajectory.from_dict(self.period).eval_at(t)
-            need_to_update_texture = True
         if type(self.mean) is dict:
-            self.mean = Trajectory.from_dict(self.mean).eval_at(t)
+            mean = Trajectory.from_dict(self.mean).eval_at(t)
             need_to_update_texture = True
-        if type(self.contrast) is dict:
-            self.contrast = Trajectory.from_dict(self.contrast).eval_at(t)
-            need_to_update_texture = True
-        if type(self.offset) is dict:
-            self.offset = Trajectory.from_dict(self.offset).eval_at(t)
-            need_to_update_texture = True
+        else:
+            mean = self.mean
 
-        if type(self.angle) is dict:
-            self.angle = Trajectory.from_dict(self.angle).eval_at(t)
-        if type(self.color) is dict:
-            self.color = Trajectory.from_dict(self.color).eval_at(t)
+        if type(self.contrast) is dict:
+            contrast = Trajectory.from_dict(self.contrast).eval_at(t)
+            need_to_update_texture = True
+        else:
+            contrast = self.contrast
+
+        if type(self.offset) is dict:
+            offset = Trajectory.from_dict(self.offset).eval_at(t)
+            need_to_update_texture = True
+        else:
+            offset = self.offset
 
         if need_to_update_texture:
-            self.updateTexture()
-
-        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
-                                      cylinder_radius=self.cylinder_radius,
-                                      cylinder_angular_extent=self.cylinder_angular_extent,
-                                      color=self.color,
-                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
-
+            self.updateTexture(mean, contrast, offset)
 
 class RotatingGrating(CylindricalGrating):
     def __init__(self, screen):
@@ -275,10 +264,11 @@ class RotatingGrating(CylindricalGrating):
         super().configure(period=period, mean=mean, contrast=contrast, offset=offset, profile=profile,
                           color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
         self.rate = rate
-        self.updateTexture()
+        self.updateTexture(mean=mean, contrast=contrast, offset=offset)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         shift_u = t*self.rate/self.cylinder_angular_extent
+        # TODO: change this to make shape in configure and update with shiftTexture()
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
@@ -333,9 +323,25 @@ class RandomBars(TexturedCylinder):
         self.n_bars = int(np.floor(360/self.period))
         self.cylinder_angular_extent = self.n_bars * self.period  # degrees
 
+        self.stim_object_template = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      cylinder_location=self.cylinder_location,
+                                      texture=True)
+
     def eval_at(self, t, fly_position=[0, 0, 0]):
-        if type(self.theta) is dict:
-            self.theta = Trajectory.from_dict(self.theta).eval_at(t)
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+
+        self.stim_object = copy.copy(self.stim_object_template)
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      cylinder_location=self.cylinder_location,
+                                      texture=True).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
@@ -355,12 +361,6 @@ class RandomBars(TexturedCylinder):
         self.texture_interpolation = 'NEAREST'
         self.texture_image = img
 
-        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
-                                      cylinder_radius=self.cylinder_radius,
-                                      cylinder_angular_extent=self.cylinder_angular_extent,
-                                      color=self.color,
-                                      cylinder_location=self.cylinder_location,
-                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 
 class RandomGrid(TexturedCylinder):
@@ -410,6 +410,12 @@ class RandomGrid(TexturedCylinder):
         self.start_seed = start_seed
         self.update_rate = update_rate
 
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+
     def eval_at(self, t, fly_position=[0, 0, 0]):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
@@ -420,12 +426,6 @@ class RandomGrid(TexturedCylinder):
         img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
         self.texture_interpolation = 'NEAREST'
         self.texture_image = img
-
-        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
-                                      cylinder_radius=self.cylinder_radius,
-                                      cylinder_angular_extent=self.cylinder_angular_extent,
-                                      color=self.color,
-                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 
 class Checkerboard(TexturedCylinder):
@@ -479,12 +479,14 @@ class Checkerboard(TexturedCylinder):
         self.texture_interpolation = 'NEAREST'
         self.texture_image = img
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
                                       texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        pass
 
 
 class Tower(BaseProgram):
@@ -586,14 +588,16 @@ class HorizonCylinder(TexturedCylinder):
         self.texture_interpolation = 'LINEAR'
         self.texture_image = img
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
-        cyl_position = fly_position.copy()
-        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+        self.stim_template = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
-                                      cylinder_location=(cyl_position[0], cyl_position[1], self.cylinder_height/2),
+                                      cylinder_location=(0, 0, 0),
                                       color=self.color,
                                       texture=True).rotz(np.radians(180))
 
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        cyl_position = fly_position.copy()
+        self.stim_object = copy.copy(self.stim_template)
+        self.stim_object.translate(cyl_position)
 
 class Forest(BaseProgram):
     def __init__(self, screen):
@@ -645,7 +649,7 @@ class CoherentMotionDotField(BaseProgram):
         self.theta_trajectory = theta_trajectory
         self.phi_trajectory = phi_trajectory
 
-        self.stim_object = GlSphericalPoints(sphere_radius=self.sphere_radius,
+        self.stim_object_template = GlSphericalPoints(sphere_radius=self.sphere_radius,
                                              color=self.color,
                                              theta=self.theta_locations,
                                              phi=self.phi_locations)
@@ -660,4 +664,13 @@ class CoherentMotionDotField(BaseProgram):
         else:
             phi = self.phi_trajectory
 
+        self.stim_object = copy.copy(self.stim_object_template)
         self.stim_object = self.stim_object.rotate(np.radians(theta), np.radians(phi), 0)
+
+
+
+def return_for_time_t(parameter, t):
+    if type(parameter) is dict:
+        return Trajectory.from_dict(parameter).eval_at(t)
+    else:
+        return parameter

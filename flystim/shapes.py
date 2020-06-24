@@ -52,6 +52,13 @@ class GlVertices:
     def translate(self, amt):
         return GlVertices(vertices=translate(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
 
+    def setColor(self, color):
+        new_colors = np.tile(np.array(color), (self.vertices.shape[1], 1)).T
+        return GlVertices(vertices=self.vertices, colors=new_colors, tex_coords=self.tex_coords)
+
+    def shiftTexture(self, shift): #TODO
+        pass
+
     @property
     def data(self):
         if self.tex_coords is not None:
