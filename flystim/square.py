@@ -83,7 +83,7 @@ class SquareProgram:
         # probablistic toggling
         if random.random() < self.toggle_prob:
             elapsed = time() - self.last_toggle
-            # NOTE: limit toggle rate to 100hz to stay well within nyquist limit
+            # NOTE: limit toggle rate to 120hz to stay well within nyquist limit
             #  (camera capture rate is 240hz)
             max_toggle_freq = 100
             if elapsed > (1 / (max_toggle_freq / 2)):
