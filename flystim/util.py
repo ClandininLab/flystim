@@ -93,10 +93,15 @@ def get_rgba(val, def_alpha=1):
 def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac_sync):
     """ Latency analysis report
 
+    NOTE: this method was written to analyze timestamp logs as recorded. In particular, flystim_timestamps has units of
+    seconds but fictrac_timestamps has units of milliseconds!!
+
     Args:
       flystim_timestamps: list of timestamps when sync square was updated - (n_fs, )
+        units: seconds
       flystim_sync: list of sync square states, as recorded by flystim - (n_fs, )
       fictrac_timestamps: list of timestamps when fictrac captured a frame - (n_ft, )
+        units: milliseconds
       fictrac_sync: list of sync square states, as captured by fictrac - (n_ft, )
 
     """
@@ -105,7 +110,8 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
 
     flystim_timestamps = np.asarray(flystim_timestamps)
     flystim_sync = np.asarray(flystim_sync)
-    fictrac_timestamps = np.asarray(fictrac_timestamps)
+    # milliseconds -> seconds
+    fictrac_timestamps = np.asarray(fictrac_timestamps) / 1000
     fictrac_sync = np.asarray(fictrac_sync)
 
     # TODO: why are non-zero values recorded
@@ -118,6 +124,53 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
     fictrac_timestamps = fictrac_timestamps[ft_mask]
     fictrac_sync = fictrac_sync[ft_mask]
 
-    # fps and jitter
-    flystim_fps = 1 / np.mean(np.diff(flystim_timestamps))
-    fictrac_fps = 1 / np.mean(np.diff(fictrac_timestamps))
+    template = "{:^20} | {:^16.4f} | {:^16.4f}"
+    table_width = 60
+
+    print("{:^20} | {:^16} | {:^16}".format("statistic", "flystim", "fictrac"))
+    print("=" * table_width)
+
+    print(
+        template.format(
+            "mean fps",
+            1 / np.mean(np.diff(flystim_timestamps)),
+            1 / np.mean(np.diff(fictrac_timestamps))
+        )
+    )
+    print('-' * table_width)
+
+    print(
+        template.format(
+            "mean frame length",
+            np.mean(np.diff(flystim_timestamps)),
+            np.mean(np.diff(fictrac_timestamps))
+        )
+    )
+    print('-' * table_width)
+
+    print(
+        template.format(
+            "std frame length",
+            np.std(np.diff(flystim_timestamps)),
+            np.std(np.diff(fictrac_timestamps))
+        )
+    )
+    print('-' * table_width)
+
+    print(
+        template.format(
+            "min frame length",
+            np.min(np.diff(flystim_timestamps)),
+            np.min(np.diff(fictrac_timestamps))
+        )
+    )
+    print('-' * table_width)
+
+    print(
+        template.format(
+            "max frame length",
+            np.min(np.diff(flystim_timestamps)),
+            np.min(np.diff(fictrac_timestamps))
+        )
+    )
+    print('-' * table_width)
