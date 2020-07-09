@@ -2,6 +2,8 @@
 
 # Example program showing rendering onto three subscreens
 
+import logging
+
 from flystim.draw import draw_screens
 from flystim.trajectory import RectangleTrajectory
 from flystim.screen import Screen
@@ -59,6 +61,7 @@ def make_tri_list():
 
 def fictrac_get_data(sock):
     data = sock.recv(1024)
+
     #if not data:
     #    break
 
@@ -68,12 +71,18 @@ def fictrac_get_data(sock):
     line = line[:endline]
     toks = line.split(", ")
 
+    logging.debug("Received from fictrac socket: %s", line)
+
     # Fixme: sometimes we read more than one line at a time,
     # should handle that rather than just dropping extra data...
     if ((len(toks) < 26) | (toks[0] != "FT")):
+        logging.warning("Bad read, too few tokens: %s", line)
         #print('Bad read')
         return fictrac_get_data(sock)
         #continue
+
+    if len(toks) > 26:
+        logging.warning("Bad read, too many tokens: %s", line)
 
     #dr_lab = [float(toks[6]), float(toks[7]), float(toks[8])]
 
@@ -111,6 +120,11 @@ def main():
     save_path = "/home/clandinin/minseung_cl_data"
     save_prefix = "fly0"
 
+    logging.basicConfig(
+        format='%(asctime)s %(message)s',
+        filename="{}/{}".format(save_path, save_prefix),
+        level=logging.DEBUG
+    )
 
     manager = launch_stim_server(screen)
     manager.set_save_history_flag(True)
