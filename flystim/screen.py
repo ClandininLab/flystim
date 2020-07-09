@@ -74,30 +74,18 @@ class Screen:
 
         # Set defaults for MacBook Pro (Retina, 15-inch, Mid 2015)
 
-        if width is None:
-            width = 0.332
-        if height is None:
-            height = 0.207
-        if rotation is None:
-            rotation = 0.0
-        if offset is None:
-            offset = (0.0, 0.3, 0.0)
-        if server_number is None:
-            server_number = 0
-        if id is None:
-            id = 0
-        if fullscreen is None:
-            fullscreen = True
-        if vsync is None:
-            vsync = True
-        if square_side is None:
-            square_side = 2e-2
-        if square_loc is None:
-            square_loc = 'll'
-        if save_square_history is None:
-            save_square_history = False
-        if name is None:
-            name = 'Screen' + str(id)
+        width = width or 0.332
+        height = height or 0.207
+        rotation = rotation or 0.0
+        offset = offset or (0.0, 0.3, 0.0)
+        server_number = server_number or 0
+        id = id or 0
+        fullscreen = fullscreen or True
+        vsync = vsync or True
+        square_side = square_side or 2e-2
+        square_loc = square_loc or 'll'
+        save_square_history = save_square_history or False
+        name = name or ('Screen' + str(id))
 
         # Construct a default triangle list if needed
         if tri_list is None:
