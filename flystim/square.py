@@ -8,6 +8,17 @@ from time import time
 import moderngl
 import numpy as np
 
+# bounds on square flicker frequency
+# min is somewhat arbitrary - I think there is a trade-off between alignment accuracy
+#  (sequence uniqueness) and minimum alignable window size (?), but shouldn't be that big of a deal
+MIN_SQUARE_FREQ = 10
+# max is constrained by nyquist frequency (camera capture frequency is roughly 240hz)
+MAX_SQUARE_FREQ = 100
+
+MIN_TOGGLE_FREQ = MIN_SQUARE_FREQ * 2
+MAX_TOGGLE_FREQ = MAX_SQUARE_FREQ * 2
+
+
 class SquareProgram:
     def __init__(self, screen):
         # save settings
@@ -17,8 +28,8 @@ class SquareProgram:
         self.color = 1.0
         #self.save_square_history = screen.save_square_history
         self.toggle = True
-        self.toggle_prob = screen.square_toggle_prob
         self.last_toggle = time()
+        self.dwell_time = 0
         self.draw = True
 
         #self.profile_frame_count = 0
@@ -81,14 +92,15 @@ class SquareProgram:
         return np.array([x_min, y_min, x_max, y_min, x_min, y_max, x_max, y_max])
 
     def toggle_square(self):
-        # probablistic toggling
-        if random.random() < self.toggle_prob:
-            elapsed = time() - self.last_toggle
-            # NOTE: limit toggle rate to 60hz to stay well within nyquist limit
-            #  (camera capture rate is 240hz)
-            if elapsed > (1 / 60):
-                self.color = 1.0 - self.color
-                self.last_toggle = time()
+        """ Called on every frame. Guaranteed to never exceed MAX_SQUARE_FREQ
+        May violate MIN_SQUARE_FREQ, depending on flystim performance
+        """
+        elapsed = time() - self.last_toggle
+
+        if elapsed > self.dwell_time:
+            self.color = 1.0 - self.color
+            self.last_toggle = time()
+            self.dwell_time = random.uniform(1 / MAX_TOGGLE_FREQ, 1 / MIN_TOGGLE_FREQ)
 
     def paint(self):
         if self.draw:
