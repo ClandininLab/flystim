@@ -116,8 +116,10 @@ def main():
     #####################################################
 
     n_trials=2
-    save_path = "/home/clandinin/minseung_cl_data"
-    save_prefix = "preallocate_vsync_on"
+#    save_path = "/home/clandinin/minseung_cl_data"
+#    save_prefix = "preallocate_vsync_on"
+    save_path = "/home/clandinin/andrew/latency_measurements"
+    save_prefix = "trial_4_ubuntu_gui"
 
 
     manager = launch_stim_server(screen)
