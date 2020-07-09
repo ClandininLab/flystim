@@ -169,8 +169,8 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
     print(
         template.format(
             "max frame length",
-            np.min(np.diff(flystim_timestamps)),
-            np.min(np.diff(fictrac_timestamps))
+            np.max(np.diff(flystim_timestamps)),
+            np.max(np.diff(fictrac_timestamps))
         )
     )
     print('-' * table_width)
