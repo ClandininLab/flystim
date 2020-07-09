@@ -105,6 +105,8 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
       fictrac_sync: list of sync square states, as captured by fictrac - (n_ft, )
 
     """
+    from scipy.interpolate import interp1d
+
     assert len(flystim_timestamps) == len(flystim_sync)
     assert len(fictrac_timestamps) == len(fictrac_sync)
 
@@ -174,6 +176,25 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
         )
     )
     print('-' * table_width)
+
+    # resample both traces to fictrac fps
+    flystim_interp = interp1d(flystim_timestamps, flystim_sync)
+    fictrac_interp = interp1d(fictrac_timestamps, fictrac_sync)
+
+    resample_frame_len = np.mean(np.diff(fictrac_timestamps))
+
+    time_grid = np.arange(
+        max(min(flystim_timestamps), min(fictrac_timestamps)),
+        min(max(flystim_timestamps), max(fictrac_timestamps)),
+        resample_frame_len
+    )
+
+    resampled_fs_sync = flystim_interp(time_grid)
+    resampled_ft_sync = fictrac_interp(time_grid)
+
+    global_lag = calculate_lag(resampled_fs_sync, resampled_ft_sync)
+
+    print("Globally optimal lag: {:.1f} ms".format(global_lag * resample_frame_len * 1000))
 
 
 # TODO: test!
