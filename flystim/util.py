@@ -88,3 +88,36 @@ def get_rgba(val, def_alpha=1):
         return val
     else:
         raise ValueError(f'Cannot use value with length {len(val)}.')
+
+# TODO: precisely when are flystim measurements taken? right before the frame is rendered?
+def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac_sync):
+    """ Latency analysis report
+
+    Args:
+      flystim_timestamps: list of timestamps when sync square was updated - (n_fs, )
+      flystim_sync: list of sync square states, as recorded by flystim - (n_fs, )
+      fictrac_timestamps: list of timestamps when fictrac captured a frame - (n_ft, )
+      fictrac_sync: list of sync square states, as captured by fictrac - (n_ft, )
+
+    """
+    assert len(flystim_timestamps) == len(flystim_sync)
+    assert len(fictrac_timestamps) == len(fictrac_sync)
+
+    flystim_timestamps = np.asarray(flystim_timestamps)
+    flystim_sync = np.asarray(flystim_sync)
+    fictrac_timestamps = np.asarray(fictrac_timestamps)
+    fictrac_sync = np.asarray(fictrac_sync)
+
+    # TODO: why are non-zero values recorded
+    # truncate non-zero values
+    fs_mask = flystim_timestamps.astype(bool)
+    flystim_timestamps = flystim_timestamps[fs_mask]
+    flystim_sync = flystim_sync[fs_mask]
+
+    ft_mask = fictrac_timestamps.astype(bool)
+    fictrac_timestamps = fictrac_timestamps[ft_mask]
+    fictrac_sync = fictrac_sync[ft_mask]
+
+    # fps and jitter
+    flystim_fps = 1 / np.mean(np.diff(flystim_timestamps))
+    fictrac_fps = 1 / np.mean(np.diff(fictrac_timestamps))
