@@ -174,3 +174,19 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
         )
     )
     print('-' * table_width)
+
+
+# TODO: test!
+# TODO: mean zero sequences?
+def calculate_lag(ground_truth, lagged):
+    """ Calculate delay between sequences that optimally aligns them
+
+    Args:
+      ground_truth: ground truth sequence to align against
+      lagged: delayed ground truth sequence, perhaps with some added noise
+
+    Returns
+      lag: in units of indices!! - int
+    """
+    cross_corr = np.correlate(lagged, ground_truth, mode='full')
+    return np.argmax(cross_corr) - len(ground_truth) + 1
