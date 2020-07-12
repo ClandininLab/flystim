@@ -75,13 +75,12 @@ def fictrac_get_data(sock):
 
     # Fixme: sometimes we read more than one line at a time,
     # should handle that rather than just dropping extra data...
-    if ((len(toks) < 26) | (toks[0] != "FT")):
+    if ((len(toks) < 7) | (toks[0] != "FT")):
         logging.warning("Bad read, too few tokens: %s", line)
-        #print('Bad read')
         return fictrac_get_data(sock)
         #continue
 
-    if len(toks) > 26:
+    if len(toks) > 7:
         logging.warning("Bad read, too many tokens: %s", line)
 
     #dr_lab = [float(toks[6]), float(toks[7]), float(toks[8])]
@@ -106,7 +105,8 @@ def fictrac_get_data(sock):
 
 def main():
     screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), \
-                    square_side=0.08, square_loc='ur', square_toggle_prob=0.1, save_square_history=True)
+                    square_side=0.08, square_loc='ul', save_square_history=True)
+    # square_toggle_prob=0.1,
     print(screen)
 
     FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
@@ -127,7 +127,7 @@ def main():
 #    save_path = "/home/clandinin/minseung_cl_data"
 #    save_prefix = "preallocate_vsync_on"
     save_path = "/home/clandinin/andrew/latency_measurements"
-    save_prefix = "trial_4_ubuntu_gui"
+    save_prefix = "200711_trial_00"
 
     logging.basicConfig(
         format='%(asctime)s %(message)s',
@@ -221,8 +221,8 @@ def main():
 
 
     #sync_means = np.array(ft_sync_means)
-    #plt.plot(ft_sync_means)
-    #plt.show()
+    plt.plot(ft_sync_means)
+    plt.show()
 
 if __name__ == '__main__':
     main()
