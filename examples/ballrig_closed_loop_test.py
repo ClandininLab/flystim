@@ -105,7 +105,7 @@ def fictrac_get_data(sock):
 
 def main():
     screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), \
-                    square_side=0.08, square_loc='ul', save_square_history=True)
+                    square_side=0.08, square_loc='ur', save_square_history=True)
     # square_toggle_prob=0.1,
     print(screen)
 
@@ -123,11 +123,11 @@ def main():
     # part 2: display a stimulus
     #####################################################
 
-    n_trials=2
+    n_trials=4
 #    save_path = "/home/clandinin/minseung_cl_data"
 #    save_prefix = "preallocate_vsync_on"
     save_path = "/home/clandinin/andrew/latency_measurements"
-    save_prefix = "200711_trial_00"
+    save_prefix = "200711_trial_01"
 
     logging.basicConfig(
         format='%(asctime)s %(message)s',
@@ -140,7 +140,7 @@ def main():
 
     ft_frame_rate = 250 #Hz, higher
 
-    stim_length = 15 #sec
+    stim_length = 60 #sec
     speed = 0 #degrees per sec
     still_duration = 1 #seconds
     sample_period = 6 #seconds
