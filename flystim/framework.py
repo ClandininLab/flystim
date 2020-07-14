@@ -82,6 +82,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.save_prefix = ""
         self.square_history = []
         self.stim_time_history = []
+        self.stim_time_history_atomic = []
         self.global_fly_posx_history = []
         self.global_fly_posy_history = []
         #self.global_fly_posz_history = []
@@ -146,7 +147,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # Save stim_time AND global positions and offsets
         if self.profile_frame_count is not None and self.save_history_flag:
             self.square_history[self.profile_frame_count-1] = int(self.square_program.color) #stim_time
-            self.stim_time_history[self.profile_frame_count-1] = t #stim_time
+            self.stim_time_history[self.profile_frame_count-1] = stim_time
+            self.stim_time_history_atomic[self.profile_frame_count-1] = t
             self.global_fly_posx_history[self.profile_frame_count-1] = self.global_fly_pos[0]
             self.global_fly_posy_history[self.profile_frame_count-1] = self.global_fly_pos[1]
             #self.global_fly_posz_history.append(self.global_fly_pos[2])
@@ -214,6 +216,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.square_history = np.zeros(fs_frame_rate_estimate * stim_duration)
         self.stim_time_history = np.zeros(fs_frame_rate_estimate * stim_duration)
+        self.stim_time_history_atomic = np.zeros(fs_frame_rate_estimate * stim_duration)
         self.global_fly_posx_history = np.zeros(fs_frame_rate_estimate * stim_duration)
         self.global_fly_posy_history = np.zeros(fs_frame_rate_estimate * stim_duration)
         #self.global_fly_posz_history = np.zeros(fs_frame_rate_estimate * stim_duration)
@@ -342,7 +345,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def save_history(self):
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_square.txt', np.array(self.square_history), fmt='%i', delimiter='\n')
-        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.stim_time_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.stim_time_history_atomic), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps_from_start.txt', np.array(self.stim_time_history), delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posx.txt', np.array(self.global_fly_posx_history), delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posy.txt', np.array(self.global_fly_posy_history), delimiter='\n')
         #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_fly_posz.txt', np.array(self.global_fly_posz_history), delimiter='\n')
