@@ -188,7 +188,8 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
         min(max(flystim_timestamps), max(fictrac_timestamps)),
     )
 
-    time_grid = np.arange(*time_bounds, resample_frame_len)
+    num_samples = 1 + int((time_bounds[1] - time_bounds[0]) / resample_frame_len)
+    time_grid = np.linspace(*time_bounds, num_samples, endpoint=True)
 
     resampled_fs_sync = flystim_interp(time_grid)
     resampled_ft_sync = fictrac_interp(time_grid)
@@ -200,7 +201,11 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
     local_lags = []
 
     for start_time in np.linspace(time_bounds[0], time_bounds[1] - window_size, n_windows):
-        time_grid = np.arange(start_time, start_time + window_size, resample_frame_len)
+        time_grid = np.linspace(
+            start_time,
+            start_time + window_size,
+            1  + int(window_size / resample_frame_len)
+        )
 
         local_lags.append(
             calculate_lag(
