@@ -91,19 +91,18 @@ def get_rgba(val, def_alpha=1):
     else:
         raise ValueError(f'Cannot use value with length {len(val)}.')
 
+
 def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac_sync,
                    window_size=10, n_windows=32):
     """ Latency analysis report
 
-    NOTE: this method was written to analyze timestamp logs as recorded. In particular, flystim_timestamps has units of
-    seconds but fictrac_timestamps has units of milliseconds!!
 
     Args:
       flystim_timestamps: list of timestamps when sync square was updated - (n_fs,)
         units: seconds
       flystim_sync: list of sync square states, as recorded by flystim - (n_fs,)
       fictrac_timestamps: list of timestamps when fictrac captured a frame - (n_ft,)
-        units: milliseconds
+        units: seconds
       fictrac_sync: list of sync square states, as captured by fictrac - (n_ft,)
       window_size: size of window to use for local latency analysis
       n_windows: number of windows to compute lag for
@@ -114,8 +113,7 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
 
     flystim_timestamps = np.asarray(flystim_timestamps)
     flystim_sync = np.asarray(flystim_sync)
-    # milliseconds -> seconds
-    fictrac_timestamps = np.asarray(fictrac_timestamps) / 1000
+    fictrac_timestamps = np.asarray(fictrac_timestamps)
     fictrac_sync = np.asarray(fictrac_sync)
 
     # TODO: why are non-zero values recorded
