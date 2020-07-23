@@ -1,7 +1,22 @@
 # ref: https://github.com/cprogrammer1994/ModernGL/blob/master/examples/julia_fractal.py
 
+import os.path
+import random
+from time import time
+
+
 import moderngl
 import numpy as np
+
+# bounds on square flicker frequency
+# min is somewhat arbitrary - I think there is a trade-off between alignment accuracy
+#  (sequence uniqueness) and minimum alignable window size (?), but shouldn't be that big of a deal
+MIN_SQUARE_FREQ = 10
+# max is constrained by nyquist frequency (camera capture frequency is roughly 240hz)
+MAX_SQUARE_FREQ = 100
+
+MIN_TOGGLE_FREQ = MIN_SQUARE_FREQ * 2
+MAX_TOGGLE_FREQ = MAX_SQUARE_FREQ * 2
 
 
 class SquareProgram:
@@ -12,6 +27,8 @@ class SquareProgram:
         # initialize settings
         self.color = 1.0
         self.toggle = True
+        self.last_toggle = time()
+        self.dwell_time = 0
         self.draw = True
 
     def initialize(self, ctx):
@@ -92,6 +109,17 @@ class SquareProgram:
         # return vertex point data
         return np.array([x_min, y_min, x_max, y_min, x_min, y_max, x_max, y_max])
 
+    def toggle_square(self):
+        """ Called on every frame. Guaranteed to never exceed MAX_SQUARE_FREQ
+        May violate MIN_SQUARE_FREQ, depending on flystim performance
+        """
+        elapsed = time() - self.last_toggle
+
+        if elapsed > self.dwell_time:
+            self.color = 1.0 - self.color
+            self.last_toggle = time()
+            self.dwell_time = random.uniform(1 / MAX_TOGGLE_FREQ, 1 / MIN_TOGGLE_FREQ)
+
     def paint(self):
 
         if self.draw:
@@ -106,4 +134,4 @@ class SquareProgram:
             self.ctx.enable(moderngl.DEPTH_TEST) # re-enable depth test for subsequent draws
 
         if self.toggle:
-            self.color = 1.0 - self.color
+            self.toggle_square()

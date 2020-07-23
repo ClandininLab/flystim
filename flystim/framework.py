@@ -76,6 +76,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
+        # save history for behavior analysis and stim-behavior alignment
+        self.save_history_flag = False
+
     def initializeGL(self):
         # get OpenGL context
         self.ctx = moderngl.create_context()
@@ -107,8 +110,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.ctx.viewport = (0, 0, self.width()*self.devicePixelRatio(), self.height()*self.devicePixelRatio())
 
         # draw the stimulus
+        t = time.time()
         if self.stim_list:
-            t = time.time()
             self.ctx.clear(0, 0, 0, 1)
             if self.use_fly_trajectory:
                 self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
@@ -125,11 +128,26 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             self.profile_frame_times.append(t)
 
+            # Save stim_time AND global positions and offsets
+            if self.save_history_flag:
+                profile_frame_count = len(self.profile_frame_times)
+
+                ### All of these are preallocated rather than using the append call, in case append is slow. Perhaps useful to test later since append is much cleaner...
+                self.square_history[profile_frame_count-1] = int(self.square_program.color) #stim_time
+                self.stim_time_from_start_history[profile_frame_count-1] = self.get_stim_time(t)
+                self.stim_time_history[profile_frame_count-1] = t #redundant with profile_frame_times, but to match lenght with other preallocated variables, kept here.
+                self.global_fly_posx_history[profile_frame_count-1] = self.global_fly_pos[0]
+                self.global_fly_posy_history[profile_frame_count-1] = self.global_fly_pos[1]
+                self.global_theta_offset_history[self.profile_frame_count-1] = self.global_theta_offset
+                #self.global_fly_posz_history[self.profile_frame_count-1] = self.global_fly_pos[2]
+                #self.global_phi_offset_history[self.profile_frame_count-1] = self.global_phi_offset
+
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
+
         # draw the corner square
-        self.square_program.paint()
+        self.square_program.paint() #must come after saving history to match length??
 
         # update the window
         self.ctx.finish()
@@ -181,6 +199,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
         """
 
         self.profile_frame_times = []
+
+        if self.save_history_flag:
+            self.square_history = np.zeros(self.estimated_n_frames)
+            self.stim_time_history = np.zeros(self.estimated_n_frames)
+            self.stim_time_from_start_history = np.zeros(self.estimated_n_frames)
+            self.global_fly_posx_history = np.zeros(self.estimated_n_frames)
+            self.global_fly_posy_history = np.zeros(self.estimated_n_frames)
+            self.global_theta_offset_history = np.zeros(self.estimated_n_frames)
+            #self.global_fly_posz_history = np.zeros(self.estimated_n_frames)
+            #self.global_phi_offset_history = np.zeros(self.estimated_n_frames)
 
         self.stim_started = True
         self.stim_start_time = t
@@ -296,6 +324,39 @@ class StimDisplay(QtOpenGL.QGLWidget):
     def set_global_phi_offset(self, value):
         self.global_phi_offset = radians(value)
 
+    def set_save_path(self, save_path=""):
+        if self.save_history_flag:
+            self.save_path = save_path
+
+    def set_save_prefix(self, save_prefix=""):
+        if self.save_history_flag:
+            self.save_prefix = save_prefix
+
+    def set_save_history_params(self, save_history_flag=True, save_path="", save_prefix="", fs_frame_rate_estimate=120, stim_duration=65):
+        self.save_history_flag = save_history_flag
+        if save_history_flag:
+            self.save_path = save_path
+            self.save_prefix = save_prefix
+            self.estimated_n_frames = fs_frame_rate_estimate * stim_duration
+            self.square_history = []
+            self.stim_time_history = []
+            self.stim_time_from_start_history = []
+            self.global_fly_posx_history = []
+            self.global_fly_posy_history = []
+            self.global_theta_offset_history = []
+            #self.global_fly_posz_history = []
+            #self.global_phi_offset_history = []
+
+    def save_history(self):
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_square.txt', np.array(self.square_history), fmt='%i', delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.stim_time_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps_from_start.txt', np.array(self.stim_time_from_start_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posx.txt', np.array(self.global_fly_posx_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posy.txt', np.array(self.global_fly_posy_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_theta.txt', np.array(self.global_theta_offset_history), delimiter='\n')
+        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_fly_posz.txt', np.array(self.global_fly_posz_history), delimiter='\n')
+        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_phi_offset.txt', np.array(self.global_phi_offset_history), delimiter='\n')
+
 
 def get_perspective(fly_pos, theta, phi, screen):
     """
@@ -383,6 +444,10 @@ def main():
     server.register_function(stim_display.set_global_fly_pos)
     server.register_function(stim_display.set_global_theta_offset)
     server.register_function(stim_display.set_global_phi_offset)
+    server.register_function(stim_display.set_save_path)
+    server.register_function(stim_display.set_save_prefix)
+    server.register_function(stim_display.set_save_history_params)
+    server.register_function(stim_display.save_history)
 
     # display the stimulus
     if screen.fullscreen:
