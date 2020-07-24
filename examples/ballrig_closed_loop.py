@@ -90,7 +90,7 @@ def fictrac_get_data(sock):
 
 
 def main():
-    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), square_side=0.08, square_loc='ur')
+    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.08, square_loc='ur')
     print(screen)
 
     FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
@@ -104,7 +104,7 @@ def main():
     #draw_screens(screen)
 
     #####################################################
-    # part 2: display a stimulus
+    # part 2: define the stimulus and closed-loop parameters
     #####################################################
 
     n_trials=4
@@ -112,9 +112,10 @@ def main():
 #    save_prefix = "preallocate_vsync_on"
     save_path = "/home/clandinin/andrew/latency_measurements"
     save_prefix = "200723_s01"
-    ft_frame_rate = 245 #Hz, higher
-    stim_length = 10 #sec
 
+    ft_frame_rate = 245 #Hz, higher
+
+    stim_length = 10 #sec
     speed = 2 #degrees per sec
     still_duration = 2 #seconds
     sample_period = 4 #seconds
@@ -144,8 +145,13 @@ def main():
     manager = launch_stim_server(screen)
     manager.set_save_history_params(save_history_flag=True, save_path=save_path, fs_frame_rate_estimate=120, stim_duration=stim_length)
 
+
+    #####################################################
+    # part 3: start the loop
+    #####################################################
+
     #p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config1.txt"], start_new_session=True)
-    p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config_smaller_window.txt"], start_new_session=True)
+    p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config_smaller_window.txt","-v","ERR"], start_new_session=True)
     sleep(2)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as fictrac_sock:
