@@ -62,9 +62,6 @@ def make_tri_list():
 def fictrac_get_data(sock):
     data = sock.recv(1024)
 
-    #if not data:
-    #    break
-
     # Decode received data
     line = data.decode('UTF-8')
     endline = line.find("\n")
@@ -83,22 +80,11 @@ def fictrac_get_data(sock):
     if len(toks) > 7:
         logging.warning("Bad read, too many tokens: %s", line)
 
-    #dr_lab = [float(toks[6]), float(toks[7]), float(toks[8])]
-
-    #posx = float(toks[15])
-    #posy = float(toks[16])
-    #heading = float(toks[17])
-    #timestamp = float(toks[22])
-    #sync_illum = int(toks[24])
-    #sync_mean = float(toks[25])
-
     posx = float(toks[1])
     posy = float(toks[2])
     heading = float(toks[3])
     timestamp = float(toks[4])
     sync_mean = float(toks[5])
-
-    #print(time()*1000 - float(toks[6]))
 
     return (posx, posy, heading, timestamp, sync_mean)
 
@@ -125,9 +111,29 @@ def main():
 #    save_path = "/home/clandinin/minseung_cl_data"
 #    save_prefix = "preallocate_vsync_on"
     save_path = "/home/clandinin/andrew/latency_measurements"
-    save_prefix = "200711_trial_01"
-    ft_frame_rate = 250 #Hz, higher
-    stim_length = 60 #sec
+    save_prefix = "200723_s01"
+    ft_frame_rate = 245 #Hz, higher
+    stim_length = 10 #sec
+
+    speed = 2 #degrees per sec
+    still_duration = 2 #seconds
+    sample_period = 4 #seconds
+    occlusion_period = 2 #seconds
+    iti = 2 #seconds
+
+    bar_theta_traj = Trajectory([(0,90),(still_duration,90),(stim_length, 90-speed*(stim_length-still_duration))], kind='linear').to_dict()
+    bar_width = 2
+    bar_height = 10
+    bar_color = 1
+    bar_sphere_radius = 1.1
+    bar_angle = 0
+
+    occluder_theta_traj = Trajectory([(0,90-speed*(still_duration+sample_period)),(stim_length,90-speed*(still_duration+sample_period))], kind='linear').to_dict()
+    occluder_width = 2
+    occluder_height = 10
+    occluder_color = 0.8
+    occluder_sphere_radius = 1
+    occluder_angle = 0
 
     logging.basicConfig(
         format='%(asctime)s %(message)s',
@@ -137,17 +143,6 @@ def main():
 
     manager = launch_stim_server(screen)
     manager.set_save_history_params(save_history_flag=True, save_path=save_path, fs_frame_rate_estimate=120, stim_duration=stim_length)
-
-    speed = 0 #degrees per sec
-    still_duration = 1 #seconds
-    sample_period = 6 #seconds
-    occlusion_period = 2 #seconds
-    iti = 2 #seconds
-
-    theta_traj = Trajectory([(0,90),(still_duration,90),(stim_length, 90-speed*(stim_length-still_duration))], kind='linear').to_dict()
-    manager.load_stim(name='MovingPatch',width=2, height=60, phi=90, color=1, theta=theta_traj, angle=45, hold=True)
-
-    #occluder = RectangleTrajectory(x=[(0,90-speed*(still_duration+sample_period)),(stim_length,90-speed*(still_duration+sample_period))], y=90, w=occlusion_period*speed, h=70)
 
     #p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config1.txt"], start_new_session=True)
     p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config_smaller_window.txt"], start_new_session=True)
@@ -163,16 +158,10 @@ def main():
             ft_posx = np.zeros(ft_frame_rate * (stim_length+5))
             ft_posy = np.zeros(ft_frame_rate * (stim_length+5))
             ft_theta = np.zeros(ft_frame_rate * (stim_length+5))
-            #manager.load_stim(name='MovingPatch', trajectory=occluder.to_dict())
-            #manager.load_stim(name='MovingPatch', trajectory=trajectory.to_dict(), vary='alpha', hold=True)
-            #_=fictrac_sock.recv(8192) #clear trash
+
             _ = fictrac_get_data(fictrac_sock)
-            #_=fictrac_sock.recv(2048) #clear trash
-            #sleep(5)
-            #for i in range(4):
-            #    _ = fictrac_get_data(fictrac_sock)
-            manager.load_stim('MovingPatch', trajectory=trajectory.to_dict(), background=None)
-            #manager.load_stim('MovingPatch', trajectory=occluder.to_dict(), background=None, hold=True)
+            manager.load_stim(name='MovingPatch',width=bar_width, height=bar_height, phi=90, color=bar_color, sphere_radius=bar_sphere_radius, theta=bar_theta_traj, angle=bar_angle, hold=True)
+            manager.load_stim(name='MovingPatch',width=occluder_width, height=occluder_height, phi=90, color=occluder_color, sphere_radius=occluder_sphere_radius, theta=occluder_theta_traj, angle=occluder_angle, hold=True)
 
             print ("===== Trial " + str(t) + " ======")
             t_start = time()
@@ -181,8 +170,6 @@ def main():
 
             cnt = 0
             while (time() -  t_start) < stim_length:
-
-                #posx, posy, theta_rad, timestamp, sync_illum, sync_mean = fictrac_get_data(fictrac_sock)
                 posx, posy, theta_rad, timestamp, sync_mean = fictrac_get_data(fictrac_sock)
                 posx = posx - posx_0
                 posy = posy - posy_0
