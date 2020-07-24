@@ -8,3 +8,6 @@ nvidia-settings --load-config-only --assign="SyncToVBlank=0"
 
 
  __GL_MaxFramesAllowed=1 __GL_YIELD="NOTHING" __GL_THREADED_OPTIMIZATIONS=0
+
+
+TODO: place corner square exactly where the optic fiber is.
