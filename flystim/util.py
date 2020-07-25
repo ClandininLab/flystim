@@ -204,7 +204,8 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
         time_grid = np.linspace(
             start_time,
             start_time + window_size,
-            1  + int(window_size / resample_frame_len)
+            1  + int(window_size / resample_frame_len),
+            endpoint=True
         )
 
         local_lags.append(
