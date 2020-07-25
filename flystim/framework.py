@@ -329,7 +329,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         if save_history_flag:
             self.save_path = save_path
             self.save_prefix = save_prefix
-            self.estimated_n_frames = fs_frame_rate_estimate * stim_duration
+            self.estimated_n_frames = int(np.ceil(fs_frame_rate_estimate * stim_duration))
             self.square_history = []
             self.stim_time_history = []
             self.stim_time_from_start_history = []
