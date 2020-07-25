@@ -76,18 +76,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.global_phi_offset = 0
         self.global_fly_pos = np.array([0, 0, 0], dtype=float)
 
-        # history for stim-behavior alignment
+        # save history for behavior analysis and stim-behavior alignment
         self.save_history_flag = False
-        self.save_path = ""
-        self.save_prefix = ""
-        self.square_history = []
-        self.stim_time_history = []
-        self.stim_time_history_atomic = []
-        self.global_fly_posx_history = []
-        self.global_fly_posy_history = []
-        #self.global_fly_posz_history = []
-        self.global_theta_offset_history = []
-        #self.global_phi_offset_history = []
 
     def initializeGL(self):
         # get OpenGL context
@@ -121,9 +111,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.ctx.viewport = (0, 0, self.width()*self.devicePixelRatio(), self.height()*self.devicePixelRatio())
 
         # draw the stimulus
-        t = time.time()
-        stim_time = self.get_stim_time(t)
         if self.stim_list:
+            t = time.time()
+            stim_time = self.get_stim_time(t)
+
             self.ctx.clear(0, 0, 0, 1)
             self.ctx.enable(moderngl.BLEND)
 
@@ -133,27 +124,21 @@ class StimDisplay(QtOpenGL.QGLWidget):
                               global_theta_offset=self.global_theta_offset,
                               global_phi_offset=self.global_phi_offset)
 
-            try:
-                # TODO: make sure that profile information is still accurate
-                self.profile_frame_count += 1
-                #if (self.profile_last_time is not None) and (self.profile_frame_times is not None):
-                    #self.profile_frame_times.append(t - self.profile_last_time)
-                self.profile_last_time = t
-            except:
-                pass
+            # Save stim_time AND global positions and offsets
+            if self.save_history_flag:
+                self.square_history[self.profile_frame_count] = int(self.square_program.color) #stim_time
+                self.stim_time_history[self.profile_frame_count] = t
+                self.stim_time_from_start_history[self.profile_frame_count] = stim_time
+                self.global_fly_posx_history[self.profile_frame_count] = self.global_fly_pos[0]
+                self.global_fly_posy_history[self.profile_frame_count] = self.global_fly_pos[1]
+                self.global_theta_offset_history[self.profile_frame_count] = self.global_theta_offset
+                #self.global_fly_posz_history[self.profile_frame_count] = self.global_fly_pos[2]
+                #self.global_phi_offset_history[self.profile_frame_count] = self.global_phi_offset
+
+            self.profile_frame_count += 1
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
-        # Save stim_time AND global positions and offsets
-        if self.profile_frame_count is not None and self.save_history_flag:
-            self.square_history[self.profile_frame_count-1] = int(self.square_program.color) #stim_time
-            self.stim_time_history[self.profile_frame_count-1] = stim_time
-            self.stim_time_history_atomic[self.profile_frame_count-1] = t
-            self.global_fly_posx_history[self.profile_frame_count-1] = self.global_fly_pos[0]
-            self.global_fly_posy_history[self.profile_frame_count-1] = self.global_fly_pos[1]
-            #self.global_fly_posz_history.append(self.global_fly_pos[2])
-            self.global_theta_offset_history[self.profile_frame_count-1] = self.global_theta_offset
-            #self.global_phi_offset_history.append(self.global_phi_offset)
 
         # draw the corner square
         self.square_program.paint() #must come after saving history to match length??
@@ -211,16 +196,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_paused = False
         self.stim_start_time = t
 
-        fs_frame_rate_estimate = 120
-        stim_duration = 65
-
-        self.square_history = np.zeros(fs_frame_rate_estimate * stim_duration)
-        self.stim_time_history = np.zeros(fs_frame_rate_estimate * stim_duration)
-        self.stim_time_history_atomic = np.zeros(fs_frame_rate_estimate * stim_duration)
-        self.global_fly_posx_history = np.zeros(fs_frame_rate_estimate * stim_duration)
-        self.global_fly_posy_history = np.zeros(fs_frame_rate_estimate * stim_duration)
-        #self.global_fly_posz_history = np.zeros(fs_frame_rate_estimate * stim_duration)
-        self.global_theta_offset_history = np.zeros(fs_frame_rate_estimate * stim_duration)
+        if self.save_history_flag:
+            self.square_history = np.zeros(self.estimated_n_frames)
+            self.stim_time_history = np.zeros(self.estimated_n_frames)
+            self.stim_time_from_start_history = np.zeros(self.estimated_n_frames)
+            self.global_fly_posx_history = np.zeros(self.estimated_n_frames)
+            self.global_fly_posy_history = np.zeros(self.estimated_n_frames)
+            self.global_theta_offset_history = np.zeros(self.estimated_n_frames)
+            #self.global_fly_posz_history = np.zeros(self.estimated_n_frames)
+            #self.global_phi_offset_history = np.zeros(self.estimated_n_frames)
 
     def pause_stim(self, t):
         self.stim_paused = True
@@ -334,23 +318,35 @@ class StimDisplay(QtOpenGL.QGLWidget):
     def set_global_phi_offset(self, value):
         self.global_phi_offset = radians(value)
 
-    def set_save_history_flag(self, save_history_flag=True):
-        self.save_history_flag = save_history_flag
-
     def set_save_path(self, save_path):
         self.save_path = save_path
 
     def set_save_prefix(self, save_prefix):
         self.save_prefix = save_prefix
 
+    def set_save_history_params(self, save_history_flag=True, save_path="", save_prefix="", fs_frame_rate_estimate=120, stim_duration=65):
+        self.save_history_flag = save_history_flag
+        if save_history_flag:
+            self.save_path = save_path
+            self.save_prefix = save_prefix
+            self.estimated_n_frames = fs_frame_rate_estimate * stim_duration
+            self.square_history = []
+            self.stim_time_history = []
+            self.stim_time_from_start_history = []
+            self.global_fly_posx_history = []
+            self.global_fly_posy_history = []
+            self.global_theta_offset_history = []
+            #self.global_fly_posz_history = []
+            #self.global_phi_offset_history = []
+
     def save_history(self):
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_square.txt', np.array(self.square_history), fmt='%i', delimiter='\n')
-        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.stim_time_history_atomic), delimiter='\n')
-        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps_from_start.txt', np.array(self.stim_time_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.stim_time_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps_from_start.txt', np.array(self.stim_time_from_start_history), delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posx.txt', np.array(self.global_fly_posx_history), delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posy.txt', np.array(self.global_fly_posy_history), delimiter='\n')
-        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_fly_posz.txt', np.array(self.global_fly_posz_history), delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_theta.txt', np.array(self.global_theta_offset_history), delimiter='\n')
+        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_fly_posz.txt', np.array(self.global_fly_posz_history), delimiter='\n')
         #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_phi_offset.txt', np.array(self.global_phi_offset_history), delimiter='\n')
 
 def make_qt_format(vsync):
@@ -416,9 +412,9 @@ def main():
     server.register_function(stim_display.set_global_fly_pos)
     server.register_function(stim_display.set_global_theta_offset)
     server.register_function(stim_display.set_global_phi_offset)
-    server.register_function(stim_display.set_save_history_flag)
     server.register_function(stim_display.set_save_path)
     server.register_function(stim_display.set_save_prefix)
+    server.register_function(stim_display.set_save_history_params)
     server.register_function(stim_display.save_history)
 
     # display the stimulus
