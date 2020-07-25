@@ -110,7 +110,7 @@ def main():
 
     n_trials = 5
     save_path = "/home/clandinin/andrew/latency_measurements"
-    save_prefix = "200724_test06"
+    save_prefix = "200724_semi_test01"
 
     ft_frame_rate = 245 #Hz, higher
 
@@ -255,7 +255,7 @@ def main():
                 posx, posy, theta_rad, timestamp, sync_mean = fictrac_get_data(fictrac_sock)
                 posx = posx - posx_0
                 posy = posy - posy_0
-                theta_rad = theta_rad - theta_0
+                theta_rad = -(theta_rad - theta_0)
 
                 #manager.set_global_fly_pos(posx*RADIUS, posy*RADIUS, 0)
                 theta_deg = (theta_rad*180/math.pi) % 360 - 360
