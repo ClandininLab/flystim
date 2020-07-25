@@ -140,7 +140,7 @@ def main():
 
     ft_frame_rate = 250 #Hz, higher
 
-    stim_length = 60 #sec
+    stim_length = 10 #sec
     speed = 0 #degrees per sec
     still_duration = 1 #seconds
     sample_period = 6 #seconds
@@ -150,7 +150,7 @@ def main():
     occluder = RectangleTrajectory(x=[(0,90-speed*(still_duration+sample_period)),(stim_length,90-speed*(still_duration+sample_period))], y=90, w=occlusion_period*speed, h=70)
 
     #p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config1.txt"], start_new_session=True)
-    p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config_smaller_window.txt"], start_new_session=True)
+    p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config_smaller_window.txt","-v","ERR"], start_new_session=True)
     sleep(2)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as fictrac_sock:
