@@ -4,6 +4,8 @@ from numbers import Number
 import numpy as np
 from scipy.interpolate import interp1d
 
+from warnings import warn
+
 def listify(x, type_):
     if isinstance(x, (list, tuple)):
         return x
@@ -187,6 +189,7 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
         max(min(flystim_timestamps), min(fictrac_timestamps)),
         min(max(flystim_timestamps), max(fictrac_timestamps)),
     )
+    trial_duration = time_bounds[1] - time_bounds[0]
 
     num_samples = 1 + int((time_bounds[1] - time_bounds[0]) / resample_frame_len)
     time_grid = np.linspace(*time_bounds, num_samples, endpoint=True)
@@ -199,6 +202,9 @@ def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac
     print("Globally optimal lag: {:.1f}ms".format(global_lag * resample_frame_len * 1000))
 
     local_lags = []
+
+    if window_size >= trial_duration:
+        warn("window_size is larger than trial duration! try a smaller window_size")
 
     for start_time in np.linspace(time_bounds[0], time_bounds[1] - window_size, n_windows):
         time_grid = np.linspace(
