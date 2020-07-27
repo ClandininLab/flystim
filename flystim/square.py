@@ -66,21 +66,25 @@ class SquareProgram:
         w = 2.0*self.screen.square_side/self.screen.width
         h = 2.0*self.screen.square_side/self.screen.height
 
-        # compute vertical offset in NDC
-        if self.screen.square_loc[0] == 'l':
-            offset_y = -1.0 + h/2
-        elif self.screen.square_loc[0] == 'u':
-            offset_y = +1.0 - h/2
+        if type(self.screen.square_loc) == list:
+            offset_x = self.screen.square_loc[0]
+            offset_y = self.screen.square_loc[1]
         else:
-            raise ValueError('Invalid square location.')
+            # compute vertical offset in NDC
+            if self.screen.square_loc[0] == 'l':
+                offset_y = -1.0 + h/2
+            elif self.screen.square_loc[0] == 'u':
+                offset_y = +1.0 - h/2
+            else:
+                raise ValueError('Invalid square location.')
 
-        # compute horizontal offset in NDC
-        if self.screen.square_loc[1] == 'l':
-            offset_x = -1.0 + w/2
-        elif self.screen.square_loc[1] == 'r':
-            offset_x = +1.0 - w/2
-        else:
-            raise ValueError('Invalid square location.')
+            # compute horizontal offset in NDC
+            if self.screen.square_loc[1] == 'l':
+                offset_x = -1.0 + w/2
+            elif self.screen.square_loc[1] == 'r':
+                offset_x = +1.0 - w/2
+            else:
+                raise ValueError('Invalid square location.')
 
         # determine rectangular bounds
         x_min = offset_x - w/2

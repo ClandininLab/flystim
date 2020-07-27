@@ -66,7 +66,7 @@ class Screen:
         in a window.
         :param vsync: Boolean.  If True, lock the framerate to the redraw rate of the screen.
         :param square_side: Length of photodiode synchronization square (meters).
-        :param square_loc: Location of photodiode synchronization square (one of 'll', 'lr', 'ul', 'ur')
+        :param square_loc: Location of photodiode synchronization square (one of 'll', 'lr', 'ul', 'ur' or a tuple of (x,y))
         :param name: descriptive name to associate with this screen
         :param tri_list: list of triangular patches defining the screen geometry.  this is a list of ScreenTriangles.
         if the triangle list is not specified, then one is constructed automatically using rotation and offset.

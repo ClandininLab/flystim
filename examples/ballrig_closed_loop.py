@@ -91,7 +91,7 @@ def fictrac_get_data(sock):
 
 
 def main():
-    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.08, square_loc='ur')
+    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.01, square_loc=(0.59,0.74))#square_side=0.08, square_loc='ur')
     print(screen)
 
     FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
@@ -108,9 +108,9 @@ def main():
     # part 2: User defined parameters
     #####################################################
 
-    n_trials = 5
-    save_path = "/home/clandinin/andrew/latency_measurements"
-    save_prefix = "200724_semi_test01"
+    n_trials = 2
+    save_path = "/home/clandinin/minseung/ballrig_data"
+    save_prefix = "200727_test01"
 
     ft_frame_rate = 245 #Hz, higher
 
@@ -287,8 +287,8 @@ def main():
     p.terminate()
     p.kill()
 
-    #plt.plot(ft_sync_means)
-    #plt.show()
+    plt.plot(ft_sync_means)
+    plt.show()
 
 if __name__ == '__main__':
     main()
