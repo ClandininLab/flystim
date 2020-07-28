@@ -56,8 +56,10 @@ class GlVertices:
         new_colors = np.tile(np.array(color), (self.vertices.shape[1], 1)).T
         return GlVertices(vertices=self.vertices, colors=new_colors, tex_coords=self.tex_coords)
 
-    def shiftTexture(self, shift): #TODO
-        pass
+    def shiftTexture(self, shift):
+        new_tex_coords = self.tex_coords + np.tile(shift, (self.tex_coords.shape[1], 1)).T
+        return GlVertices(vertices=self.vertices, colors=self.colors, tex_coords=new_tex_coords)
+
 
     @property
     def data(self):
@@ -240,7 +242,7 @@ class GlCylinder(GlVertices):
                  color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
                  n_faces=32,
                  texture=False,
-                 texture_shift=(0, 0)):  # (u,v) coordinates to translate texture on shape. + us right, up.
+                 texture_shift=(0, 0)):  # (u,v) coordinates to translate texture on shape. + is right, up.
 
         super().__init__()
         if type(color) is not list:

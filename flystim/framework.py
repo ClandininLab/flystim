@@ -163,7 +163,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 stim.vao.release()
 
         # if self.stim_started:
-        #     print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmark)ing
+        #     print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmarking
 
     ###########################################
     # control functions
