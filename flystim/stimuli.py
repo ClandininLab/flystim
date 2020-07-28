@@ -162,8 +162,51 @@ class TexturedCylinder(BaseProgram):
     def eval_at(self, t, fly_position=[0, 0, 0]):
         # overwrite in subclass
         pass
+'''
+class MovingBar(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
 
+    def configure(self, width=10, height=10, cylinder_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+        """
+        Stimulus consisting of a rectangular patch on the surface of a cylinder. Patch is rectangular in spherical coordinates.
 
+        :param width: Width in degrees (azimuth)
+        :param height: Height in degrees (elevation)
+        :param cylinder_radius: Radius of the cylinder (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.width = width
+        self.height = height
+        self.cylinder_radius = cylinder_radius
+        self.color = color
+        self.theta = theta
+        self.phi = phi
+        self.angle = angle
+
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        color = return_for_time_t(self.color, t)
+        # TODO: is there a way to make this object once in configure then update with width/height in eval_at?
+        self.stim_object = GlCylinderRect(width=width,
+                                           height=height,
+                                           sphere_radius=self.sphere_radius,
+                                           color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=[1, 1, 1, 1],
+                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+
+'''
 class CylindricalGrating(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
@@ -275,6 +318,89 @@ class RotatingGrating(CylindricalGrating):
                                       color=self.color,
                                       texture=True,
                                       texture_shift=(shift_u, 0)).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+'''
+class TwoBars(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, width_1=0.5, height_1=4, cylinder_radius_1=2, color_1=[1, 1, 1, 1], theta_1=0, phi_1=0, angle_1=0, cylinder_height_1=10, width_2=1, height_2=4, cylinder_radius_2=1, color_2=[1, 1, 1, 1], theta_2=0, phi_2=0, angle_2=0, cylinder_height_2=10):
+        """
+        Periodic bars of randomized intensity painted on the inside of a cylinder
+        :param period: spatial period (degrees) of bar locations
+        :param width: width (degrees) of each bar
+        :param vert_extent: vertical extent (degrees) of bars
+        :param theta_offset: offset of periodic bar pattern (degrees)
+        :param background: intensity (mono) of texture background, where no bars appear
+        :param distribution_data: dict. containing name and args/kwargs for random distribution (see flystim.distribution)
+        :param update_rate: Hz, update rate of bar intensity
+        :param start_seed: seed with which to start rng at the beginning of the stimulus presentation
+
+        :other params: see TexturedCylinder
+        """
+        # assuming fly is at (0,0,0), calculate cylinder height required to achieve vert_extent (degrees)
+        # tan(vert_extent/2) = (cylinder_height/2) / cylinder_radius
+        assert vert_extent < 180
+        cylinder_height = 2 * cylinder_radius * np.tan(np.radians(vert_extent/2))
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
+
+        # get the noise distribution
+        if distribution_data is None:
+            distribution_data = {'name': 'Uniform',
+                                 'args': [0, 1],
+                                 'kwargs': {}}
+        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args',[]), **distribution_data.get('kwargs',{}))
+
+        self.period = period
+        self.width = width
+        self.vert_extent = vert_extent
+        self.theta_offset = theta_offset
+        self.background = background
+        self.update_rate = update_rate
+        self.start_seed = start_seed
+        self.cylinder_location = cylinder_location
+
+        # Only renders part of the cylinder if the period is not a divisor of 360
+        self.n_bars = int(np.floor(360/self.period))
+        self.cylinder_angular_extent = self.n_bars * self.period  # degrees
+
+        self.stim_object_template = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      cylinder_location=self.cylinder_location,
+                                      texture=True)
+
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+
+        self.stim_object = copy.copy(self.stim_object_template)
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      cylinder_angular_extent=self.cylinder_angular_extent,
+                                      color=self.color,
+                                      cylinder_location=self.cylinder_location,
+                                      texture=True).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+
+        # set the seed
+        seed = int(round(self.start_seed + t*self.update_rate))
+        np.random.seed(seed)
+        # get the random values
+        bar_colors = self.noise_distribution.get_random_values(self.n_bars)
+
+        # get the x-profile
+        xx = np.mod(np.linspace(0, self.cylinder_angular_extent, 256)[:-1] + self.theta_offset, 360)
+        profile = np.array([bar_colors[int(x/self.period)] for x in xx])
+        duty_cycle = self.width/self.period
+        inds = np.modf(xx/self.period)[0] > duty_cycle
+        profile[inds] = self.background
+
+        # make the texture
+        img = np.expand_dims(255*profile, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
+        self.texture_interpolation = 'NEAREST'
+        self.texture_image = img
+'''
 
 
 class RandomBars(TexturedCylinder):
