@@ -3,6 +3,7 @@ from flystim.stim_server import launch_stim_server
 from flystim.screen import Screen
 from flystim.trajectory import Trajectory
 import numpy as np
+from flystim.draw import draw_screens
 
 from time import sleep
 
@@ -17,6 +18,7 @@ def dir_to_tri_list(dir):
             ((-0.40, +0.20), (-w/2, +w/2, +h/2)), # ur
             ((-0.40, -0.20), (-w/2, -w/2, +h/2)) # lr
         ]
+
     elif dir == 'n':
         h = 3e-2
         pts = [
@@ -43,16 +45,19 @@ def make_tri_list():
     return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
 
 def main():
-    screen = Screen(server_number=0, id=0, fullscreen=False, tri_list=make_tri_list(), vsync=False)
+    screen = Screen(server_number=0, id=0, fullscreen=False, tri_list=make_tri_list(), vsync=True)
+
+    draw_screens(screen)
+
     # manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=False))
     manager = launch_stim_server(screen)
 
     manager.load_stim(name='ConstantBackground', color = [0.5, 0.5, 0.5, 1.0], side_length=100)
     manager.load_stim(name='Floor', color=[0.5, 0.5, 0.5, 1.0], z_level=-0.1, side_length=5, hold=True)
 
-    manager.load_stim(name='Tower', color=[1, 0, 0, 1.0], cylinder_location=[1, +0.25, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # red
-    manager.load_stim(name='Tower', color=[0, 1, 0, 1.0], cylinder_location=[0.5, 0, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # green, +x, center
-    manager.load_stim(name='Tower', color=[0, 0, 1, 1], cylinder_location=[1, -0.25, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # blue, +x, right
+    manager.load_stim(name='Tower', color=[1, 0, 0, 1.0], cylinder_location=[-0.25, +1, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # red, +y, left
+    manager.load_stim(name='Tower', color=[0, 1, 0, 1.0], cylinder_location=[0.0, +1, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # green, +y, center
+    manager.load_stim(name='Tower', color=[0, 0, 1, 1], cylinder_location=[+0.25, +1, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # blue, +y, right
 
 
     tree_locations = []
@@ -60,9 +65,9 @@ def main():
         tree_locations.append([np.random.uniform(-2, 2), np.random.uniform(-2, 2), np.random.uniform(0, 0)])
     manager.load_stim(name='Forest', color=[0, 0, 0, 1], cylinder_radius=0.05, cylinder_height=0.1, n_faces=8, cylinder_locations=tree_locations, hold=True)
 
-    tt = np.arange(0, 4, 0.01) # seconds
-    velocity_x = 0.05 # meters per sec
-    velocity_y = 0.00
+    tt = np.arange(0, 12, 0.01) # seconds
+    velocity_x = 0.00 # meters per sec
+    velocity_y = 0.1
 
     xx = tt * velocity_x
     yy = tt * velocity_y
@@ -81,7 +86,7 @@ def main():
     sleep(0.5)
 
     manager.start_stim()
-    sleep(8)
+    sleep(16)
 
     manager.stop_stim(print_profile=True)
     sleep(0.5)

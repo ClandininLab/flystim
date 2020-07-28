@@ -29,6 +29,10 @@ def draw_screens(screens):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+    lim = 0.25
+    ax.set_xlim([-lim, +lim])
+    ax.set_ylim([-lim, +lim])
+    ax.set_zlim([-lim, +lim])
 
     plt.show()
 
