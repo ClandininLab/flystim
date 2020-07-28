@@ -108,9 +108,9 @@ def main():
     # part 2: User defined parameters
     #####################################################
 
-    n_trials = 2
+    n_repeats = 2
     save_path = "/home/clandinin/minseung/ballrig_data"
-    save_prefix = "200727_test01"
+    save_prefix = "200727_test04"
 
     ft_frame_rate = 245 #Hz, higher
 
@@ -125,6 +125,7 @@ def main():
 
     ctrl_seed = 2
     ctrl_n_samples = 6 # how many random waypoints should there be for control
+    ctrl_noise_scale = 5
 
     occluder_height = 70
     occluder_color = 1
@@ -135,16 +136,17 @@ def main():
     bar_color = 0.2
     #bar_angle = 0
 
-    params = {'n_trials':n_trials, 'save_path':save_path, 'save_prefix': save_prefix, 'ft_frame_rate': ft_frame_rate, 'speed': speed, 'presample_duration': presample_duration, 'sample_duration': sample_duration, 'preocc_duration': preocc_duration, 'occlusion_duration': occlusion_duration, 'postocc_duration': postocc_duration, 'stim_duration': stim_duration, 'iti': iti, 'ctrl_seed': ctrl_seed, 'ctrl_n_samples': ctrl_n_samples, 'occluder_height': occluder_height, 'occluder_color': occluder_color, 'bar_width': bar_width, 'bar_height': bar_height, 'bar_color': bar_color}
+    params = {'n_repeats':n_repeats, 'save_path':save_path, 'save_prefix': save_prefix, 'ft_frame_rate': ft_frame_rate, 'speed': speed, 'presample_duration': presample_duration, 'sample_duration': sample_duration, 'preocc_duration': preocc_duration, 'occlusion_duration': occlusion_duration, 'postocc_duration': postocc_duration, 'stim_duration': stim_duration, 'iti': iti, 'ctrl_seed': ctrl_seed, 'ctrl_n_samples': ctrl_n_samples, 'ctrl_noise_scale': ctrl_noise_scale, 'occluder_height': occluder_height, 'occluder_color': occluder_color, 'bar_width': bar_width, 'bar_height': bar_height, 'bar_color': bar_color}
 
     #####################################################
-    # part 3: Under the hood stimulus definitions
+    # part 3: stimulus definitions
     #####################################################
 
     # Trial structure
-    n_exp_trials = int(n_trials/2)
-    n_ctrl_trials = n_trials - n_exp_trials
-    trial_structure = np.random.permutation(np.concatenate([np.zeros(n_exp_trials), np.ones(n_ctrl_trials)])) #1 for exp, 0 for ctrl
+    trial_labels = np.array([0,1,2,3]) # visible, coherent. 00, 01, 10, 11
+    trial_structure = np.random.permutation(np.repeat(trial_labels, n_repeats))
+    n_trials = len(trial_structure)
+    params['n_trials'] = n_trials
     params['trial_structure'] = np.array2string(trial_structure, precision=1, separator=',')
 
     # Bar start location
@@ -167,10 +169,12 @@ def main():
     ctrl_traj = [(0,start_theta),(presample_duration,start_theta)]
 
     np.random.seed(ctrl_seed)
-    ctrl_sample_noise = np.random.normal(0, scale=1, size=ctrl_n_samples-1) # control trajectory is random gaussian noise with n_samples
+    ctrl_sample_slow_traj = np.linspace(0, start_theta-exp_sample_movement/2, num=ctrl_n_samples-1, endpoint=True)
+    ctrl_sample_noise = np.random.normal(0, scale=ctrl_noise_scale, size=ctrl_n_samples-1) # control trajectory is random gaussian noise with n_samples
     ctrl_sample_times = np.linspace(start=presample_duration, stop=presample_duration+sample_duration, num=ctrl_n_samples, endpoint=False) + presample_duration/ctrl_n_samples
-    ctrl_sample_normalizer = exp_sample_movement/np.sum(np.abs(ctrl_sample_noise)) # makes contrl movement (sum of abs) sums to total movement of exp
-    ctrl_sample_traj = list(zip(ctrl_sample_times, start_theta - ctrl_sample_noise*ctrl_sample_normalizer))
+    #ctrl_sample_normalizer = exp_sample_movement/np.sum(np.abs(ctrl_sample_noise)) # makes contrl movement (sum of abs) sums to total movement of exp
+    #ctrl_sample_traj = list(zip(ctrl_sample_times, start_theta - ctrl_sample_noise*ctrl_sample_normalizer))
+    ctrl_sample_traj = list(zip(ctrl_sample_times, start_theta - (ctrl_sample_noise + ctrl_sample_slow_traj)))
     ctrl_sample_end_theta = ctrl_sample_traj[-1][1]
     ctrl_traj.extend(ctrl_sample_traj)
 
@@ -195,9 +199,11 @@ def main():
 
     # Create flystim trajectory objects
     exp_bar = RectangleTrajectory(x=exp_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
-    exp_occluder = RectangleTrajectory(x=exp_occluder_traj, y=90, w=occluder_width, h=occluder_height, color=occluder_color)
+    exp_occluder_visible = RectangleTrajectory(x=exp_occluder_traj, y=90, w=occluder_width, h=occluder_height, color=occluder_color)
+    exp_occluder_invisible = RectangleTrajectory(x=exp_occluder_traj, y=90, w=occluder_width, h=occluder_height, color=0)
     ctrl_bar = RectangleTrajectory(x=ctrl_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
-    ctrl_occluder = RectangleTrajectory(x=ctrl_occluder_traj, y=90, w=occluder_width, h=occluder_height, color=occluder_color)
+    ctrl_occluder_visible = RectangleTrajectory(x=ctrl_occluder_traj, y=90, w=occluder_width, h=occluder_height, color=occluder_color)
+    ctrl_occluder_invisible = RectangleTrajectory(x=ctrl_occluder_traj, y=90, w=occluder_width, h=occluder_height, color=0)
 
     with open(save_path+os.path.sep+save_prefix+'_params.txt', "w") as text_file:
         print(json.dumps(params), file=text_file)
@@ -236,12 +242,18 @@ def main():
 
             _ = fictrac_get_data(fictrac_sock)
 
-            if trial_structure[t]:
-                bar_traj = exp_bar
-                occ_traj = exp_occluder
-            else:
+            if trial_structure[t] == 0: # invisible, incoherent. 00, 01, 10, 11
                 bar_traj = ctrl_bar
-                occ_traj = ctrl_occluder
+                occ_traj = ctrl_occluder_invisible
+            elif trial_structure[t] == 1: # invisible, coherent. 00, 01, 10, 11
+                bar_traj = exp_bar
+                occ_traj = exp_occluder_invisible
+            elif trial_structure[t] == 2: # visible, incoherent. 00, 01, 10, 11
+                bar_traj = ctrl_bar
+                occ_traj = ctrl_occluder_visible
+            else: # visible, coherent. 00, 01, 10, 11
+                bar_traj = exp_bar
+                occ_traj = exp_occluder_visible
             manager.load_stim('MovingPatch', trajectory=bar_traj.to_dict(), background=None, hold=True)
             manager.load_stim('MovingPatch', trajectory=occ_traj.to_dict(), background=None, hold=True)
 
@@ -287,8 +299,8 @@ def main():
     p.terminate()
     p.kill()
 
-    plt.plot(ft_sync_means)
-    plt.show()
+    #plt.plot(ft_sync_means)
+    #plt.show()
 
 if __name__ == '__main__':
     main()
