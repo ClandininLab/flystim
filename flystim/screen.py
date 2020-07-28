@@ -52,7 +52,7 @@ class Screen:
     """
 
     def __init__(self, width=None, height=None, rotation=None, offset=None, server_number=None, id=None,
-                 fullscreen=None, vsync=None, square_side=None, square_loc=None, name=None, tri_list=None):
+                 fullscreen=None, vsync=None, square_size=None, square_loc=None, name=None, tri_list=None):
         """
         :param width: width of the screen (meters)
         :param height: height of the screen (meters)
@@ -64,8 +64,8 @@ class Screen:
         :param fullscreen: Boolean.  If True, display stimulus fullscreen (default).  Otherwise, display stimulus
         in a window.
         :param vsync: Boolean.  If True, lock the framerate to the redraw rate of the screen.
-        :param square_side: Length of photodiode synchronization square (meters).
-        :param square_loc: Location of photodiode synchronization square (one of 'll', 'lr', 'ul', 'ur')
+        :param square_size: (width, height) of photodiode synchronization square (NDC)
+        :param square_loc: (x, y) Location of lower left corner of photodiode synchronization square (NDC)
         :param name: descriptive name to associate with this screen
         :param tri_list: list of triangular patches defining the screen geometry.  this is a list of ScreenTriangles.
         if the triangle list is not specified, then one is constructed automatically using rotation and offset.
@@ -89,10 +89,10 @@ class Screen:
             fullscreen = True
         if vsync is None:
             vsync = True
-        if square_side is None:
-            square_side = 2e-2
+        if square_size is None:
+            square_size = (0.25, 0.25)
         if square_loc is None:
-            square_loc = 'll'
+            square_loc = (-1, -1)
         if name is None:
             name = 'Screen' + str(id)
 
@@ -116,7 +116,7 @@ class Screen:
         self.server_number = server_number
         self.fullscreen = fullscreen
         self.vsync = vsync
-        self.square_side = square_side
+        self.square_size = square_size
         self.square_loc = square_loc
         self.name = name
 
@@ -155,7 +155,7 @@ class Screen:
 
     def serialize(self):
         # get all variables needed to reconstruct the screen object
-        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_side', 'square_loc', 'name']
+        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_size', 'square_loc', 'name']
         data = {var: getattr(self, var) for var in vars}
 
         # special handling for tri_list since it could contain numpy values

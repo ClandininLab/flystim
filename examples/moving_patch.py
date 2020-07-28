@@ -8,15 +8,12 @@ from time import sleep
 
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=True))
 
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
     tv_pairs = [(0, -45), (4, 45)]
     theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
-
-    # tv_pairs = [(0, 0), (4, 1)]
-    # color_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
     tf = 2 # Hz
     t = np.linspace(0, 6, 100)
@@ -24,12 +21,7 @@ def main():
     tv_pairs = list(zip(t, c))
     color_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
-    tv_pairs = [(0, 1), (4, 45)]
-    radius_traj = Trajectory(tv_pairs, kind='linear').to_dict()
-
-    manager.load_stim(name='MovingSpot', radius=radius_traj, sphere_radius=1, color=color_traj, theta=0, phi=0, hold=True)
-
-    # manager.load_stim(name='MovingPatch', width=radius_traj, height=10, phi=0, color=1, theta=0, angle=0, sphere_radius=1.0, hold=True)
+    manager.load_stim(name='MovingSpot', radius=5, sphere_radius=1, color=color_traj, theta=theta_traj, phi=0, hold=True)
 
     sleep(1)
 

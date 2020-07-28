@@ -6,6 +6,7 @@ import moderngl
 import numpy as np
 import os.path
 from argparse import ArgumentParser
+from flystim.square import SquareProgram
 
 class SpotProgram:
     def __init__(self, color=1.0):
@@ -15,24 +16,44 @@ class SpotProgram:
         """
         :param ctx: ModernGL context
         """
-
         # save context
         self.ctx = ctx
 
-        # find path to shader directory
-        this_file_path = os.path.realpath(os.path.expanduser(__file__))
-        shader_dir = os.path.join(os.path.dirname(os.path.dirname(this_file_path)), 'shaders')
-
         # create OpenGL program
-        self.prog = self.ctx.program(vertex_shader=open(os.path.join(shader_dir, 'square.vert'), 'r').read(),
-                                     fragment_shader=open(os.path.join(shader_dir, 'square.frag'), 'r').read())
-        self.prog['color'].value = self.color
+        self.prog = self.create_prog()
 
         # create VBO to represent vertex positions
         self.vbo = self.ctx.buffer(self.make_vert_data())
 
         # create vertex array object
         self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'pos')
+        self.prog['color'].value = self.color
+
+    def create_prog(self):
+        return self.ctx.program(
+            vertex_shader='''
+                #version 330
+
+                in vec2 pos;
+
+                void main() {
+                    // assign gl_Position
+                    gl_Position = vec4(pos, 0.0, 1.0);
+                }
+            ''',
+            fragment_shader='''
+                #version 330
+
+                uniform float color;
+
+                out vec4 out_color;
+
+                void main() {
+                    // assign output color based on uniform input
+                    out_color = vec4(color, color, color, 1.0);
+                }
+            '''
+        )
 
     def make_vert_data(self, x=0, y=0, scale=0.01):
         """

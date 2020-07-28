@@ -1,4 +1,5 @@
-""" Generalized perspective projection
+"""
+Generalized perspective projection
 """
 
 import numpy as np

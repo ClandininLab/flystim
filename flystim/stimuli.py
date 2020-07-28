@@ -266,15 +266,15 @@ class RotatingGrating(CylindricalGrating):
         self.rate = rate
         self.updateTexture(mean=mean, contrast=contrast, offset=offset)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
-        shift_u = t*self.rate/self.cylinder_angular_extent
-        # TODO: change this to make shape in configure and update with shiftTexture()
-        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+        self.stim_object_template = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=self.color,
-                                      texture=True,
-                                      texture_shift=(shift_u, 0)).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+                                      texture=True)
+
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        shift_u = t*self.rate/self.cylinder_angular_extent
+        self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
 
 class RandomBars(TexturedCylinder):
@@ -335,13 +335,7 @@ class RandomBars(TexturedCylinder):
         phi = return_for_time_t(self.phi, t)
         angle = return_for_time_t(self.angle, t)
 
-        self.stim_object = copy.copy(self.stim_object_template)
-        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
-                                      cylinder_radius=self.cylinder_radius,
-                                      cylinder_angular_extent=self.cylinder_angular_extent,
-                                      color=self.color,
-                                      cylinder_location=self.cylinder_location,
-                                      texture=True).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+        self.stim_object = copy.copy(self.stim_object_template).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
@@ -596,8 +590,7 @@ class HorizonCylinder(TexturedCylinder):
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         cyl_position = fly_position.copy()
-        self.stim_object = copy.copy(self.stim_template)
-        self.stim_object.translate(cyl_position)
+        self.stim_object = copy.copy(self.stim_template).translate(cyl_position)
 
 class Forest(BaseProgram):
     def __init__(self, screen):
@@ -664,8 +657,7 @@ class CoherentMotionDotField(BaseProgram):
         else:
             phi = self.phi_trajectory
 
-        self.stim_object = copy.copy(self.stim_object_template)
-        self.stim_object = self.stim_object.rotate(np.radians(theta), np.radians(phi), 0)
+        self.stim_object = copy.copy(self.stim_object_template).rotate(np.radians(theta), np.radians(phi), 0)
 
 
 

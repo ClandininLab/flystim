@@ -58,8 +58,34 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.server = server
         self.app = app
 
+        # get display size
+        display_width = self.width()*self.devicePixelRatio()
+        display_height = self.height()*self.devicePixelRatio()
+
+        # get subscreens from tri_list
+        num_subscreens = len(self.screen.tri_list) / 2 # 2 triangles per subscreen
+        self.subscreen_viewports = []
+        self.subscreen_corners = []
+        for sub in range(int(num_subscreens)):
+            ndc = (self.screen.tri_list[2*sub].pa.ndc, self.screen.tri_list[2*sub].pb.ndc, self.screen.tri_list[2*sub].pc.ndc)
+            cart = (self.screen.tri_list[2*sub].pa.cart, self.screen.tri_list[2*sub].pb.cart, self.screen.tri_list[2*sub].pc.cart)
+            xy = np.vstack(ndc)
+            lowerleft = xy[0,:]
+            frac_width = (np.max(xy[:, 0]) - np.min(xy[:, 0])) / 2
+            frac_height = (np.max(xy[:, 1]) - np.min(xy[:, 1]))  / 2
+            # convert from ndc to viewport
+            # ref: https://github.com/pyqtgraph/pyqtgraph/issues/422
+            x = (1+lowerleft[0]) * display_width/2
+            y = (1+lowerleft[1]) * display_height/2
+            new_viewport = (x, y, frac_width*display_width, frac_height*display_height)
+            self.subscreen_viewports.append(new_viewport)
+            self.subscreen_corners.append(cart)
+
+
         # make program for rendering the corner square
         self.square_program = SquareProgram(screen=screen)
+        # Get viewport for corner square
+        self.square_program.set_viewport(display_width, display_height)
 
         # initialize background color
         self.idle_background = 0.5
@@ -73,8 +99,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.fly_x_trajectory = None
         self.fly_y_trajectory = None
         self.fly_theta_trajectory = None
-
-        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
 
     def initializeGL(self):
         # get OpenGL context
@@ -102,29 +126,26 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # handle RPC input
         self.server.process_queue()
 
-        # set the viewport to fill the window
-        # ref: https://github.com/pyqtgraph/pyqtgraph/issues/422
-        self.ctx.viewport = (0, 0, self.width()*self.devicePixelRatio(), self.height()*self.devicePixelRatio())
-
+        self.ctx.clear(0, 0, 0, 1)
         # draw the stimulus
         if self.stim_list:
             t = time.time()
-            self.ctx.clear(0, 0, 0, 1)
             if self.use_fly_trajectory:
                 self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
                                         self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
                                         0)
                 self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))  # deg -> radians
-            self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
+
+            # For each subscreen associated with this screen: get the perspective matrix
+            perspectives = [get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, x) for x in self.subscreen_corners]
 
             for stim in self.stim_list:
                 if self.stim_started:
-                    stim.paint_at(self.get_stim_time(t), self.perspective, fly_position=self.global_fly_pos.copy())
+                    stim.paint_at(self.get_stim_time(t), self.subscreen_viewports, perspectives, fly_position=self.global_fly_pos.copy())
                 else:
                     self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
             self.profile_frame_times.append(t)
-
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
 
@@ -141,7 +162,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 stim.vbo.release()
                 stim.vao.release()
 
-        # print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmarking
+        # if self.stim_started:
+        #     print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmarking
 
     ###########################################
     # control functions
@@ -226,7 +248,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.set_global_fly_pos(0, 0, 0)
         self.set_global_theta_offset(0)
         self.set_global_phi_offset(0)
-        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, screen=self.screen)
+        self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, self.subscreen_corners[0])
 
     def start_corner_square(self):
         """
@@ -297,16 +319,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.global_phi_offset = radians(value)
 
 
-def get_perspective(fly_pos, theta, phi, screen):
+def get_perspective(fly_pos, theta, phi, screen_corners):
     """
     :param fly_pos: (x, y, z) position of fly, meters
     :param theta: fly heading angle along azimuth, radians
     :param phi: fly heading angle along elevation, radians
-    :param screen: flystim.screen object
+    :param screen_corners: (pa, pb, pc) xyz coordinates of screen corners, meters
     """
-    pa = screen.tri_list[0].pa.cart  # [x, y, z] in meters
-    pb = screen.tri_list[0].pb.cart
-    pc = screen.tri_list[0].pc.cart
+    (pa, pb, pc) = screen_corners
 
     perspective = GenPerspective(pa=pa, pb=pb, pc=pc, fly_pos=fly_pos)
 

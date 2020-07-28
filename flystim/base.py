@@ -29,13 +29,16 @@ class BaseProgram:
     def configure(self, *args, **kwargs):
         pass
 
-    def paint_at(self, t, perspective, fly_position=[0, 0, 0]):
+    def paint_at(self, t, viewports, perspectives, fly_position=[0, 0, 0]):
         """
         :param t: current time in seconds
+        :param viewports: list of viewport arrays for each subscreen - (xmin, ymin, width, height) in display device pixels
+        :param perspectives: list of perspective matrices for each subscreen, generated using perspective.GenPerspective and subscreen corners
+        :param fly_position: x, y, z position of fly (meters)
         """
-        self.eval_at(t, fly_position=fly_position)
+        self.eval_at(t, fly_position=fly_position) # update any stim objects that depend on fly position
 
-        data = self.stim_object.data
+        data = self.stim_object.data # get stim object vertex data
         self.update_vertex_objects()
 
         if self.cylindrical_height_correction:
@@ -55,15 +58,19 @@ class BaseProgram:
         # write data to VBO
         self.vbo.write(data.astype('f4'))
 
-        # set the perspective matrix
-        self.prog['Mvp'].write(perspective)
-        # render the objects
+        # Render to each subscreen
+        for v_ind, vp in enumerate(viewports):
+            # set the perspective matrix
+            self.prog['Mvp'].write(perspectives[v_ind])
+            # set the viewport
+            self.ctx.viewport = vp
 
-        if self.draw_mode == 'POINTS':
-            self.vao.render(mode=moderngl.POINTS, vertices=vertices)
-            self.ctx.point_size=self.point_size
-        elif self.draw_mode == 'TRIANGLES':
-            self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
+            # render the object
+            if self.draw_mode == 'POINTS':
+                self.vao.render(mode=moderngl.POINTS, vertices=vertices)
+                self.ctx.point_size=self.point_size
+            elif self.draw_mode == 'TRIANGLES':
+                self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
 
 
     def update_vertex_objects(self):

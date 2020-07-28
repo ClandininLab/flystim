@@ -8,7 +8,7 @@ from time import sleep
 
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=True))
 
     # contrast-reversing grating
     tf = 1 # Hz
@@ -18,7 +18,7 @@ def main():
     contrast_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
     manager.load_stim(name='CylindricalGrating', period=10, mean=0.5, contrast=contrast_traj, offset=0.0, profile='square',
-                      color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=45)
+                      color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0)
 
     sleep(1)
 
