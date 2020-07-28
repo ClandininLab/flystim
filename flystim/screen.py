@@ -78,9 +78,9 @@ class Screen:
         if height is None:
             height = 0.207
         if rotation is None:
-            rotation = radians(-90.0) #looking down positive x axis
+            rotation = 0 #looking down positive y axis
         if offset is None:
-            offset = (0.3, 0.0, 0.0)
+            offset = (0.0, 0.3, 0.0)
         if server_number is None:
             server_number = 0
         if id is None:

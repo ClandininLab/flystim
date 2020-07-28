@@ -29,13 +29,13 @@ class GlVertices:
         else:
             self.tex_coords = np.concatenate((self.tex_coords, obj.tex_coords), axis=1)
 
-    def rotate(self, z, y, x):
+    def rotate(self, z, x, y):
         """
-        :param z: rotation around z axis, radians
-        :param y: rotation around y axis, radians
-        :param x: rotation around x axis, radians
+        :param z: rotation around z axis (yaw), radians
+        :param x: rotation around x axis (pitch), radians
+        :param y: rotation around y axis (roll), radians
         """
-        return GlVertices(vertices=rotate(self.vertices, z, y, x), colors=self.colors, tex_coords=self.tex_coords)
+        return GlVertices(vertices=rotate(self.vertices, z, x, y), colors=self.colors, tex_coords=self.tex_coords)
 
     def rotx(self, th):
         return GlVertices(vertices=rotx(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
@@ -152,7 +152,8 @@ class GlSphericalRect(GlVertices):
         for rr in range(n_steps_y):
             for cc in range(n_steps_x):
                 # render patch at the equator (phi=pi/2) so it's not near the poles
-                theta = radians(width) * (-1/2 + (cc/n_steps_x))
+                # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
+                theta = np.pi/2 + radians(width) * (-1/2 + (cc/n_steps_x))
                 phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
                 v1 = self.sphericalToCartesian((sphere_radius, theta, phi))
                 v2 = self.sphericalToCartesian((sphere_radius, theta, phi + d_phi))
@@ -182,16 +183,17 @@ class GlSphericalCirc(GlVertices):
             else:
                 color = [color, color, color, 1]
 
-        v_center = self.sphericalToCartesian((sphere_radius, 0, np.pi/2))
+        v_center = self.sphericalToCartesian((sphere_radius, np.pi/2, np.pi/2))
 
         angles = np.linspace(0, 2*np.pi, n_steps+1)
         for wedge in range(n_steps):
             # render circle at the equator (phi=pi/2) so it's not near the poles
+            # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
             v1 = self.sphericalToCartesian((sphere_radius,
-                                            radians(circle_radius)*np.cos(angles[wedge]),
+                                            np.pi/2 + radians(circle_radius)*np.cos(angles[wedge]),
                                             np.pi/2 + radians(circle_radius)*np.sin(angles[wedge])))
             v2 = self.sphericalToCartesian((sphere_radius,
-                                            radians(circle_radius)*np.cos(angles[wedge+1]),
+                                            np.pi/2 + radians(circle_radius)*np.cos(angles[wedge+1]),
                                             np.pi/2 + radians(circle_radius)*np.sin(angles[wedge+1])))
 
             self.add(GlTri(v1, v2, v_center, color))

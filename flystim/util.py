@@ -20,10 +20,10 @@ def normalize(vec):
 def rotate(pts, yaw, pitch, roll):
     """
     :param yaw: rotation around z axis, radians
-    :param pitch: rotation around y axis, radians
-    :param roll: rotation around x axis, radians
+    :param pitch: rotation around x axis, radians
+    :param roll: rotation around y axis, radians
     """
-    R = rotz_mat(yaw) @ roty_mat(pitch) @ rotx_mat(roll)
+    R = rotz_mat(yaw) @ rotx_mat(pitch) @ roty_mat(roll)
     return R @ pts
 
 def rotx(pts, th):

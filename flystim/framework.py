@@ -331,15 +331,18 @@ def get_perspective(fly_pos, theta, phi, screen_corners):
     perspective = GenPerspective(pa=pa, pb=pb, pc=pc, fly_pos=fly_pos)
 
     """
-    rotate screen and eye position
-    Absent any change in fly heading,  (i.e. theta, phi = 0, 0) fly is looking
-    down the positive x axis and above the fly is +z
-    +theta is ccw around z axis, -theta is cw around z axis (looking down at xy plane)
-    -phi tilts fly view up towards the sky (+z), +phi tilts down towards the ground (-z)
+    With (theta, phi, roll) = (0, 0, 0): fly looks down +y axis, +x is to the right, and +z is above the fly's head
+        +theta rotates view ccw around z axis / -theta is cw around z axis (looking down at xy plane)
+        +phi tilts fly view up towards the sky (+z) / -phi tilts down towards the ground (-z)
+        +roll rotates fly view cw around y axis / -roll rotates ccw around y axis
+
+    theta = yaw around z
+    phi = pitch around x
+    roll = roll around y
 
     """
-    return perspective.roty(phi).rotx(radians(0)).rotz(radians(0)+theta).matrix
-
+    roll = 0 # Set roll=0 until we have a need too change it
+    return perspective.rotz(theta).rotx(radians(phi)).roty(radians(roll)).matrix
 
 def make_qt_format(vsync):
     """
