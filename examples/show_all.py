@@ -9,10 +9,11 @@ from time import sleep
 
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number=1, id=0, vsync=True))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=True))
 
     stims = ['ConstantBackground', 'Floor', 'MovingSpot', 'MovingPatch', 'CylindricalGrating',
-             'RotatingGrating', 'RandomBars', 'RandomGrid', 'Checkerboard', 'Tower', 'TexturedGround', 'HorizonCylinder', 'Forest']
+             'RotatingGrating', 'RandomBars', 'RandomGrid', 'Checkerboard', 'Tower', 'TexturedGround', 'HorizonCylinder', 'Forest',
+             'CoherentMotionDotField']
 
     for stim in stims:
         manager.load_stim(stim)
@@ -21,7 +22,7 @@ def main():
         manager.start_stim()
         sleep(2.5)
 
-        manager.stop_stim()
+        manager.stop_stim(print_profile=True)
         sleep(500e-3)
 
 if __name__ == '__main__':

@@ -65,33 +65,12 @@ class SquareProgram:
         :param display_height: Height in pixels of GL display device
 
         """
-
-        # compute vertical offset in NDC
-        if self.screen.square_loc[0] == 'l':
-            offset_y = -1.0 + self.screen.square_side/2
-        elif self.screen.square_loc[0] == 'u':
-            offset_y = +1.0 - self.screen.square_side/2
-        else:
-            raise ValueError('Invalid square location.')
-
-        # compute horizontal offset in NDC
-        if self.screen.square_loc[1] == 'l':
-            offset_x = -1.0 + self.screen.square_side/2
-        elif self.screen.square_loc[1] == 'r':
-            offset_x = +1.0 - self.screen.square_side/2
-        else:
-            raise ValueError('Invalid square location.')
-
-        # determine lower left corner, in ndc
-        x_min = offset_x - self.screen.square_side/2
-        y_min = offset_y - self.screen.square_side/2
-
-        frac_width = self.screen.square_side/2 # fraction of total window width
-        frac_height = self.screen.square_side/2
+        frac_width = self.screen.square_size[0]/2 # fraction of total window width
+        frac_height = self.screen.square_size[1]/2
 
         # convert from ndc to viewport coordinates
-        x = (1+x_min) * display_width/2
-        y = (1+y_min) * display_height/2
+        x = (1+self.screen.square_loc[0]) * display_width/2
+        y = (1+self.screen.square_loc[1]) * display_height/2
         self.viewport = (x, y, frac_width*display_width, frac_height*display_height)
 
     def paint(self):
