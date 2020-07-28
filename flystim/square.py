@@ -26,7 +26,7 @@ class SquareProgram:
         self.prog = self.create_prog()
 
         # create VBO to represent vertex positions
-        pts = self.make_vert_pts()
+        pts = np.array([-1, -1, 1, -1, -1, 1, 1, 1]) # fill the viewport
         vbo = self.ctx.buffer(pts.astype('f4').tobytes())
 
         # create vertex array object
@@ -58,52 +58,51 @@ class SquareProgram:
             '''
         )
 
-    def make_vert_pts(self):
+    def set_viewport(self, display_width, display_height):
         """
-        Returns a numpy array of the vertex coordinates in NDC space of the photodiode square
-        """
+        Sets viewport for display given desired square location and size (size given in NDC)
+        :param display_width: Width in pixels of GL display device
+        :param display_height: Height in pixels of GL display device
 
-        # compute width and height in NDC
-        w = 2.0*self.screen.square_side/self.screen.width
-        h = 2.0*self.screen.square_side/self.screen.height
+        """
 
         # compute vertical offset in NDC
         if self.screen.square_loc[0] == 'l':
-            offset_y = -1.0 + h/2
+            offset_y = -1.0 + self.screen.square_side/2
         elif self.screen.square_loc[0] == 'u':
-            offset_y = +1.0 - h/2
+            offset_y = +1.0 - self.screen.square_side/2
         else:
             raise ValueError('Invalid square location.')
 
         # compute horizontal offset in NDC
         if self.screen.square_loc[1] == 'l':
-            offset_x = -1.0 + w/2
+            offset_x = -1.0 + self.screen.square_side/2
         elif self.screen.square_loc[1] == 'r':
-            offset_x = +1.0 - w/2
+            offset_x = +1.0 - self.screen.square_side/2
         else:
             raise ValueError('Invalid square location.')
 
-        # determine rectangular bounds
-        x_min = offset_x - w/2
-        x_max = offset_x + w/2
-        y_min = offset_y - h/2
-        y_max = offset_y + h/2
+        # determine lower left corner, in ndc
+        x_min = offset_x - self.screen.square_side/2
+        y_min = offset_y - self.screen.square_side/2
 
-        # return vertex point data
-        return np.array([x_min, y_min, x_max, y_min, x_min, y_max, x_max, y_max])
+        frac_width = self.screen.square_side/2 # fraction of total window width
+        frac_height = self.screen.square_side/2
+
+        # convert from ndc to viewport coordinates
+        x = (1+x_min) * display_width/2
+        y = (1+y_min) * display_height/2
+        self.viewport = (x, y, frac_width*display_width, frac_height*display_height)
 
     def paint(self):
 
         if self.draw:
-            self.ctx.disable(moderngl.DEPTH_TEST) # disable depth test so square is painted on top always
-
             # write color
             self.prog['color'].value = self.color
 
-            # render to screen
+            # Set viewport and render to screen
+            self.ctx.viewport = self.viewport
             self.vao.render(mode=moderngl.TRIANGLE_STRIP)
-
-            self.ctx.enable(moderngl.DEPTH_TEST) # re-enable depth test for subsequent draws
 
         if self.toggle:
             self.color = 1.0 - self.color

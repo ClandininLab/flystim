@@ -64,7 +64,7 @@ class Screen:
         :param fullscreen: Boolean.  If True, display stimulus fullscreen (default).  Otherwise, display stimulus
         in a window.
         :param vsync: Boolean.  If True, lock the framerate to the redraw rate of the screen.
-        :param square_side: Length of photodiode synchronization square (meters).
+        :param square_side: Length of photodiode synchronization square (NDC).
         :param square_loc: Location of photodiode synchronization square (one of 'll', 'lr', 'ul', 'ur')
         :param name: descriptive name to associate with this screen
         :param tri_list: list of triangular patches defining the screen geometry.  this is a list of ScreenTriangles.
@@ -90,7 +90,7 @@ class Screen:
         if vsync is None:
             vsync = True
         if square_side is None:
-            square_side = 2e-2
+            square_side = 0.25
         if square_loc is None:
             square_loc = 'll'
         if name is None:

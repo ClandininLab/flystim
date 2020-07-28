@@ -43,7 +43,7 @@ def make_tri_list():
     return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
 
 def main():
-    screen = Screen(server_number=0, id=0, fullscreen=False, tri_list=make_tri_list())
+    screen = Screen(server_number=0, id=0, fullscreen=False, tri_list=make_tri_list(), vsync=False)
     # manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=False))
     manager = launch_stim_server(screen)
 

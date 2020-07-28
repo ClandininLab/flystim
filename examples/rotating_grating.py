@@ -46,7 +46,7 @@ def make_tri_list():
     return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
 
 def main():
-    screen = Screen(server_number=0, id=0, fullscreen=False, tri_list=make_tri_list())
+    screen = Screen(server_number=0, id=0, fullscreen=False, tri_list=make_tri_list(), square_loc='lr', square_side=0.25, vsync=False)
 
     manager = launch_stim_server(screen)
 
@@ -61,14 +61,14 @@ def main():
     tv_pairs = [(0, 0), (4, 360)]
     theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
-    manager.load_stim(name='MovingPatch',width=30, height=30, phi=0, color=0.5, theta=theta_traj, hold=True, angle=0)
+    manager.load_stim(name='MovingPatch',width=30, height=30, phi=0, color=[1, 0, 0, 1], theta=theta_traj, hold=True, angle=0)
 
     sleep(0.5)
 
     manager.start_stim()
     sleep(8)
 
-    manager.stop_stim(print_profile=False)
+    manager.stop_stim(print_profile=True)
     sleep(0.5)
 
 if __name__ == '__main__':

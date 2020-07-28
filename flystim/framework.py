@@ -58,6 +58,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.server = server
         self.app = app
 
+        # get display size
+        display_width = self.width()*self.devicePixelRatio()
+        display_height = self.height()*self.devicePixelRatio()
+
         # get subscreens from tri_list
         num_subscreens = len(self.screen.tri_list) / 2 # 2 triangles per subscreen
         self.subscreen_viewports = []
@@ -71,17 +75,17 @@ class StimDisplay(QtOpenGL.QGLWidget):
             frac_height = (np.max(xy[:, 1]) - np.min(xy[:, 1]))  / 2
             # convert from ndc to viewport
             # ref: https://github.com/pyqtgraph/pyqtgraph/issues/422
-            total_width = self.width()*self.devicePixelRatio()
-            total_height = self.height()*self.devicePixelRatio()
-            x = (1+lowerleft[0]) * total_width/2
-            y = (1+lowerleft[1]) * total_height/2
-            new_viewport = (x, y, frac_width*total_width, frac_height*total_height)
+            x = (1+lowerleft[0]) * display_width/2
+            y = (1+lowerleft[1]) * display_height/2
+            new_viewport = (x, y, frac_width*display_width, frac_height*display_height)
             self.subscreen_viewports.append(new_viewport)
             self.subscreen_corners.append(cart)
 
 
         # make program for rendering the corner square
         self.square_program = SquareProgram(screen=screen)
+        # Get viewport for corner square
+        self.square_program.set_viewport(display_width, display_height)
 
         # initialize background color
         self.idle_background = 0.5
@@ -132,7 +136,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                                         0)
                 self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))  # deg -> radians
 
-            # For each subscreen associated with this screen: get the perspective matrix and the viewport
+            # For each subscreen associated with this screen: get the perspective matrix
             perspectives = [get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, x) for x in self.subscreen_corners]
 
             for stim in self.stim_list:
@@ -158,8 +162,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 stim.vbo.release()
                 stim.vao.release()
 
-
-        # print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmarking
+        # if self.stim_started:
+        #     print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmark)ing
 
     ###########################################
     # control functions
@@ -323,9 +327,6 @@ def get_perspective(fly_pos, theta, phi, screen_corners):
     :param screen_corners: (pa, pb, pc) xyz coordinates of screen corners, meters
     """
     (pa, pb, pc) = screen_corners
-    # pa = screen.tri_list[0].pa.cart  # [x, y, z] in meters
-    # pb = screen.tri_list[0].pb.cart
-    # pc = screen.tri_list[0].pc.cart
 
     perspective = GenPerspective(pa=pa, pb=pb, pc=pc, fly_pos=fly_pos)
 
