@@ -1,0 +1,13 @@
+1. lcr_set to keep only blue LED on the lightcrafter and adjust power level
+2. GL_env_set to reduce input lag (hopefully) by turning off VSYNC and reducing GPU prerendered frames.
+
+
+I've also turned off "full composition pipeline" in /etc/X11/xorg.conf
+Might need to use:
+nvidia-settings --load-config-only --assign="SyncToVBlank=0"
+
+
+ __GL_MaxFramesAllowed=1 __GL_YIELD="NOTHING" __GL_THREADED_OPTIMIZATIONS=0
+
+
+TODO: place corner square exactly where the optic fiber is.
