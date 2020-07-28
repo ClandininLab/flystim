@@ -55,7 +55,7 @@ def main():
     angle_traj = Trajectory(tv_pairs, kind='linear').to_dict()
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
-    manager.load_stim(name='RotatingGrating', rate=25, period=25, mean=0.5, contrast=1.0, offset=0.0, profile='square',
+    manager.load_stim(name='RotatingGrating', rate=25, period=30, mean=0.5, contrast=1.0, offset=0.0, profile='square',
                       color=[1, 1, 1, 1], cylinder_radius=1.1, cylinder_height=10, theta=90, phi=0, angle=90, hold=True)
 
     tv_pairs = [(0, 0), (4, 360)]
