@@ -43,3 +43,10 @@ In a terminal tab, navigate to the examples directory and run one of the sample 
 ```
 
 Each example can be exited at any time by pressing Ctrl+C.
+
+# Coordinate system
+The coordinate system convention in flystim is defined as follows:
+Yaw = rotation around the Z axis (theta)
+Pitch = rotation around the X axis (phi)
+Roll = rotation around the Y axis
+A fly heading of (yaw=0, pitch=0, roll=0) corresponds to the fly looking down the +Y axis, the +X axis lies to the fly's right side, and +Z lies above the fly's head
