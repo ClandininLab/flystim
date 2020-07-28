@@ -69,7 +69,7 @@ def fictrac_get_data(sock):
     line = line[:endline]
     toks = line.split(", ")
 
-    logging.debug("Received from fictrac socket: %s", line)
+    #logging.debug("Received from fictrac socket: %s", line)
 
     # Fixme: sometimes we read more than one line at a time,
     # should handle that rather than just dropping extra data...
@@ -80,6 +80,7 @@ def fictrac_get_data(sock):
 
     if len(toks) > 7:
         logging.warning("Bad read, too many tokens: %s", line)
+        return fictrac_get_data(sock)
 
     posx = float(toks[1])
     posy = float(toks[2])
@@ -108,23 +109,24 @@ def main():
     # part 2: User defined parameters
     #####################################################
 
-    n_repeats = 2
+    n_repeats = 50
     save_path = "/home/clandinin/minseung/ballrig_data"
-    save_prefix = "200727_test04"
+    save_prefix = "200727_fly0"
 
-    ft_frame_rate = 245 #Hz, higher
+    ft_frame_rate = 250 #Hz, higher
+    fs_frame_rate = 120
 
-    speed = 20 #degrees per sec
+    speed = 10 #degrees per sec
     presample_duration = 2 #seconds
     sample_duration = 5 #seconds
     preocc_duration = 1 #seconds
-    occlusion_duration = 1 #seconds
+    occlusion_duration = 2 #seconds
     postocc_duration = 1 #seconds
     stim_duration = presample_duration + sample_duration + preocc_duration + occlusion_duration + postocc_duration
     iti = 2 #seconds
 
-    ctrl_seed = 2
-    ctrl_n_samples = 6 # how many random waypoints should there be for control
+    ctrl_seed = 0
+    ctrl_n_samples = 15 # how many random waypoints should there be for control
     ctrl_noise_scale = 5
 
     occluder_height = 70
@@ -217,7 +219,7 @@ def main():
 
     # Start stim server
     manager = launch_stim_server(screen)
-    manager.set_save_history_params(save_history_flag=True, save_path=save_path, fs_frame_rate_estimate=120, stim_duration=stim_duration)
+    manager.set_save_history_params(save_history_flag=True, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, stim_duration=stim_duration)
 
 
     #####################################################
@@ -231,16 +233,18 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as fictrac_sock:
         fictrac_sock.connect((FICTRAC_HOST, FICTRAC_PORT))
 
+        t_iti_start = time()
         for t in range(n_trials):
             # begin trial
-            buffer_size = ft_frame_rate * int(np.ceil(stim_duration*1.1))
+            buffer_size = int(np.ceil(ft_frame_rate * stim_duration*1.1))
             ft_sync_means = np.zeros(buffer_size)
             ft_timestamps = np.zeros(buffer_size)
             ft_posx = np.zeros(buffer_size)
             ft_posy = np.zeros(buffer_size)
             ft_theta = np.zeros(buffer_size)
 
-            _ = fictrac_get_data(fictrac_sock)
+            while (time() - t_iti_start) < iti:
+                _ = fictrac_get_data(fictrac_sock)
 
             if trial_structure[t] == 0: # invisible, incoherent. 00, 01, 10, 11
                 bar_traj = ctrl_bar
@@ -257,7 +261,7 @@ def main():
             manager.load_stim('MovingPatch', trajectory=bar_traj.to_dict(), background=None, hold=True)
             manager.load_stim('MovingPatch', trajectory=occ_traj.to_dict(), background=None, hold=True)
 
-            print ("===== Trial " + str(t) + " ======")
+            print ("===== Trial " + str(t) + "; type " + str(trial_structure[t]) + " ======")
             t_start = time()
             manager.start_stim()
             posx_0, posy_0, theta_0, _, _ = fictrac_get_data(fictrac_sock)
@@ -293,8 +297,6 @@ def main():
 
             #sleep(2)
             t_iti_start = time()
-            while (time() - t_iti_start) < iti:
-                _ = fictrac_get_data(fictrac_sock)
 
     p.terminate()
     p.kill()
