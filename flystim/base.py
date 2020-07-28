@@ -29,7 +29,7 @@ class BaseProgram:
     def configure(self, *args, **kwargs):
         pass
 
-    def paint_at(self, t, perspective, fly_position=[0, 0, 0]):
+    def paint_at(self, t, viewports, perspectives, fly_position=[0, 0, 0]):
         """
         :param t: current time in seconds
         """
@@ -55,15 +55,18 @@ class BaseProgram:
         # write data to VBO
         self.vbo.write(data.astype('f4'))
 
-        # set the perspective matrix
-        self.prog['Mvp'].write(perspective)
-        # render the objects
+        for v_ind, vp in enumerate(viewports):
+            # set the perspective matrix
+            self.prog['Mvp'].write(perspectives[v_ind])
+            # set the viewport
+            self.ctx.viewport = vp
 
-        if self.draw_mode == 'POINTS':
-            self.vao.render(mode=moderngl.POINTS, vertices=vertices)
-            self.ctx.point_size=self.point_size
-        elif self.draw_mode == 'TRIANGLES':
-            self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
+            # render the object
+            if self.draw_mode == 'POINTS':
+                self.vao.render(mode=moderngl.POINTS, vertices=vertices)
+                self.ctx.point_size=self.point_size
+            elif self.draw_mode == 'TRIANGLES':
+                self.vao.render(mode=moderngl.TRIANGLES, vertices=vertices)
 
 
     def update_vertex_objects(self):
