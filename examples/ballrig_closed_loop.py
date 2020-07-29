@@ -109,9 +109,16 @@ def main():
     # part 2: User defined parameters
     #####################################################
 
-    n_repeats = 50
+
+    trial_labels = np.array([0,1]) # visible, coherent. 00, 01, 10, 11
+    n_repeats = 100
     save_path = "/home/clandinin/minseung/ballrig_data"
-    save_prefix = "200727_fly0"
+    save_prefix = "200728_fly7_15degs"
+    save_path = save_path + os.path.sep + save_prefix
+    os.mkdir(save_path)
+
+    genotype = "isoE5-F"
+    age = 1
 
     ft_frame_rate = 250 #Hz, higher
     fs_frame_rate = 120
@@ -129,23 +136,22 @@ def main():
     ctrl_n_samples = 15 # how many random waypoints should there be for control
     ctrl_noise_scale = 5
 
-    occluder_height = 70
+    occluder_height = 150
     occluder_color = 1
     #occluder_angle = 0
 
-    bar_width = 3
-    bar_height = 60
-    bar_color = 0.2
+    bar_width = 15
+    bar_height = 150
+    bar_color = 1
     #bar_angle = 0
 
-    params = {'n_repeats':n_repeats, 'save_path':save_path, 'save_prefix': save_prefix, 'ft_frame_rate': ft_frame_rate, 'speed': speed, 'presample_duration': presample_duration, 'sample_duration': sample_duration, 'preocc_duration': preocc_duration, 'occlusion_duration': occlusion_duration, 'postocc_duration': postocc_duration, 'stim_duration': stim_duration, 'iti': iti, 'ctrl_seed': ctrl_seed, 'ctrl_n_samples': ctrl_n_samples, 'ctrl_noise_scale': ctrl_noise_scale, 'occluder_height': occluder_height, 'occluder_color': occluder_color, 'bar_width': bar_width, 'bar_height': bar_height, 'bar_color': bar_color}
+    params = {'genotype':genotype, 'age':age, 'n_repeats':n_repeats, 'save_path':save_path, 'save_prefix': save_prefix, 'ft_frame_rate': ft_frame_rate, 'speed': speed, 'presample_duration': presample_duration, 'sample_duration': sample_duration, 'preocc_duration': preocc_duration, 'occlusion_duration': occlusion_duration, 'postocc_duration': postocc_duration, 'stim_duration': stim_duration, 'iti': iti, 'ctrl_seed': ctrl_seed, 'ctrl_n_samples': ctrl_n_samples, 'ctrl_noise_scale': ctrl_noise_scale, 'occluder_height': occluder_height, 'occluder_color': occluder_color, 'bar_width': bar_width, 'bar_height': bar_height, 'bar_color': bar_color}
 
     #####################################################
     # part 3: stimulus definitions
     #####################################################
 
     # Trial structure
-    trial_labels = np.array([0,1,2,3]) # visible, coherent. 00, 01, 10, 11
     trial_structure = np.random.permutation(np.repeat(trial_labels, n_repeats))
     n_trials = len(trial_structure)
     params['n_trials'] = n_trials
@@ -213,7 +219,7 @@ def main():
     # Set up logging
     logging.basicConfig(
         format='%(asctime)s %(message)s',
-        filename="{}/{}".format(save_path, save_prefix),
+        filename="{}/{}.log".format(save_path, save_prefix),
         level=logging.DEBUG
     )
 
