@@ -9,37 +9,29 @@ from time import sleep
 
 def dir_to_tri_list(dir):
     w = 3.0e-2
+    h = 3.0e-2
     # set coordinates as a function of direction
     if dir == 'w':
-        h = 3e-2
-        pts = [
-            ((-0.8, -0.20), (-w/2, -w/2, -h/2)), # ll
-            ((-0.8, +0.20), (-w/2, +w/2, -h/2)), # ul
-            ((-0.40, +0.20), (-w/2, +w/2, +h/2)), # ur
-            ((-0.40, -0.20), (-w/2, -w/2, +h/2)) # lr
-        ]
+        pa = ((-0.8, -0.6), (-w/2, -w/2, -h/2))
+        pb = ((-0.2, -0.6), (-w/2, +w/2, -h/2))
+        pc = ((-0.8, +0.0), (-w/2, -w/2, +h/2))
+        p4 = ((-0.2, +0.0), (-w/2, +w/2, +h/2))
 
     elif dir == 'n':
-        h = 3e-2
-        pts = [
-            ((-0.2, -0.20), (-w/2, +w/2, -h/2)),
-            ((-0.2, +0.20), (+w/2, +w/2, -h/2)),
-            ((+0.2, +0.20), (+w/2, +w/2, +h/2)),
-            ((+0.2, -0.20), (-w/2, +w/2, +h/2))
-        ]
+        pa = ((-0.3, 0.0), (-w/2, +w/2, -h/2))
+        pb = ((+0.3, 0.0), (+w/2, +w/2, -h/2))
+        pc = ((-0.3, +0.6), (-w/2, +w/2, +h/2))
+        p4 = ((+0.3, +0.6), (+w/2, +w/2, +h/2))
 
     elif dir == 'e':
-        h = 3e-2
-        pts = [
-            ((+0.40, -0.20), (+w/2, +w/2, -h/2)),
-            ((+0.40, +0.20), (+w/2, -w/2, -h/2)),
-            ((+0.80, +0.20), (+w/2, -w/2, +h/2)),
-            ((+0.80, -0.20), (+w/2, +w/2, +h/2))
-        ]
+        pa = ((+0.2, -0.6), (+w/2, +w/2, -h/2))
+        pb = ((+0.8, -0.6), (+w/2, -w/2, -h/2))
+        pc = ((+0.2, +0.0), (+w/2, +w/2, +h/2))
+        p4 = ((+0.8, +0.0), (+w/2, -w/2, +h/2))
     else:
         raise ValueError('Invalid direction.')
 
-    return Screen.quad_to_tri_list(*pts)
+    return Screen.quad_to_tri_list(pa, pb, pc, p4)
 
 def make_tri_list():
     return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
