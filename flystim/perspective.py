@@ -1,5 +1,8 @@
 """
 Generalized perspective projection
+
+See:
+https://csc.lsu.edu/~kooima/articles/genperspective/index.html
 """
 
 import numpy as np
@@ -8,7 +11,7 @@ from flystim import normalize, rotx, roty, rotz
 
 
 class GenPerspective:
-    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.01, far=1000, fly_pos=(0, 0, 0)):
+    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.01, far=1000, fly_pos=(0, 0, 0), horizontal_flip=False):
         # save settings
         self.pa = pa
         self.pb = pb
@@ -17,6 +20,7 @@ class GenPerspective:
         self.fly_pos = fly_pos
         self.near = near
         self.far = far
+        self.horizontal_flip = horizontal_flip # for rear-projection display
 
     @property
     def matrix(self):
@@ -43,10 +47,15 @@ class GenPerspective:
 
         # compute distance parameters
         d = -np.dot(vn, va)
-        l = np.dot(vr, va) * n / d
-        r = np.dot(vr, vb) * n / d
         b = np.dot(vu, va) * n / d
         t = np.dot(vu, vc) * n / d
+        if self.horizontal_flip: # flip l and r distance parameters
+            r = np.dot(vr, va) * n / d
+            l = np.dot(vr, vb) * n / d
+        else:
+            l = np.dot(vr, va) * n / d
+            r = np.dot(vr, vb) * n / d
+
 
         # create projection matrices
         P =  np.array([[2*n/(r-l),         0,  (r+l)/(r-l),            0],
@@ -62,19 +71,16 @@ class GenPerspective:
                       [0, 0, 1, -fly_pos[2]],
                       [0, 0, 0,      1]], dtype=float)
 
-        # return overall projection matrix
         return P.dot((M.T).dot(T)).astype('f4').tobytes(order='F')
-
-    # rotating the screen on three axes is mostly for testing purposes
 
     def rotx(self, th):
         return GenPerspective(pa=rotx(self.pa, th), pb=rotx(self.pb, th), pc=rotx(self.pc, th),
-                              pe=rotx(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos)
+                              pe=rotx(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos, horizontal_flip=self.horizontal_flip)
 
     def roty(self, th):
         return GenPerspective(pa=roty(self.pa, th), pb=roty(self.pb, th), pc=roty(self.pc, th),
-                              pe=roty(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos)
+                              pe=roty(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos, horizontal_flip=self.horizontal_flip)
 
     def rotz(self, th):
         return GenPerspective(pa=rotz(self.pa, th), pb=rotz(self.pb, th), pc=rotz(self.pc, th),
-                              pe=rotz(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos)
+                              pe=rotz(self.pe, th), near=self.near, far=self.far, fly_pos=self.fly_pos, horizontal_flip=self.horizontal_flip)

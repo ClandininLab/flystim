@@ -8,27 +8,33 @@ from flystim.draw import draw_screens
 from time import sleep
 
 def main():
-    w = 0.5
-    h = 0.25
-    screen = Screen(server_number=0, id=0, fullscreen=False, width=w, height=h, rotation=0, offset=(0, 0.05, 0),
-                    square_loc=(0.75, -1.0), square_size=(0.25, 0.25), vsync=True)
+    pa = ((-1, -1), (-0.1, 0.2, -0.1))
+    pb = ((+1, -1), (0.1, 0.2, -0.1))
+    pc = ((-1, +1), (-0.1, 0.2, 0.1))
+    p4 = ((+1, +1), (0.1, 0.2, 0.1))
+
+
+    triangles = Screen.quad_to_tri_list(pa, pb, pc, p4)
+
+    screen = Screen(tri_list=triangles, id=0, fullscreen=False, vsync=True, square_size=(0.18, 0.25), square_loc=(0.78, -0.86), name='Left', horizontal_flip=False)
 
     draw_screens(screen)
 
     manager = launch_stim_server(screen)
 
+
     manager.load_stim(name='ConstantBackground', color = [0.5, 0.5, 0.5, 1.0], side_length=100)
-    manager.load_stim(name='Floor', color=[0.5, 0.5, 0.5, 1.0], z_level=-0.1, side_length=5, hold=True)
+    manager.load_stim(name='Floor', color=[0.5, 0.5, 0.5, 1.0], z_level=-0.25, side_length=5, hold=True)
 
-    manager.load_stim(name='Tower', color=[1, 0, 0, 1.0], cylinder_location=[-0.25, +1, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # red, +y, left
-    manager.load_stim(name='Tower', color=[0, 1, 0, 1.0], cylinder_location=[0.0, +1, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # green, +y, center
-    manager.load_stim(name='Tower', color=[0, 0, 1, 1], cylinder_location=[+0.25, +1, 0],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # blue, +y, right
+    z_level = -0.2
+    manager.load_stim(name='Tower', color=[1, 0, 0, 1.0], cylinder_location=[-0.25, +1, z_level],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # red, +y, left
+    manager.load_stim(name='Tower', color=[0, 1, 0, 1.0], cylinder_location=[0.0, +1, z_level],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # green, +y, center
+    manager.load_stim(name='Tower', color=[0, 0, 1, 1], cylinder_location=[+0.25, +1, z_level],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # blue, +y, right
 
+    manager.load_stim(name='Tower', color=[1, 1, 0, 1.0], cylinder_location=[-0.25, -1, z_level],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) # -y, left
+    manager.load_stim(name='Tower', color=[0, 1, 1, 1.0], cylinder_location=[0.0, -1, z_level],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) #g-b -y, center
+    manager.load_stim(name='Tower', color=[1, 0, 1, 1], cylinder_location=[+0.25, -1, z_level],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) #purple -y, right
 
-    tree_locations = []
-    for tree in range(40):
-        tree_locations.append([np.random.uniform(-2, 2), np.random.uniform(-2, 2), np.random.uniform(0, 0)])
-    # manager.load_stim(name='Forest', color=[0, 0, 0, 1], cylinder_radius=0.05, cylinder_height=0.1, n_faces=8, cylinder_locations=tree_locations, hold=True)
 
     tt = np.arange(0, 12, 0.01) # seconds
     velocity_x = 0.0 # meters per sec
@@ -51,7 +57,7 @@ def main():
     sleep(0.5)
 
     manager.start_stim()
-    sleep(4)
+    sleep(8)
 
     manager.stop_stim(print_profile=True)
     sleep(0.5)

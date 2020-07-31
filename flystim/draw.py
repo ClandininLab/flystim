@@ -4,6 +4,8 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
 from collections import Iterable
 
+from flystim.util import normalize
+
 COLOR_LIST = ['b', 'g', 'r', 'c', 'm', 'y']
 
 
@@ -15,14 +17,20 @@ def draw_screens(screens):
     ax = Axes3D(fig)
 
     for screen in screens:
-        for tri in screen.tri_list:
+        for t_ind, tri in enumerate(screen.tri_list):
             # grab just the xyz coordinates of each point in the triangle
             pa = np.array(tri.pa.cart)
             pb = np.array(tri.pb.cart)
             pc = np.array(tri.pc.cart)
 
             # draw the triangle
-            tri_draw(pa, pb, pc, ax=ax, color=COLOR_LIST[screen.id % len(COLOR_LIST)])
+            tri_draw(pc, pa, pb, ax=ax, color=COLOR_LIST[screen.id % len(COLOR_LIST)])
+
+            if np.mod(t_ind, 2)==0: #this triangle used for pa, pb, pc. Draw its vector normal
+                vr = normalize(pb - pa)
+                vu = normalize(pc - pa)
+                vn = normalize(np.cross(vr, vu))
+                ax.quiver(pa[0], pa[1], pa[2], vn[0], vn[1], vn[2], length=0.1, normalize=True, color=COLOR_LIST[screen.id % len(COLOR_LIST)])
 
     # draw fly in the center
     ax.scatter(0, 0, 0, c='g')

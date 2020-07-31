@@ -22,6 +22,16 @@ class ScreenPoint:
         return f'({str(self.ndc)}, {str(self.cart)})'
 
 class ScreenTriangle:
+    """
+    pa, pb, pc as in: https://csc.lsu.edu/~kooima/articles/genperspective/index.html
+
+    pc-------p4
+    |        |
+    |        |
+    |        |
+    |        |
+    pa-------pb
+    """
     def __init__(self, pa, pb, pc):
         self.pa = pa
         self.pb = pb
@@ -52,7 +62,7 @@ class Screen:
     """
 
     def __init__(self, width=None, height=None, rotation=None, offset=None, server_number=None, id=None,
-                 fullscreen=None, vsync=None, square_size=None, square_loc=None, name=None, tri_list=None):
+                 fullscreen=None, vsync=None, square_size=None, square_loc=None, name=None, tri_list=None, horizontal_flip=False):
         """
         :param width: width of the screen (meters)
         :param height: height of the screen (meters)
@@ -98,12 +108,12 @@ class Screen:
 
         # Construct a default triangle list if needed
         if tri_list is None:
-            ll = self.screen_corner(name='ll', width=width, height=height, offset=offset, rotation=rotation)
-            lr = self.screen_corner(name='lr', width=width, height=height, offset=offset, rotation=rotation)
-            ur = self.screen_corner(name='ur', width=width, height=height, offset=offset, rotation=rotation)
-            ul = self.screen_corner(name='ul', width=width, height=height, offset=offset, rotation=rotation)
+            pa = self.screen_corner(name='ll', width=width, height=height, offset=offset, rotation=rotation)
+            pb = self.screen_corner(name='lr', width=width, height=height, offset=offset, rotation=rotation)
+            p4 = self.screen_corner(name='ur', width=width, height=height, offset=offset, rotation=rotation)
+            pc = self.screen_corner(name='ul', width=width, height=height, offset=offset, rotation=rotation)
 
-            tri_list = self.quad_to_tri_list(ll, lr, ur, ul)
+            tri_list = self.quad_to_tri_list(pa, pb, pc, p4)
 
         # save the triangle list
         self.tri_list = tri_list
@@ -119,6 +129,7 @@ class Screen:
         self.square_size = square_size
         self.square_loc = square_loc
         self.name = name
+        self.horizontal_flip=horizontal_flip
 
     @classmethod
     def name_to_ndc(cls, name):
@@ -143,19 +154,20 @@ class Screen:
         return ScreenPoint(ndc=ndc, cart=(cart_x, cart_y, cart_z))
 
     @classmethod
-    def quad_to_tri_list(cls, p1, p2, p3, p4):
+    def quad_to_tri_list(cls, pa, pb, pc, p4):
         # convert points to ScreenPoints if necessary
-        p1 = p1 if isinstance(p1, ScreenPoint) else ScreenPoint.deserialize(p1)
-        p2 = p2 if isinstance(p2, ScreenPoint) else ScreenPoint.deserialize(p2)
-        p3 = p3 if isinstance(p3, ScreenPoint) else ScreenPoint.deserialize(p3)
+        pa = pa if isinstance(pa, ScreenPoint) else ScreenPoint.deserialize(pa)
+        pb = pb if isinstance(pb, ScreenPoint) else ScreenPoint.deserialize(pb)
+        pc = pc if isinstance(pc, ScreenPoint) else ScreenPoint.deserialize(pc)
         p4 = p4 if isinstance(p4, ScreenPoint) else ScreenPoint.deserialize(p4)
 
         # create a mesh consisting of two triangles
-        return [ScreenTriangle(p1, p2, p4), ScreenTriangle(p2, p3, p4)]
+        # only first triangle used to make projection matrix, second is just for draw_screens() visualization
+        return [ScreenTriangle(pa, pb, pc), ScreenTriangle(pc, p4, pb)]
 
     def serialize(self):
         # get all variables needed to reconstruct the screen object
-        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_size', 'square_loc', 'name']
+        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_size', 'square_loc', 'name', 'horizontal_flip']
         data = {var: getattr(self, var) for var in vars}
 
         # special handling for tri_list since it could contain numpy values
