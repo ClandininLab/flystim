@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from flystim.stim_server import launch_stim_server
-from flystim.screen import Screen
+from flystim.screen import Screen, SubScreen
 from flystim.trajectory import Trajectory
 import numpy as np
 from flystim.draw import draw_screens
@@ -8,15 +8,9 @@ from flystim.draw import draw_screens
 from time import sleep
 
 def main():
-    pa = ((-1, -1), (-0.1, 0.2, -0.1))
-    pb = ((+1, -1), (0.1, 0.2, -0.1))
-    pc = ((-1, +1), (-0.1, 0.2, 0.1))
-    p4 = ((+1, +1), (0.1, 0.2, 0.1))
+    subscreens = [SubScreen(pa=(-0.1, 0.2, -0.1), pb=(0.1, 0.2, -0.1), pc=(-0.1, 0.2, 0.1))]
 
-
-    triangles = Screen.quad_to_tri_list(pa, pb, pc, p4)
-
-    screen = Screen(tri_list=triangles, id=0, fullscreen=False, vsync=True, square_size=(0.18, 0.25), square_loc=(0.78, -0.86), name='Left', horizontal_flip=False)
+    screen = Screen(subscreens=subscreens, id=0, fullscreen=False, vsync=True, square_size=(0.18, 0.25), square_loc=(0.78, -0.86), name='Left', horizontal_flip=False)
 
     draw_screens(screen)
 

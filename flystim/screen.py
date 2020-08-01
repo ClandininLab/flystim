@@ -1,59 +1,61 @@
 from math import sin, cos, radians
 
-class ScreenPoint:
-    def __init__(self, ndc, cart):
-        self.ndc = ndc
-        self.cart = cart
-
-    def serialize(self):
-        return [
-            self.ndc,
-            self.cart
-        ]
-
-    @classmethod
-    def deserialize(cls, data):
-        return ScreenPoint(
-            ndc=data[0],
-            cart=data[1]
-        )
-
-    def __str__(self):
-        return f'({str(self.ndc)}, {str(self.cart)})'
-
-class ScreenTriangle:
+class SubScreen:
     """
+    SubScreen of a Screen object
+    defined by physical screen dimensions and a viewport on the display device
     pa, pb, pc as in: https://csc.lsu.edu/~kooima/articles/genperspective/index.html
+    i.e. pa is the lower-left corner of the screen, from the perspective of the viewer
 
-    pc-------p4
-    |        |
-    |        |
-    |        |
-    |        |
-    pa-------pb
+    pc
+    |
+    |
+    |
+    |
+    pa-----------pb
+
     """
-    def __init__(self, pa, pb, pc):
+
+    def __init__(self, pa=(-0.15, 0.30, -0.15), pb=(+0.15, 0.30, -0.15), pc=(-0.15, 0.30, +0.15), viewport_ll=(-1,-1), viewport_width=2, viewport_height=2):
+        """
+        :param pa: meters (x,y,z)
+        :param pb: meters (x,y,z)
+        :param pc: meters (x,y,z)
+        :param viewport_ll: (x, y) NDC coordinates of lower-left corner of viewport for SubScreen [-1, +1]
+        :param viewport_width: NDC width of viewport [0, 2]
+        :param viewport_height: NDC height of viewport [0, 2]
+
+        """
         self.pa = pa
         self.pb = pb
         self.pc = pc
 
+        self.viewport_ll = viewport_ll
+        self.viewport_width = viewport_width
+        self.viewport_height = viewport_height
+
+    def get_viewport(self, display_width, display_height):
+        # convert from ndc to viewport
+        # ref: https://github.com/pyqtgraph/pyqtgraph/issues/422
+        x = (1+self.viewport_ll[0]) * display_width/2
+        y = (1+self.viewport_ll[1]) * display_height/2
+        return (x, y, (self.viewport_width/2)*display_width, (self.viewport_height/2)*display_height)
+
+
     def serialize(self):
         return [
-            self.pa.serialize(),
-            self.pb.serialize(),
-            self.pc.serialize()
+            self.pa,
+            self.pb,
+            self.pc,
+            self.viewport_ll,
+            self.viewport_width,
+            self.viewport_height
         ]
 
     @classmethod
     def deserialize(cls, data):
-        return ScreenTriangle(
-            pa=ScreenPoint.deserialize(data[0]),
-            pb=ScreenPoint.deserialize(data[1]),
-            pc=ScreenPoint.deserialize(data[2])
-        )
+        return SubScreen(*data)
 
-    def __str__(self):
-        return f'({str(self.pa)}, {str(self.pb)}, {str(self.pc)})'
 
 class Screen:
     """
@@ -61,14 +63,10 @@ class Screen:
     Parameters such as screen coordinates and the ID # are represented.
     """
 
-    def __init__(self, width=None, height=None, rotation=None, offset=None, server_number=None, id=None,
-                 fullscreen=None, vsync=None, square_size=None, square_loc=None, name=None, tri_list=None, horizontal_flip=False):
+    def __init__(self, subscreens=None, server_number=None, id=None, fullscreen=None, vsync=None,
+                 square_size=None, square_loc=None, name=None, horizontal_flip=False, pa=(-0.15, 0.30, -0.15), pb=(+0.15, 0.30, -0.15), pc=(-0.15, 0.30, +0.15)):
         """
-        :param width: width of the screen (meters)
-        :param height: height of the screen (meters)
-        :param rotation: rotation of the screen about the z axis (radians).  a value of zero corresponds to the screen
-        width being aligned along the x axis.
-        :param offset: position of the center of the screen (3-vector in meters).
+        :param subscreens: list of SubScreen objects (see above), if none are provided, one full-viewport subscreen will be produced using inputs pa, pb, pc
         :param server_number: ID # of the X server
         :param id: ID # of the screen
         :param fullscreen: Boolean.  If True, display stimulus fullscreen (default).  Otherwise, display stimulus
@@ -77,20 +75,11 @@ class Screen:
         :param square_size: (width, height) of photodiode synchronization square (NDC)
         :param square_loc: (x, y) Location of lower left corner of photodiode synchronization square (NDC)
         :param name: descriptive name to associate with this screen
-        :param tri_list: list of triangular patches defining the screen geometry.  this is a list of ScreenTriangles.
-        if the triangle list is not specified, then one is constructed automatically using rotation and offset.
+        :param horizontal_flip: Boolean. Flip horizontal axis of image, for rear-projection devices
+
         """
-
-        # Set defaults for MacBook Pro (Retina, 15-inch, Mid 2015)
-
-        if width is None:
-            width = 0.332
-        if height is None:
-            height = 0.207
-        if rotation is None:
-            rotation = 0 #looking down positive y axis
-        if offset is None:
-            offset = (0.0, 0.3, 0.0)
+        if subscreens is None:
+            subscreens = [ SubScreen(pa=pa, pb=pb, pc=pc) ]
         if server_number is None:
             server_number = 0
         if id is None:
@@ -106,22 +95,8 @@ class Screen:
         if name is None:
             name = 'Screen' + str(id)
 
-        # Construct a default triangle list if needed
-        if tri_list is None:
-            pa = self.screen_corner(name='ll', width=width, height=height, offset=offset, rotation=rotation)
-            pb = self.screen_corner(name='lr', width=width, height=height, offset=offset, rotation=rotation)
-            p4 = self.screen_corner(name='ur', width=width, height=height, offset=offset, rotation=rotation)
-            pc = self.screen_corner(name='ul', width=width, height=height, offset=offset, rotation=rotation)
-
-            tri_list = self.quad_to_tri_list(pa, pb, pc, p4)
-
-        # save the triangle list
-        self.tri_list = tri_list
-
         # Save settings
-        self.offset = offset
-        self.width = width
-        self.height = height
+        self.subscreens=subscreens
         self.id = id
         self.server_number = server_number
         self.fullscreen = fullscreen
@@ -129,49 +104,18 @@ class Screen:
         self.square_size = square_size
         self.square_loc = square_loc
         self.name = name
-        self.horizontal_flip=horizontal_flip
-
-    @classmethod
-    def name_to_ndc(cls, name):
-        return {
-            'll': (-1, -1),
-            'lr': (+1, -1),
-            'ur': (+1, +1),
-            'ul': (-1, +1)
-        }[name.lower()]
-
-    @classmethod
-    def screen_corner(cls, name, width, height, offset, rotation):
-        # figure out the NDC coordinates of the named screen corner
-        ndc = cls.name_to_ndc(name)
-
-        # compute the 3D cartesian coordinates of the screen corner
-        cart_x = 0.5 * width  * cos(rotation) * ndc[0] + offset[0]
-        cart_y = 0.5 * width  * sin(rotation) * ndc[0] + offset[1]
-        cart_z = 0.5 * height                 * ndc[1] + offset[2]
-
-        # return the 3D coordinate
-        return ScreenPoint(ndc=ndc, cart=(cart_x, cart_y, cart_z))
-
-    @classmethod
-    def quad_to_tri_list(cls, pa, pb, pc, p4):
-        # convert points to ScreenPoints if necessary
-        pa = pa if isinstance(pa, ScreenPoint) else ScreenPoint.deserialize(pa)
-        pb = pb if isinstance(pb, ScreenPoint) else ScreenPoint.deserialize(pb)
-        pc = pc if isinstance(pc, ScreenPoint) else ScreenPoint.deserialize(pc)
-        p4 = p4 if isinstance(p4, ScreenPoint) else ScreenPoint.deserialize(p4)
-
-        # create a mesh consisting of two triangles
-        # only first triangle used to make projection matrix, second is just for draw_screens() visualization
-        return [ScreenTriangle(pa, pb, pc), ScreenTriangle(pc, p4, pb)]
+        self.horizontal_flip = horizontal_flip
+        self.pa = pa
+        self.pb = pb
+        self.pc = pc
 
     def serialize(self):
         # get all variables needed to reconstruct the screen object
-        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_size', 'square_loc', 'name', 'horizontal_flip']
+        vars = ['id', 'server_number', 'fullscreen', 'vsync', 'square_size', 'square_loc', 'name', 'horizontal_flip', 'pa', 'pb', 'pc']
         data = {var: getattr(self, var) for var in vars}
 
         # special handling for tri_list since it could contain numpy values
-        data['tri_list'] = [tri.serialize() for tri in self.tri_list]
+        data['subscreens'] = [sub.serialize() for sub in self.subscreens]
 
         return data
 
@@ -181,7 +125,7 @@ class Screen:
         kwargs = data.copy()
 
         # do some post-processing as necessary
-        kwargs['tri_list'] = [ScreenTriangle.deserialize(tri) for tri in kwargs['tri_list']]
+        kwargs['subscreens'] = [SubScreen.deserialize(sub) for sub in kwargs['subscreens']]
 
         return Screen(**kwargs)
 

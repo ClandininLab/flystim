@@ -1,43 +1,44 @@
 #!/usr/bin/env python3
 from flystim.stim_server import launch_stim_server
-from flystim.screen import Screen
+from flystim.screen import Screen, SubScreen
 from flystim.trajectory import Trajectory
 import numpy as np
 from flystim.draw import draw_screens
 
 from time import sleep
 
-def dir_to_tri_list(dir):
-    w = 3.0e-2
+def get_subscreen(dir):
+    w = 3.0e-2 #meters
     h = 3.0e-2
-    # set coordinates as a function of direction
+    viewport_width = 0.6 #ndc
+    viewport_height = 0.6
     if dir == 'w':
-        pa = ((-0.8, -0.6), (-w/2, -w/2, -h/2))
-        pb = ((-0.2, -0.6), (-w/2, +w/2, -h/2))
-        pc = ((-0.8, +0.0), (-w/2, -w/2, +h/2))
-        p4 = ((-0.2, +0.0), (-w/2, +w/2, +h/2))
+        viewport_ll = (-0.8, -0.6)
+        pa = (-w/2, -w/2, -h/2)
+        pb = (-w/2, +w/2, -h/2)
+        pc = (-w/2, -w/2, +h/2)
 
     elif dir == 'n':
-        pa = ((-0.3, 0.0), (-w/2, +w/2, -h/2))
-        pb = ((+0.3, 0.0), (+w/2, +w/2, -h/2))
-        pc = ((-0.3, +0.6), (-w/2, +w/2, +h/2))
-        p4 = ((+0.3, +0.6), (+w/2, +w/2, +h/2))
+        viewport_ll = (-0.3, 0.0)
+        pa = (-w/2, +w/2, -h/2)
+        pb = (+w/2, +w/2, -h/2)
+        pc = (-w/2, +w/2, +h/2)
 
     elif dir == 'e':
-        pa = ((+0.2, -0.6), (+w/2, +w/2, -h/2))
-        pb = ((+0.8, -0.6), (+w/2, -w/2, -h/2))
-        pc = ((+0.2, +0.0), (+w/2, +w/2, +h/2))
-        p4 = ((+0.8, +0.0), (+w/2, -w/2, +h/2))
+        viewport_ll = (+0.2, -0.6)
+        pa = (+w/2, +w/2, -h/2)
+        pb = (+w/2, -w/2, -h/2)
+        pc = (+w/2, +w/2, +h/2)
+
     else:
         raise ValueError('Invalid direction.')
 
-    return Screen.quad_to_tri_list(pa, pb, pc, p4)
+    return SubScreen(pa=pa, pb=pb, pc=pc, viewport_ll=viewport_ll, viewport_width=viewport_width, viewport_height=viewport_height)
 
-def make_tri_list():
-    return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
 
 def main():
-    screen = Screen(server_number=0, id=0, fullscreen=False, tri_list=make_tri_list(), square_loc=(0.75, -1.0), square_size=(0.25, 0.25), vsync=True)
+    subscreens = [get_subscreen('w'), get_subscreen('n'), get_subscreen('e')]
+    screen = Screen(subscreens=subscreens, server_number=0, id=0, fullscreen=False, square_loc=(0.75, -1.0), square_size=(0.25, 0.25), vsync=True)
 
     draw_screens(screen)
 

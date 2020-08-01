@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 from flystim.stim_server import launch_stim_server
-from flystim.screen import Screen
+from flystim.screen import Screen, SubScreen
 from flystim.trajectory import Trajectory
 import numpy as np
+from flystim.draw import draw_screens
 
 from time import sleep
 
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=True))
+    screen = Screen(fullscreen=False, server_number=0, id=0, vsync=True)
+
+    draw_screens(screen)
+
+    manager = launch_stim_server(screen)
 
     # contrast-reversing grating
     tf = 1 # Hz
