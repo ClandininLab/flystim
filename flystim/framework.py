@@ -100,6 +100,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # handle RPC input
         self.server.process_queue()
 
+        # get display size and set viewports
+        display_width = self.width()*self.devicePixelRatio()
+        display_height = self.height()*self.devicePixelRatio()
+
+        self.subscreen_viewports = [sub.get_viewport(display_width, display_height) for sub in self.screen.subscreens]
+        # Get viewport for corner square
+        self.square_program.set_viewport(display_width, display_height)
+
+
         self.ctx.clear(0, 0, 0, 1)
         # draw the stimulus
         if self.stim_list:
@@ -169,14 +178,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         stim.kwargs = kwargs
         stim.configure(**stim.kwargs) #Configure stim on load
         self.stim_list.append(stim)
-
-        # get display size and set viewports
-        display_width = self.width()*self.devicePixelRatio()
-        display_height = self.height()*self.devicePixelRatio()
-
-        self.subscreen_viewports = [sub.get_viewport(display_width, display_height) for sub in self.screen.subscreens]
-        # Get viewport for corner square
-        self.square_program.set_viewport(display_width, display_height)
 
     def start_stim(self, t):
         """
