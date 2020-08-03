@@ -43,6 +43,12 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.move(rectScreen.left(), rectScreen.top())
             self.resize(rectScreen.width(), rectScreen.height())
 
+        if screen.fullscreen:
+            desktop = QtWidgets.QDesktopWidget()
+            rectScreen = desktop.screenGeometry(screen.id)
+            self.move(rectScreen.left(), rectScreen.top())
+            self.resize(rectScreen.width(), rectScreen.height())
+
         # stimulus initialization
         self.stim_list = []
 
