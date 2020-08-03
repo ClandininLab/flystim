@@ -43,12 +43,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
             self.move(rectScreen.left(), rectScreen.top())
             self.resize(rectScreen.width(), rectScreen.height())
 
-        if screen.fullscreen:
-            desktop = QtWidgets.QDesktopWidget()
-            rectScreen = desktop.screenGeometry(screen.id)
-            self.move(rectScreen.left(), rectScreen.top())
-            self.resize(rectScreen.width(), rectScreen.height())
-
         # stimulus initialization
         self.stim_list = []
 
@@ -64,16 +58,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.server = server
         self.app = app
 
-        # get display size
-        display_width = self.width()*self.devicePixelRatio()
-        display_height = self.height()*self.devicePixelRatio()
-
-        self.subscreen_viewports = [sub.get_viewport(display_width, display_height) for sub in self.screen.subscreens]
-
         # make program for rendering the corner square
         self.square_program = SquareProgram(screen=screen)
-        # Get viewport for corner square
-        self.square_program.set_viewport(display_width, display_height)
 
         # initialize background color
         self.idle_background = 0.5
@@ -183,6 +169,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
         stim.kwargs = kwargs
         stim.configure(**stim.kwargs) #Configure stim on load
         self.stim_list.append(stim)
+
+        # get display size and set viewports
+        display_width = self.width()*self.devicePixelRatio()
+        display_height = self.height()*self.devicePixelRatio()
+
+        self.subscreen_viewports = [sub.get_viewport(display_width, display_height) for sub in self.screen.subscreens]
+        # Get viewport for corner square
+        self.square_program.set_viewport(display_width, display_height)
 
     def start_stim(self, t):
         """
