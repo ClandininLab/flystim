@@ -91,6 +91,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         return stim_time
 
+    def clear_viewport(self, viewport):
+        self.ctx.clear(red=self.idle_background, green=self.idle_background, blue=self.idle_background, alpha=1.0, viewport=viewport)
+
     def paintGL(self):
         # t0 = time.time() #benchmarking
         # quit if desired
@@ -108,8 +111,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # Get viewport for corner square
         self.square_program.set_viewport(display_width, display_height)
 
-
-        self.ctx.clear(0, 0, 0, 1)
+        self.ctx.clear(0, 0, 0, 1) # clear the previous frame across the whole display
         # draw the stimulus
         if self.stim_list:
             t = time.time()
@@ -126,11 +128,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 if self.stim_started:
                     stim.paint_at(self.get_stim_time(t), self.subscreen_viewports, perspectives, fly_position=self.global_fly_pos.copy())
                 else:
-                    self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
+                    [self.clear_viewport(viewport=x) for x in self.subscreen_viewports]
+                    # self.ctx.clear(red=self.idle_background, green=self.idle_background, blue=self.idle_background, alpha=1.0)
 
             self.profile_frame_times.append(t)
         else:
-            self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
+            [self.clear_viewport(viewport=x) for x in self.subscreen_viewports]
+            # self.ctx.clear(red=self.idle_background, green=self.idle_background, blue=self.idle_background, alpha=1.0)
 
         # draw the corner square
         self.square_program.paint()
