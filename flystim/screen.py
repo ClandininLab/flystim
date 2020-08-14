@@ -52,8 +52,7 @@ class Screen:
     """
 
     def __init__(self, width=None, height=None, rotation=None, offset=None, server_number=None, id=None,
-                 fullscreen=None, vsync=None, square_side=None, square_loc=None,
-                 save_square_history=None, name=None, tri_list=None):
+                 fullscreen=None, vsync=None, square_side=None, square_loc=None, name=None, tri_list=None):
         """
         :param width: width of the screen (meters)
         :param height: height of the screen (meters)
@@ -84,7 +83,6 @@ class Screen:
         vsync = vsync or True
         square_side = square_side or 2e-2
         square_loc = square_loc or 'll'
-        save_square_history = save_square_history or False
         name = name or ('Screen' + str(id))
 
         # Construct a default triangle list if needed
@@ -108,7 +106,6 @@ class Screen:
         self.vsync = vsync
         self.square_side = square_side
         self.square_loc = square_loc
-        self.save_square_history = save_square_history
         self.name = name
 
     @classmethod
@@ -146,7 +143,7 @@ class Screen:
 
     def serialize(self):
         # get all variables needed to reconstruct the screen object
-        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_side', 'square_loc', 'save_square_history', 'name']
+        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_side', 'square_loc', 'name']
         data = {var: getattr(self, var) for var in vars}
 
         # special handling for tri_list since it could contain numpy values
