@@ -93,6 +93,52 @@ def fictrac_get_data(sock):
 
 
 def main():
+    # Set lightcrafter and GL environment settings
+    os.system('/home/clandinin/miniconda3/bin/lcr_ctl --fps 120 --blue_current 2.1 --green_current 2.1')
+    os.system('bash /home/clandinin/flystim/src/flystim/examples/closed_loop_GL_env_set.sh')
+
+    #Camera boundaries
+    CAM_WIDTH = 752
+    CAM_HEIGHT = 616
+    CAM_OFFSET_X = 328
+    CAM_OFFSET_Y = 336
+
+    try:
+        system = PySpin.System.GetInstance()
+        cam_list = system.GetCameras()
+        assert cam_list.GetSize() == 1
+        cam = cam_list[0]
+        cam.Init()
+        nodemap = cam.GetNodeMap()
+        node_width = PySpin.CIntegerPtr(nodemap.GetNode('Width'))
+        if PySpin.IsAvailable(node_width) and PySpin.IsWritable(node_width):
+            node_width.SetValue(CAM_WIDTH)
+            print('Cam Width set to %i...' % node_width.GetValue())
+        else:
+            print('Cam Width not available...')
+        node_height = PySpin.CIntegerPtr(nodemap.GetNode('Height'))
+        if PySpin.IsAvailable(node_height) and PySpin.IsWritable(node_height):
+            node_height.SetValue(CAM_HEIGHT)
+            print('Cam Height set to %i...' % node_height.GetValue())
+        else:
+            print('Cam Height not available...')
+        node_offset_x = PySpin.CIntegerPtr(nodemap.GetNode('OffsetX'))
+        if PySpin.IsAvailable(node_offset_x) and PySpin.IsWritable(node_offset_x):
+            node_offset_x.SetValue(CAM_OFFSET_X)
+            print('Cam OffsetX set to %i...' % node_offset_x.GetValue())
+        else:
+            print('Cam OffsetX not available...')
+        node_offset_y = PySpin.CIntegerPtr(nodemap.GetNode('OffsetY'))
+        if PySpin.IsAvailable(node_offset_y) and PySpin.IsWritable(node_offset_y):
+            node_offset_y.SetValue(CAM_OFFSET_Y)
+            print('Cam OffsetY set to %i...' % node_offset_y.GetValue())
+        else:
+            print('Cam OffsetY not available...')
+    except PySpin.SpinnakerException as ex:
+        print('Error: %s' % ex)
+    #cam.DeInit()
+
+
     screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.01, square_loc=(0.59,0.74))#square_side=0.08, square_loc='ur')
     print(screen)
 
@@ -112,13 +158,13 @@ def main():
 
 
     trial_labels = np.array([0,1]) # visible, coherent. 00, 01, 10, 11
-    n_repeats = 1
-    save_history = False
+    n_repeats = 2
+    save_history = True
     save_path = "/home/clandinin/minseung/ballrig_data"
-    save_prefix = "200806a_test4"
+    save_prefix = "200818_pred_test0"
     save_path = save_path + os.path.sep + save_prefix
     if save_history:
-        os .mkdir(save_path)
+        os.mkdir(save_path)
 
     genotype = "isoA1-F"
     age = 3

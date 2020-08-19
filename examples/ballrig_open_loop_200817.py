@@ -3,7 +3,7 @@
 # Example program showing rendering onto three subscreens
 
 import logging
-#import PySpin
+import PySpin
 
 from flystim.draw import draw_screens
 from flystim.trajectory import RectangleTrajectory
@@ -61,42 +61,12 @@ def dir_to_tri_list(dir):
 def make_tri_list():
     return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
 
-def fictrac_get_data(sock):
-    data = sock.recv(1024)
-
-    # Decode received data
-    line = data.decode('UTF-8')
-    endline = line.find("\n")
-    line = line[:endline]
-    toks = line.split(", ")
-
-    #logging.debug("Received from fictrac socket: %s", line)
-
-    # Fixme: sometimes we read more than one line at a time,
-    # should handle that rather than just dropping extra data...
-    if ((len(toks) < 7) | (toks[0] != "FT")):
-        logging.warning("Bad read, too few tokens: %s", line)
-        return fictrac_get_data(sock)
-        #continue
-
-    if len(toks) > 7:
-        logging.warning("Bad read, too many tokens: %s", line)
-        return fictrac_get_data(sock)
-
-    posx = float(toks[1])
-    posy = float(toks[2])
-    heading = float(toks[3])
-    timestamp = float(toks[4])
-    sync_mean = float(toks[5])
-
-    return (posx, posy, heading, timestamp, sync_mean)
-
 
 def main():
     # Set lightcrafter and GL environment settings
     os.system('/home/clandinin/miniconda3/bin/lcr_ctl --fps 120 --blue_current 2.1 --green_current 2.1')
     os.system('bash /home/clandinin/flystim/src/flystim/examples/closed_loop_GL_env_set.sh')
-    '''
+
     #Camera boundaries
     CAM_WIDTH = 752
     CAM_HEIGHT = 616
@@ -136,8 +106,8 @@ def main():
             print('Cam OffsetY not available...')
     except PySpin.SpinnakerException as ex:
         print('Error: %s' % ex)
-    '''
-    # Create screen object
+
+
     screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.01, square_loc=(0.59,0.74))#square_side=0.08, square_loc='ur')
     print(screen)
 
@@ -158,9 +128,9 @@ def main():
 
     trial_labels = np.array([0,1]) # visible, coherent. 00, 01, 10, 11
     n_repeats = 1
-    save_history = True
+    save_history = False
     save_path = "/home/clandinin/minseung/ballrig_data"
-    save_prefix = "200818_clark_test4"
+    save_prefix = "200806a_test4"
     save_path = save_path + os.path.sep + save_prefix
     if save_history:
         os.mkdir(save_path)
@@ -171,13 +141,22 @@ def main():
     ft_frame_rate = 250 #Hz, higher
     fs_frame_rate = 120
 
-    stim_duration = 10
     speed = 30 #degrees per sec
-    iti = 5 #seconds
+    presample_duration = 2 #seconds
+    sample_duration = 5 #seconds
+    preocc_duration = 1 #seconds
+    occlusion_duration = 2 #seconds
+    postocc_duration = 1 #seconds
+    stim_duration = presample_duration + sample_duration + preocc_duration + occlusion_duration + postocc_duration
+    iti = 2 #seconds
 
-    background_color = 0.5
 
-    params = {'genotype':genotype, 'age':age, 'n_repeats':n_repeats, 'save_path':save_path, 'save_prefix': save_prefix, 'ft_frame_rate': ft_frame_rate, 'speed': speed, 'background_color': background_color}
+    background_color = 0.1
+    bar_width = 15
+    bar_height = 150
+    bar_color = 1
+
+    params = {'genotype':genotype, 'age':age, 'n_repeats':n_repeats, 'save_path':save_path, 'save_prefix': save_prefix, 'speed': speed, 'presample_duration': presample_duration, 'sample_duration': sample_duration, 'preocc_duration': preocc_duration, 'occlusion_duration': occlusion_duration, 'postocc_duration': postocc_duration, 'stim_duration': stim_duration, 'iti': iti, 'background_color': background_color, 'bar_width': bar_width, 'bar_height': bar_height, 'bar_color': bar_color}
 
     #####################################################
     # part 3: stimulus definitions
@@ -189,12 +168,27 @@ def main():
     params['n_trials'] = n_trials
     params['trial_structure'] = np.array2string(trial_structure, precision=1, separator=',')
 
-    # Create flystim trajectory objects
-    #exp_bar = RectangleTrajectory(x=exp_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
+    # Bar start location
+    start_theta = 90
 
-    if save_history:
-        with open(save_path+os.path.sep+save_prefix+'_params.txt', "w") as text_file:
-            print(json.dumps(params), file=text_file)
+    # Experimental bar trajectory
+    bar_traj = [(0,start_theta),(presample_duration,start_theta)]
+
+    exp_sample_movement = speed*sample_duration
+    exp_sample_end_theta = start_theta-exp_sample_movement
+    exp_sample_traj = [(presample_duration+sample_duration, exp_sample_end_theta)]
+    bar_traj.extend(exp_sample_traj)
+    exp_postsample_movement = speed*(stim_duration-presample_duration-sample_duration)
+    exp_end_theta = exp_sample_end_theta - exp_postsample_movement
+    exp_postsample_traj = [(stim_duration, exp_end_theta)]
+    bar_traj.extend(exp_postsample_traj)
+    params['exp_traj'] = np.array2string(np.array(list(sum(bar_traj, ()))), precision=4, separator=',')
+
+    # Create flystim trajectory objects
+    bar = RectangleTrajectory(x=bar_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
+
+    with open(save_path+os.path.sep+save_prefix+'_params.txt', "w") as text_file:
+        print(json.dumps(params), file=text_file)
 
     # Set up logging
     logging.basicConfig(
@@ -213,60 +207,19 @@ def main():
     # part 3: start the loop
     #####################################################
 
-    #p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config1.txt"], start_new_session=True)
-    p = subprocess.Popen(["/home/clandinin/fictrac_test/bin/fictrac","/home/clandinin/fictrac_test/config_smaller_window.txt","-v","ERR"], start_new_session=True)
-    sleep(2)
+    t_iti_start = time()
+    for t in range(n_trials):
+        # begin trial
+        manager.load_stim('MovingPatch', trajectory=bar.to_dict(), background=background_color, hold=True)
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as fictrac_sock:
-        fictrac_sock.connect((FICTRAC_HOST, FICTRAC_PORT))
+        print ("===== Trial " + str(t) + "; type " + str(trial_structure[t]) + " ======")
+        t_start = time()
+        manager.start_stim()
+        sleep(stim_duration)
+        manager.stop_stim()
 
+        #sleep(2)
         t_iti_start = time()
-        for t in range(n_trials):
-            # begin trial
-            ft_sync_means = []
-            ft_timestamps = []
-            ft_posx = []
-            ft_posy = []
-            ft_theta = []
-
-            while (time() - t_iti_start) < iti:
-                _ = fictrac_get_data(fictrac_sock)
-
-            manager.load_stim(name='SineGrating', rate=10, background=background_color, hold=True)
-
-            print ("===== Trial " + str(t) + " ======")
-            t_start = time()
-            manager.start_stim()
-            posx_0, posy_0, theta_0, _, _ = fictrac_get_data(fictrac_sock)
-
-            while (time() -  t_start) < stim_duration:
-                posx, posy, theta_rad, timestamp, sync_mean = fictrac_get_data(fictrac_sock)
-                posx = posx - posx_0
-                posy = posy - posy_0
-                theta_rad = -(theta_rad - theta_0)
-                ft_sync_means.append(sync_mean)
-                ft_timestamps.append(time())
-                ft_posx.append(posx)
-                ft_posy.append(posy)
-                ft_theta.append(theta_rad)
-
-            manager.stop_stim()
-            # Save things
-            if save_history:
-                save_prefix_with_trial = save_prefix+"_t"+f'{t:03}'
-                manager.set_save_prefix(save_prefix_with_trial)
-                manager.save_history()
-                np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_square.txt', np.array(ft_sync_means), delimiter='\n')
-                np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_timestamps.txt', np.array(ft_timestamps), delimiter='\n')
-                np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_posx.txt', np.array(ft_posx), delimiter='\n')
-                np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_posy.txt', np.array(ft_posy), delimiter='\n')
-                np.savetxt(save_path+os.path.sep+save_prefix_with_trial+'_ft_theta.txt', np.array(ft_theta), delimiter='\n')
-
-            #sleep(2)
-            t_iti_start = time()
-
-    p.terminate()
-    p.kill()
 
     #plt.plot(ft_sync_means)
     #plt.show()
