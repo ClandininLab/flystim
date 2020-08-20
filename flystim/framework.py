@@ -151,7 +151,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
     # control functions
     ###########################################
 
-    def update_stim(self, rate, t):
+    def update_stim(self, t, rate=None, color=None, background=None):
         for stim, config_options in self.stim_list:
             if isinstance(stim, (SineGrating, RotatingBars)):
                 # get the time that will be passed to the stimulus
@@ -163,8 +163,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 old_offset = config_options.kwargs.get('offset', 0)
 
                 # set the new rate and offset
-                config_options.kwargs['rate'] = rate
-                config_options.kwargs['offset'] = (rate - old_rate) * (360 / period) * t + old_offset
+                if rate is not None:
+                    config_options.kwargs['rate'] = rate
+                    config_options.kwargs['offset'] = (rate - old_rate) * (360 / period) * t + old_offset
+
+                if color is not None:
+                    config_options.kwargs['color'] = color
+                if background is not None:
+                    config_options.kwargs['background'] = background
+
 
     def load_stim(self, name, hold=False, *args, **kwargs):
         """
