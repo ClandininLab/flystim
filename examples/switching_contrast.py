@@ -4,7 +4,6 @@
 # The stim_type can be either SineGrating or RotatingBars.
 
 from time import sleep
-from random import choice
 import itertools
 import numpy as np
 
@@ -15,11 +14,14 @@ def main():
 
     n_repeats = 1
 
+    duration_1 = 5
+    duration_2 = 5
     iti = 5
     iti_color = 0.5
     temporal_frequency = 1 #Hz
     spatial_frequency = 60 #degrees
     rate = temporal_frequency * spatial_frequency
+    stim_duration = duration_1 + duration_2
 
     high_max_lum = 1
     high_min_lum = 0
@@ -49,9 +51,9 @@ def main():
 
         manager.load_stim(name='SineGrating', period=spatial_frequency, rate=sign*rate, color=max_lum_1, background=min_lum_1, angle=0, offset=0)
         manager.start_stim()
-        sleep(5)
+        sleep(duration_1)
         manager.update_stim(color=max_lum_2, background=min_lum_2)
-        sleep(5)
+        sleep(duration_2)
         manager.stop_stim()
 
 

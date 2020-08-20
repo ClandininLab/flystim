@@ -8,8 +8,9 @@ import logging
 from flystim.draw import draw_screens
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
+from flystim.util import latency_report
 
-from time import sleep, time
+from time import sleep, time, strftime, localtime
 import numpy as np
 import math
 import itertools
@@ -105,7 +106,7 @@ def main():
 
     save_history = True
     save_path = "/home/clandinin/minseung/ballrig_data/omer"
-    save_prefix = "200820_test00"
+    save_prefix = "200820_test06"
     save_path = save_path + os.path.sep + save_prefix
     if save_history:
         os.mkdir(save_path)
@@ -138,8 +139,9 @@ def main():
     trial_sample_idxes = np.random.permutation(np.repeat(np.arange(n_trial_types), n_repeats))
     n_trials = n_trial_types * n_repeats
 
-    params = {'genotype':genotype, 'age':age, 'n_repeats':n_repeats, 'save_path':save_path, 'save_prefix': save_prefix, 'ft_frame_rate': ft_frame_rate}
+    current_time = time.strftime('%Y%m%d_%H%M%S', time.localtime())
 
+    params = {'genotype':genotype, 'age':age, 'n_repeats':n_repeats, 'save_path':save_path, 'save_prefix': save_prefix, 'ft_frame_rate': ft_frame_rate, 'fs_frame_rate':fs_frame_rate,'duration_1':duration_1,'duration_2':duration_2,'iti':iti,'iti_color':iti_color,'temporal_frequency':temporal_frequency,'spatial_frequency':spatial_frequency,'rate':rate,'high_max_lum':high_max_lum,'high_min_lum':high_min_lum,'low_max_lum':low_max_lum,'low_min_lum':low_min_lum,'signs':signs,'high_contrast_firsts':high_contrast_firsts,'trial_types':trial_types,'n_trial_types':n_trial_types,'trial_sample_idxes':trial_sample_idxes,'n_trials':n_trials, 'current_time':current_time}
     if save_history:
         with open(save_path+os.path.sep+save_prefix+'_params.txt', "w") as text_file:
             print(json.dumps(params), file=text_file)
@@ -158,7 +160,7 @@ def main():
     os.system('bash /home/clandinin/flystim/src/flystim/examples/closed_loop_GL_env_set.sh')
 
     # Create screen object
-    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.01, square_loc=(0.59,0.74))#square_side=0.08, square_loc='ur')
+    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=True, square_side=0.01, square_loc=(0.59,0.74))#square_side=0.08, square_loc='ur')
     #print(screen)
 
     FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
@@ -204,7 +206,7 @@ def main():
                 _ = fictrac_get_data(fictrac_sock)
 
 
-            print ("===== Trial " + str(t) + " ======")
+            print ("===== Trial " + str(t) + "; " + ("<-" if sign==1 else "->") + (" High First" if high_contrast_first else " Low First") + " ======")
             manager.load_stim(name='SineGrating', period=spatial_frequency, rate=sign*rate, color=max_lum_1, background=min_lum_1, angle=0, offset=0)
             t_start = time()
             posx_0, posy_0, theta_0, _, _ = fictrac_get_data(fictrac_sock)
@@ -251,8 +253,22 @@ def main():
     p.terminate()
     p.kill()
 
-    #plt.plot(ft_sync_means)
-    #plt.show()
+    plt.plot(ft_sync_means)
+    plt.show()
+
+    if save_history:
+        def load(fpath):
+            with open(fpath, 'r') as handler:
+                return np.array([float(line) for line in handler])
+        for t in range(0,n_trials,int(np.ceil(n_trials/5))):
+            save_prefix_with_trial = save_prefix+"_t"+f'{t:03}'
+            fs_square = load(save_path+os.path.sep+save_prefix_with_trial+'_fs_square.txt')
+            fs_timestamp = load(save_path+os.path.sep+save_prefix_with_trial+'_fs_timestamps.txt')
+            ft_square = load(save_path+os.path.sep+save_prefix_with_trial+'_ft_square.txt')
+            ft_timestamp = load(save_path+os.path.sep+save_prefix_with_trial+'_ft_timestamps.txt')
+            print ("===== Trial " + str(t) + " ======")
+            latency_report(fs_timestamp, fs_square, ft_timestamp, ft_square, window_size=1)
+
 
 if __name__ == '__main__':
     main()
