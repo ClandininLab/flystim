@@ -4,7 +4,6 @@
 # The stim_type can be either SineGrating or RotatingBars.
 
 from time import sleep
-from random import choice
 import itertools
 import numpy as np
 
@@ -15,6 +14,8 @@ def main():
 
     n_repeats = 1
 
+    duration_1 = 5
+    duration_2 = 5
     iti = 5
     iti_color = 0.5
     duration_1 = 5
@@ -22,8 +23,8 @@ def main():
     temporal_frequency = 0 #Hz
     spatial_frequency = 60 #degrees
     rate = temporal_frequency * spatial_frequency
+    stim_duration = duration_1 + duration_2
     random_offset = True
-
 
     high_max_lum = 1
     high_min_lum = 0
