@@ -17,9 +17,13 @@ def main():
 
     iti = 5
     iti_color = 0.5
-    temporal_frequency = 1 #Hz
+    duration_1 = 5
+    duration_2 = 5
+    temporal_frequency = 0 #Hz
     spatial_frequency = 60 #degrees
     rate = temporal_frequency * spatial_frequency
+    random_offset = True
+
 
     high_max_lum = 1
     high_min_lum = 0
@@ -47,11 +51,12 @@ def main():
             max_lum_1,min_lum_1 = low_max_lum,low_min_lum
             max_lum_2,min_lum_2 = high_max_lum,high_min_lum
 
-        manager.load_stim(name='SineGrating', period=spatial_frequency, rate=sign*rate, color=max_lum_1, background=min_lum_1, angle=0, offset=0)
+        offset = np.random.uniform(0,spatial_frequency) if random_offset else 0
+        manager.load_stim(name='SineGrating', period=spatial_frequency, rate=sign*rate, color=max_lum_1, background=min_lum_1, angle=0, offset=offset)
         manager.start_stim()
-        sleep(5)
+        sleep(duration_1)
         manager.update_stim(color=max_lum_2, background=min_lum_2)
-        sleep(5)
+        sleep(duration_2)
         manager.stop_stim()
 
 

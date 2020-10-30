@@ -133,7 +133,7 @@ class PeriodicGrating(BaseProgram):
 
     def push_changes(self):
         self.prog['omega'].value = self.rate * self.k
-        self.prog['offset'].value = self.offset
+        self.prog['offset'].value = self.offset * self.k
 
     def update_stim(self, rate, t):
         old_rate = self.rate
