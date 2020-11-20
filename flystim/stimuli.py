@@ -252,7 +252,7 @@ class RotatingGrating(CylindricalGrating):
         super().__init__(screen=screen)
 
     def configure(self, rate=10, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
-                  color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0):
+                  color=[1, 1, 1, 1], alpha_by_face=None, cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0):
         """
         Subclass of CylindricalGrating that rotates the grating along the varying axis of the grating
         Note that the rotation effect is achieved by translating the texture on a semi-cylinder. This
@@ -264,13 +264,20 @@ class RotatingGrating(CylindricalGrating):
         super().configure(period=period, mean=mean, contrast=contrast, offset=offset, profile=profile,
                           color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
         self.rate = rate
+        self.alpha_by_face = alpha_by_face
+        if self.alpha_by_face is None:
+            self.n_faces = 32
+        else:
+            self.n_faces = len(self.alpha_by_face)
         self.updateTexture(mean=mean, contrast=contrast, offset=offset)
 
         self.stim_object_template = GlCylinder(cylinder_height=self.cylinder_height,
-                                      cylinder_radius=self.cylinder_radius,
-                                      cylinder_angular_extent=self.cylinder_angular_extent,
-                                      color=self.color,
-                                      texture=True)
+                                              cylinder_radius=self.cylinder_radius,
+                                              cylinder_angular_extent=self.cylinder_angular_extent,
+                                              color=self.color,
+                                              alpha_by_face=self.alpha_by_face,
+                                              n_faces=self.n_faces,
+                                              texture=True)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         shift_u = t*self.rate/self.cylinder_angular_extent

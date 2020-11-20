@@ -243,6 +243,7 @@ class GlCylinder(GlVertices):
                  cylinder_angular_extent=360,  # degrees
                  color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
                  n_faces=32,
+                 alpha_by_face=None,
                  texture=False,
                  texture_shift=(0, 0)):  # (u,v) coordinates to translate texture on shape. + is right, up.
 
@@ -253,6 +254,9 @@ class GlCylinder(GlVertices):
             else:
                 color = [color, color, color, 1]
 
+        if alpha_by_face is None:
+            alpha_by_face = color[3]*np.ones(n_faces)
+
         d_theta = np.radians(cylinder_angular_extent) / n_faces
         theta_start = -np.radians(cylinder_angular_extent)/2
         for face in range(n_faces):
@@ -261,8 +265,10 @@ class GlCylinder(GlVertices):
             v3 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, -cylinder_height/2))
             v4 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, cylinder_height/2))
 
+            new_color = [color[0], color[1], color[2], alpha_by_face[face]]
+
             if texture:
-                self.add(GlQuad(v1, v2, v3, v4, color,
+                self.add(GlQuad(v1, v2, v3, v4, new_color,
                                 tc1=(face/n_faces, 1),
                                 tc2=(face/n_faces, 0),
                                 tc3=((face+1)/n_faces, 0),
