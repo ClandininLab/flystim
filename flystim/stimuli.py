@@ -367,7 +367,6 @@ class RandomBars(TexturedCylinder):
 class RandomGrid(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
-        self.cylindrical_height_correction = False
 
     def configure(self, patch_width=10, patch_height=10, cylinder_vertical_extent=160, cylinder_angular_extent=360,
                   distribution_data=None, update_rate=60.0, start_seed=0,
@@ -404,7 +403,7 @@ class RandomGrid(TexturedCylinder):
             distribution_data = {'name': 'Uniform',
                                  'args': [0, 1],
                                  'kwargs': {}}
-        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args', []), **distribution_data.get('kwargs',{}))
+        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args', []), **distribution_data.get('kwargs', {}))
 
         self.patch_width = patch_width
         self.patch_height = patch_height
@@ -432,7 +431,6 @@ class RandomGrid(TexturedCylinder):
 class Checkerboard(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
-        self.cylindrical_height_correction = False
 
     def configure(self, patch_width=4, patch_height=4, cylinder_vertical_extent=160, cylinder_angular_extent=360,
                   color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
@@ -457,7 +455,6 @@ class Checkerboard(TexturedCylinder):
         self.n_patches_height = int(np.floor(cylinder_vertical_extent/patch_height))
         patch_height_m = cylinder_radius * np.tan(np.radians(patch_height))  # in meters
         cylinder_height = self.n_patches_height * patch_height_m
-
 
         super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height)
 
