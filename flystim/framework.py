@@ -78,6 +78,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # save history for behavior analysis and stim-behavior alignment
         self.save_history_flag = False
+        self.saving_history = False
+        self.saved_frame_count = None
+
 
     def initializeGL(self):
         # get OpenGL context
@@ -110,11 +113,12 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # ref: https://github.com/pyqtgraph/pyqtgraph/issues/422
         self.ctx.viewport = (0, 0, self.width()*self.devicePixelRatio(), self.height()*self.devicePixelRatio())
 
+        t = time.time()
+
         # draw the stimulus
         if self.stim_list:
-            t = time.time()
-            stim_time = self.get_stim_time(t)
 
+            stim_time = self.get_stim_time(t)
             self.ctx.clear(0, 0, 0, 1)
             self.ctx.enable(moderngl.BLEND)
 
@@ -124,21 +128,25 @@ class StimDisplay(QtOpenGL.QGLWidget):
                               global_theta_offset=self.global_theta_offset,
                               global_phi_offset=self.global_phi_offset)
 
-            if self.profile_frame_count is not None: # Seems like the lines below sometimes gets run before save_history_flag can be set by start_stim
-                # Save stim_time AND global positions and offsets
-                if self.save_history_flag:
-                    self.square_history[self.profile_frame_count] = int(self.square_program.color) #stim_time
-                    self.stim_time_history[self.profile_frame_count] = t
-                    self.stim_time_from_start_history[self.profile_frame_count] = stim_time
-                    self.global_fly_posx_history[self.profile_frame_count] = self.global_fly_pos[0]
-                    self.global_fly_posy_history[self.profile_frame_count] = self.global_fly_pos[1]
-                    self.global_theta_offset_history[self.profile_frame_count] = self.global_theta_offset
-                    #self.global_fly_posz_history[self.profile_frame_count] = self.global_fly_pos[2]
-                    #self.global_phi_offset_history[self.profile_frame_count] = self.global_phi_offset
-
+            if self.profile_frame_count is not None:
                 self.profile_frame_count += 1
+
         else:
             self.ctx.clear(self.idle_background, self.idle_background, self.idle_background, 1.0)
+
+        # Save data...
+        # Save stim_time AND global positions and offsets
+        if self.save_history_flag and self.saving_history:
+            self.square_history[self.saved_frame_count] = int(self.square_program.color) #stim_time
+            self.stim_time_history[self.saved_frame_count] = t
+            self.stim_time_from_start_history[self.saved_frame_count] = np.nan if not self.stim_list else stim_time
+            self.global_fly_posx_history[self.saved_frame_count] = self.global_fly_pos[0]
+            self.global_fly_posy_history[self.saved_frame_count] = self.global_fly_pos[1]
+            self.global_theta_offset_history[self.saved_frame_count] = self.global_theta_offset
+            #self.global_fly_posz_history[self.saved_frame_count] = self.global_fly_pos[2]
+            #self.global_phi_offset_history[self.saved_frame_count] = self.global_phi_offset
+
+            self.saved_frame_count += 1
 
 
         # draw the corner square
@@ -194,7 +202,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         Starts the stimulus animation, using the given time as t=0
         :param t: Time corresponding to t=0 of the animation
         """
-
         self.profile_frame_count = 0
         self.profile_start_time = time.time()
 
@@ -204,15 +211,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.stim_paused = False
         self.stim_start_time = t
 
-        if self.save_history_flag:
-            self.square_history = np.zeros(self.estimated_n_frames)
-            self.stim_time_history = np.zeros(self.estimated_n_frames)
-            self.stim_time_from_start_history = np.zeros(self.estimated_n_frames)
-            self.global_fly_posx_history = np.zeros(self.estimated_n_frames)
-            self.global_fly_posy_history = np.zeros(self.estimated_n_frames)
-            self.global_theta_offset_history = np.zeros(self.estimated_n_frames)
-            #self.global_fly_posz_history = np.zeros(self.estimated_n_frames)
-            #self.global_phi_offset_history = np.zeros(self.estimated_n_frames)
 
     def pause_stim(self, t):
         self.stim_paused = True
@@ -332,12 +330,29 @@ class StimDisplay(QtOpenGL.QGLWidget):
     def set_save_prefix(self, save_prefix):
         self.save_prefix = save_prefix
 
-    def set_save_history_params(self, save_history_flag=True, save_path="", save_prefix="", fs_frame_rate_estimate=120, stim_duration=65):
+    def start_saving_history(self):
+        if self.save_history_flag:
+            self.square_history = np.zeros(self.estimated_n_frames)
+            self.stim_time_history = np.zeros(self.estimated_n_frames)
+            self.stim_time_from_start_history = np.zeros(self.estimated_n_frames)
+            self.global_fly_posx_history = np.zeros(self.estimated_n_frames)
+            self.global_fly_posy_history = np.zeros(self.estimated_n_frames)
+            self.global_theta_offset_history = np.zeros(self.estimated_n_frames)
+            #self.global_fly_posz_history = np.zeros(self.estimated_n_frames)
+            #self.global_phi_offset_history = np.zeros(self.estimated_n_frames)
+
+        self.saved_frame_count = 0
+        self.saving_history = True
+
+    def stop_saving_history(self):
+        self.saving_history = False
+
+    def set_save_history_params(self, save_history_flag=True, save_path="", save_prefix="", fs_frame_rate_estimate=120, save_duration=65):
         self.save_history_flag = save_history_flag
         if save_history_flag:
             self.save_path = save_path
             self.save_prefix = save_prefix
-            self.estimated_n_frames = int(np.ceil(fs_frame_rate_estimate * stim_duration * 1.1))
+            self.estimated_n_frames = int(np.ceil(fs_frame_rate_estimate * save_duration * 1.1))
             self.square_history = []
             self.stim_time_history = []
             self.stim_time_from_start_history = []
@@ -348,6 +363,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
             #self.global_phi_offset_history = []
 
     def save_history(self):
+        self.square_history = self.square_history[:self.saved_frame_count]
+        self.stim_time_history = self.stim_time_history[:self.saved_frame_count]
+        self.stim_time_from_start_history = self.stim_time_from_start_history[:self.saved_frame_count]
+        self.global_fly_posx_history = self.global_fly_posx_history[:self.saved_frame_count]
+        self.global_fly_posy_history = self.global_fly_posy_history[:self.saved_frame_count]
+        self.global_theta_offset_history = self.global_theta_offset_history[:self.saved_frame_count]
+
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_square.txt', np.array(self.square_history), fmt='%i', delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.stim_time_history), delimiter='\n')
         np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps_from_start.txt', np.array(self.stim_time_from_start_history), delimiter='\n')
@@ -424,6 +446,8 @@ def main():
     server.register_function(stim_display.set_save_prefix)
     server.register_function(stim_display.set_save_history_params)
     server.register_function(stim_display.save_history)
+    server.register_function(stim_display.start_saving_history)
+    server.register_function(stim_display.stop_saving_history)
 
     # display the stimulus
     if screen.fullscreen:
