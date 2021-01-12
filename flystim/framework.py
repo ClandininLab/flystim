@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import platform
 import os
+import math
 
 from flystim.stimuli import ContrastReversingGrating, RotatingBars, ExpandingEdges, RandomBars, SequentialBars, SineGrating, RandomGrid
 from flystim.stimuli import Checkerboard, MovingPatch, ConstantBackground, ArbitraryGrid
@@ -124,8 +125,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             for stim, config_options in self.stim_list:
                 stim.apply_config_options(config_options)
+                # theta + 90degrees because 90 is directly in front of the animal and this allows stimulus definition to use 0 as in front of the animal.
+                # theta mod 360deg - 360deg keeps the extreme theta values on screen. Flystim seems to not handle extreme theta values well.
                 stim.paint_at(stim_time, global_fly_pos=self.global_fly_pos,
-                              global_theta_offset=self.global_theta_offset,
+                              global_theta_offset=(self.global_theta_offset+math.pi/2) % (2*math.pi) - 2*math.pi,
                               global_phi_offset=self.global_phi_offset)
 
             if self.profile_frame_count is not None:
