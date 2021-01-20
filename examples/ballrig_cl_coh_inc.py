@@ -141,7 +141,7 @@ def main():
     #####################################################
 
     save_history = True
-    parent_path = "/home/clandinin/yandan/data"
+    parent_path = os.getcwd()
     save_prefix = strftime('%Y%m%d_%H%M%S', localtime())
     save_path = os.path.join(parent_path, save_prefix)
     if save_history:
