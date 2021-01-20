@@ -140,7 +140,11 @@ def main():
     # part 2: User defined parameters
     #####################################################
 
-    save_history = True
+    if len(sys.argv) > 1 and sys.argv[1] == "run":
+        save_history = True
+    else:
+        save_history = False
+
     parent_path = os.getcwd()
     save_prefix = strftime('%Y%m%d_%H%M%S', localtime())
     save_path = os.path.join(parent_path, save_prefix)
@@ -149,8 +153,8 @@ def main():
 
     genotype = "isoD1-F"
     age = 5
-    temperature = 35.0 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
-    humidity = 26 #(29)
+    temperature = 35.5 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
+    humidity = 30 #(29)
 
     rgb_power = [0, 0.9, 0.9]
 

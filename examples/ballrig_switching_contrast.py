@@ -9,6 +9,7 @@ from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
 from flystim.util import latency_report
 
+import sys
 from time import sleep, time, strftime, localtime
 import numpy as np
 import math
@@ -85,8 +86,16 @@ def main():
     # part 2: User defined parameters
     #####################################################
 
-    do_fictrac = True
-    save_history = True
+    if len(sys.argv) > 1 and sys.argv[1] == "run":
+        do_fictrac = True
+        save_history = True
+    elif len(sys.argv) > 1 and sys.argv[1] == "ft":
+        do_fictrac = True
+        save_history = False
+    else:
+        do_fictrac = False
+        save_history = False
+
     parent_path = os.getcwd()
     save_prefix = strftime('%Y%m%d_%H%M%S', localtime())
     save_path = os.path.join(parent_path, save_prefix)
@@ -94,21 +103,21 @@ def main():
         os.mkdir(save_path)
 
     genotype = "isoD1-F"
-    age = 1
-    temperature = 34.5 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
-    humidity = 25 #(29)
+    age = 4
+    temperature = 36.0 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
+    humidity = 30
 
     rgb_power = [0, 0.9, 0.9]
 
-    ft_frame_rate = 245 #Hz, higher
+    ft_frame_rate = 309 #Hz, higher
     fs_frame_rate = 120
 
-    n_repeats = 1
+    n_repeats = 40
 
     random_offset = True
     duration_1 = 5
     duration_2 = 5
-    iti = 1
+    iti = 5
     iti_color = 0.5
     temporal_frequency = 1 #Hz
     spatial_period = 60 #degrees
