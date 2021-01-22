@@ -26,9 +26,9 @@ class SinusoidalTrajectory:
         self.v_0 = v_0
         self.amplitude = amplitude
         self.period = period
-        self.phase_offset = phase_offset
+        self.phase_offset = phase_offset #Defined as [0, 2pi] rather than absolute amount
 
-        self.eval_at = lambda t: self.amplitude * np.sin(2*np.pi/period * t + self.phase_offset) + self.v_0
+        self.eval_at = lambda t: self.amplitude * np.sin(2*np.pi/self.period * t + self.phase_offset) + self.v_0
 
     def to_dict(self):
         return {'v_0': self.v_0, 'amplitude': self.amplitude, 'period': self.period,
@@ -113,7 +113,7 @@ class RectangleAnyTrajectory:
 
     @staticmethod
     def from_dict(d):
-        return RectangleTrajectory(x=get_traj_class(d['x']['traj_class']).from_dict(d['x']),
+        return RectangleAnyTrajectory(x=get_traj_class(d['x']['traj_class']).from_dict(d['x']),
                                    y=get_traj_class(d['y']['traj_class']).from_dict(d['y']),
                                    w=get_traj_class(d['w']['traj_class']).from_dict(d['w']),
                                    h=get_traj_class(d['h']['traj_class']).from_dict(d['h']),
