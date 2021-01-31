@@ -338,22 +338,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.save_prefix = save_prefix
 
     def start_saving_history(self):
-        if self.save_history_flag:
-            self.square_history = np.zeros(self.estimated_n_frames)
-            self.time_history = np.zeros(self.estimated_n_frames)
-        #     self.stim_time_history = np.zeros(self.estimated_n_frames)
-        #     self.global_theta_offset_history = np.zeros(self.estimated_n_frames)
-        #     # self.global_fly_posx_history = np.zeros(self.estimated_n_frames)
-        #     # self.global_fly_posy_history = np.zeros(self.estimated_n_frames)
-        #     #self.global_fly_posz_history = np.zeros(self.estimated_n_frames)
-        #     #self.global_phi_offset_history = np.zeros(self.estimated_n_frames)
-
-        # if self.save_history_flag:
-        #     self.square_history = []
-        #     self.time_history = []
-        #     self.stim_time_history = []
-        #     self.global_theta_offset_history = []
-
         self.saved_frame_count = 0
         self.saving_history = True
 
@@ -365,9 +349,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         if save_history_flag:
             self.save_path = save_path
             self.save_prefix = save_prefix
-            #self.estimated_n_frames = int(np.ceil(fs_frame_rate_estimate * save_duration * 1.1))
-            self.square_history = []
-            self.time_history = []
+            self.estimated_n_frames = int(np.ceil(fs_frame_rate_estimate * save_duration * 1.1))
+            self.square_history = np.empty(self.estimated_n_frames)
+            self.time_history = np.empty(self.estimated_n_frames)
             # self.stim_time_history = []
             # self.global_theta_offset_history = []
             # self.global_fly_posx_history = []
@@ -376,21 +360,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
             #self.global_phi_offset_history = []
 
     def save_history(self):
-        self.square_history = self.square_history[:self.saved_frame_count]
-        self.time_history = self.time_history[:self.saved_frame_count]
-        # self.stim_time_history = self.stim_time_history[:self.saved_frame_count]
-        # self.global_theta_offset_history = self.global_theta_offset_history[:self.saved_frame_count]
-        # self.global_fly_posx_history = self.global_fly_posx_history[:self.saved_frame_count]
-        # self.global_fly_posy_history = self.global_fly_posy_history[:self.saved_frame_count]
-
-        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_square.txt', np.array(self.square_history), fmt='%i', delimiter='\n')
-        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.time_history), delimiter='\n')
-        # np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_stim_timestamps.txt', np.array(self.stim_time_history), delimiter='\n')
-        # np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_theta.txt', np.array(self.global_theta_offset_history), delimiter='\n')
-        # np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posx.txt', np.array(self.global_fly_posx_history), delimiter='\n')
-        # np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posy.txt', np.array(self.global_fly_posy_history), delimiter='\n')
-        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_fly_posz.txt', np.array(self.global_fly_posz_history), delimiter='\n')
-        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_phi_offset.txt', np.array(self.global_phi_offset_history), delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_square.txt', np.array(self.square_history[:self.saved_frame_count]), fmt='%i', delimiter='\n')
+        np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_timestamps.txt', np.array(self.time_history[:self.saved_frame_count]), delimiter='\n')
+        # np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_stim_timestamps.txt', np.array(self.stim_time_history[:self.saved_frame_count]), delimiter='\n')
+        # np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_theta.txt', np.array(self.global_theta_offset_history[:self.saved_frame_count]), delimiter='\n')
+        # np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posx.txt', np.array(self.global_fly_posx_history[:self.saved_frame_count]), delimiter='\n')
+        # np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_posy.txt', np.array(self.global_fly_posy_history[:self.saved_frame_count]), delimiter='\n')
+        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_fly_posz.txt', np.array(self.global_fly_posz_history[:self.saved_frame_count]), delimiter='\n')
+        #np.savetxt(self.save_path+os.path.sep+self.save_prefix+'_fs_phi_offset.txt', np.array(self.global_phi_offset_history[:self.saved_frame_count]), delimiter='\n')
 
 def make_qt_format(vsync):
     """
