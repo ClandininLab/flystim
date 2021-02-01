@@ -530,9 +530,12 @@ def main():
     p.kill()
 
     t_exp_end = time()
+
+    fix_mean_duration = np.mean((np.asarray(fix_end_times) - np.asarray(fix_start_times))[fix_success_all])
+    fix_success_rate = np.sum(fix_success_all) / len(fix_success_all)
     print(f"===== Experiment duration: {(t_exp_end-t_exp_start)/60:.{5}} min =====")
-    print(f"===== Fixation success: {np.sum(fix_success_all)}/{len(fix_success_all)} =====")
-    print(f"===== Fixation mean duration: {np.mean((np.asarray(fix_end_times) - np.asarray(fix_start_times))[fix_success_all]):.{5}} sec =====")
+    print(f"===== Fixation success: {np.sum(fix_success_all)}/{len(fix_success_all)} ({fix_success_rate*100:.{5}}%) =====")
+    print(f"===== Fixation mean duration: {fix_mean_duration:.{5}} sec =====")
 
     # Plot fictrac summary and save png
     fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])[-2:]
@@ -558,7 +561,8 @@ def main():
         for (k,v) in params.items():
             h5f.attrs[k] = v
         h5f.attrs['experiment_duration'] = t_exp_end-t_exp_start
-        h5f.attrs['fix_success_rate'] = np.sum(fix_success_all) / len(fix_success_all)
+        h5f.attrs['fix_success_rate'] = fix_success_rate
+        h5f.attrs['fix_mean_duration'] = fix_mean_duration
         # trials group
         trials = h5f.require_group('trials')
 
