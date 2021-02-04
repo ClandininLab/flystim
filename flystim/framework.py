@@ -7,6 +7,7 @@ import moderngl
 import numpy as np
 import pandas as pd
 import platform
+import qimage2ndarray
 
 from flystim import stimuli
 from flystim.trajectory import Trajectory
@@ -58,6 +59,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.server = server
         self.app = app
 
+        # Initialize stuff for rendering & saving stim frames
+        self.stim_frames = []
+        self.append_stim_frames = False
+
         # make program for rendering the corner square
         self.square_program = SquareProgram(screen=screen)
 
@@ -76,7 +81,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def initializeGL(self):
         # get OpenGL context
-        self.ctx = moderngl.create_context()
+        self.ctx = moderngl.create_context() # TODO: can we make this run headless in render_movie_mode?
         self.ctx.enable(moderngl.BLEND) # enable alpha blending
         self.ctx.enable(moderngl.DEPTH_TEST) # enable depth test
 
@@ -95,7 +100,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.ctx.clear(red=self.idle_background, green=self.idle_background, blue=self.idle_background, alpha=1.0, viewport=viewport)
 
     def paintGL(self):
-        # t0 = time.time() #benchmarking
+        # t0 = time.time() # benchmarking
+
         # quit if desired
         if self.server.shutdown_flag.is_set():
             self.app.quit()
@@ -129,12 +135,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
                     stim.paint_at(self.get_stim_time(t), self.subscreen_viewports, perspectives, fly_position=self.global_fly_pos.copy())
                 else:
                     [self.clear_viewport(viewport=x) for x in self.subscreen_viewports]
-                    # self.ctx.clear(red=self.idle_background, green=self.idle_background, blue=self.idle_background, alpha=1.0)
 
             self.profile_frame_times.append(t)
         else:
             [self.clear_viewport(viewport=x) for x in self.subscreen_viewports]
-            # self.ctx.clear(red=self.idle_background, green=self.idle_background, blue=self.idle_background, alpha=1.0)
 
         # draw the corner square
         self.square_program.paint()
@@ -149,8 +153,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 stim.vbo.release()
                 stim.vao.release()
 
-        # if self.stim_started:
-        #     print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmarking
+        if self.stim_started:
+            # print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmarking
+
+            if self.append_stim_frames:
+                # grab frame buffer, convert to array, grab blue channel, append to list of stim_frames
+                self.stim_frames.append(qimage2ndarray.rgb_view(self.grabFrameBuffer())[:, :, 2])
+
 
     ###########################################
     # control functions
@@ -180,16 +189,19 @@ class StimDisplay(QtOpenGL.QGLWidget):
         stim = getattr(stimuli, name)(screen=self.screen)
         stim.initialize(self.ctx)
         stim.kwargs = kwargs
-        stim.configure(**stim.kwargs) #Configure stim on load
+        stim.configure(**stim.kwargs) # Configure stim on load
         self.stim_list.append(stim)
 
-    def start_stim(self, t):
+    def start_stim(self, t, append_stim_frames=False):
         """
         Starts the stimulus animation, using the given time as t=0
         :param t: Time corresponding to t=0 of the animation
+        :param append_stim_frames: bool, append frames to stim_frames list, for saving stim movie. May affect performance.
         """
 
         self.profile_frame_times = []
+        self.stim_frames = []
+        self.append_stim_frames = append_stim_frames
 
         self.stim_started = True
         self.stim_start_time = t
@@ -205,7 +217,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
             stim.prog.release()
 
         # print profiling information if applicable
-
         if (print_profile):
             # filter out frame times of duration zero
             fps_data = np.diff(np.array(self.profile_frame_times))
@@ -220,7 +231,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
                     print('*** end of statistics ***')
 
         # reset stim variables
-
         self.stim_list = []
 
         self.stim_started = False
@@ -236,6 +246,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.set_global_theta_offset(0)
         self.set_global_phi_offset(0)
         self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, self.screen.subscreens[0].pa, self.screen.subscreens[0].pb, self.screen.subscreens[0].pc, self.screen.horizontal_flip)
+
+    def save_rendered_movie(self, file_path):
+        """
+        Save rendered stim frames from stim_frames as 3D np array
+        Must be used with append_stim_frames in start_stim
+
+        :param file_path: full file path of saved array
+        """
+        # TODO: downsample before save
+        np.save(file_path, np.stack(self.stim_frames, axis=2))
 
     def start_corner_square(self):
         """
@@ -331,6 +351,7 @@ def get_perspective(fly_pos, theta, phi, pa, pb, pc, horizontal_flip):
     roll = 0 # Set roll=0 until we have a need too change it
     return perspective.rotz(theta).rotx(radians(phi)).roty(radians(roll)).matrix
 
+
 def make_qt_format(vsync):
     """
     Initializes the Qt OpenGL format.
@@ -382,6 +403,7 @@ def main():
     server.register_function(stim_display.load_stim)
     server.register_function(stim_display.start_stim)
     server.register_function(stim_display.stop_stim)
+    server.register_function(stim_display.save_rendered_movie)
     server.register_function(stim_display.start_corner_square)
     server.register_function(stim_display.stop_corner_square)
     server.register_function(stim_display.white_corner_square)

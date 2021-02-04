@@ -5,7 +5,7 @@ setup(
     version='0.0.1',
     description='Visual stimulus generator for fruit fly experiments.',
     long_description='Multi-monitor perspective-corrected visual stimulus generator for fruit fly experiments.',
-    url='https://github.com/sgherbst/flystim',
+    url='https://github.com/ClandininLab/flystim',
     author='Steven Herbst',
     author_email='sherbst@stanford.edu',
     packages=['flystim'],
@@ -14,11 +14,12 @@ setup(
         'numpy',
         'pyglet',
         'moderngl',
-	    'PyQt5==5.11.2',
-	    'hidapi',
+        'PyQt5==5.11.2',
+        'hidapi',
         'pandas',
         'json-rpc',
-        'matplotlib'
+        'matplotlib',
+        'qimage2ndarray'
     ],
     entry_points={
         'console_scripts': [
