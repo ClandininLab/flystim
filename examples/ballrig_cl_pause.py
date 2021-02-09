@@ -216,13 +216,13 @@ def main():
     prime_speed = 30 #degrees per sec
     probe_speed = 30 #degrees per sec
     preprime_duration = 2 #seconds
-    prime_duration = 4 #seconds
+    prime_duration = 2 #seconds
     occlusion_duration = 0.5 #seconds
     pause_duration = 1 #seconds
     probe_duration = 1 #seconds
     iti = 2 #seconds
 
-    con_stim_duration = prime_duration + occlusion_duration + probe_duration
+    con_stim_duration = preprime_duration + prime_duration + occlusion_duration + probe_duration
     inc_stim_duration = con_stim_duration + pause_duration
 
     background_color = 0
@@ -234,6 +234,12 @@ def main():
 
     occluder_height = 150
     occluder_color = 0.5
+
+    fix_score_threshold = .8
+    fix_sine_amplitude = 15
+    fix_sine_period = 1
+    fix_window = 2 #seconds
+    fix_max_duration = 45
 
     #######################
     # Stimulus construction
@@ -298,11 +304,6 @@ def main():
 
 
     # Fix bar trajectory
-    fix_score_threshold = .8
-    fix_sine_amplitude = 75
-    fix_sine_period = 3
-    fix_window = 2 #seconds
-    fix_max_duration = 45
     sin_traj = SinusoidalTrajectory(amplitude=fix_sine_amplitude, period=fix_sine_period) # period of 1 second
     fixbar_traj = RectangleAnyTrajectory(x=sin_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
     fix_sine_template = sin_traj.eval_at(np.arange(0, fix_window + fix_sine_period, 1/ft_frame_rate))
