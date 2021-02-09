@@ -215,11 +215,11 @@ def main():
     stim_name = "pause"
     prime_speed = 30 #degrees per sec
     probe_speed = 30 #degrees per sec
-    preprime_duration = 2 #seconds
-    prime_duration = 2 #seconds
+    preprime_duration = 1 #seconds
+    prime_duration = 4 #seconds
     occlusion_duration = 0.5 #seconds
     pause_duration = 1 #seconds
-    probe_duration = 1 #seconds
+    probe_duration = 2 #seconds
     iti = 2 #seconds
 
     con_stim_duration = preprime_duration + prime_duration + occlusion_duration + probe_duration
