@@ -161,9 +161,9 @@ def main():
         save_history = False
 
     if save_history:
-        genotype = input("Enter genotype (e.g. isoD1-F): ")#"isoD1-F"
+        genotype = input("Enter genotype (e.g. isoD1-F-thirsty): ")#"isoD1-F"
         if genotype=="":
-            genotype = "isoD1-F"
+            genotype = "isoD1-F-thirsty"
         print(genotype)
         age = input("Enter age in dpe (e.g. 4): ") #4
         if age=="":
@@ -356,7 +356,7 @@ def main():
     # Start stim server
     manager = launch_stim_server(screen)
     if save_history:
-        manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=stim_duration+fix_max_duration)
+        manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=inc_stim_duration+fix_max_duration)
     manager.set_idle_background(background_color)
 
     #####################################################
