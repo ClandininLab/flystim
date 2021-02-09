@@ -48,10 +48,10 @@ def dir_to_tri_list(dir):
        # set screen width and height
        h = 3.29e-2
        pts = [
-            ((+0.1850, +0.5800), (-north_w/2, +side_w/2, -h/2)),
+            ((+0.1850, +0.5850), (-north_w/2, +side_w/2, -h/2)),
             ((+0.1850, +0.2800), (+north_w/2, +side_w/2, -h/2)),
             ((-0.0200, +0.2800), (+north_w/2, +side_w/2, +h/2)),
-            ((-0.0200, +0.5800), (-north_w/2, +side_w/2, +h/2))
+            ((-0.0200, +0.5850), (-north_w/2, +side_w/2, +h/2))
         ]
 
     elif dir == 'e':
@@ -96,23 +96,47 @@ def main():
         do_fictrac = False
         save_history = False
 
+    if save_history:
+        genotype = input("Enter genotype (e.g. isoD1-F): ")#"isoD1-F"
+        if genotype=="":
+            genotype = "isoD1-F"
+        print(genotype)
+        age = input("Enter age in dpe (e.g. 1): ") #4
+        if age=="":
+            age = 1
+        print(age)
+        temperature = input("Enter temperature (e.g. 36.0): ") #36.0 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
+        if temperature=="":
+            temperature = 36.0
+        print(temperature)
+        humidity = input("Enter humidity (e.g. 28): ")#26
+        if humidity=="":
+            humidity = 28
+        print(humidity)
+        airflow = input("Enter airflow (e.g. 0.8): ")#26
+        if airflow=="":
+            airflow = 0.8
+        print(airflow)
+
+    n_repeats = input("Enter number of repeats (e.g. 40): ")#26
+    if n_repeats=="":
+        n_repeats = 40
+    else:
+        n_repeats = int(n_repeats)
+    print(n_repeats)
+
+    _ = input("Press enter to continue.")#26
+
     parent_path = os.getcwd()
     save_prefix = strftime('%Y%m%d_%H%M%S', localtime())
     save_path = os.path.join(parent_path, save_prefix)
     if save_history:
         os.mkdir(save_path)
 
-    genotype = "isoD1-F"
-    age = 4
-    temperature = 36.0 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
-    humidity = 30
-
     rgb_power = [0, 0.9, 0.9]
 
-    ft_frame_rate = 309 #Hz, higher
+    ft_frame_rate = 308 #Hz, higher
     fs_frame_rate = 120
-
-    n_repeats = 40
 
     random_offset = True
     duration_1 = 5
@@ -121,12 +145,6 @@ def main():
     iti_color = 0.5
     temporal_frequency = 1 #Hz
     spatial_period = 60 #degrees
-    rate = temporal_frequency * spatial_period
-    stim_duration = duration_1 + duration_2
-
-    high_max_lum = 1
-    high_min_lum = 0
-
     rate = temporal_frequency * spatial_period
     stim_duration = duration_1 + duration_2
 
@@ -146,12 +164,13 @@ def main():
     current_time = strftime('%Y%m%d_%H%M%S', localtime())
 
     if save_history:
-        params = {'genotype':genotype, 'age':age, 'n_repeats':n_repeats, \
+        params = {'genotype':genotype, 'age':age, 'temperature':temperature, \
+        'humidity':humidity, 'airflow':airflow, 'n_repeats':n_repeats, \
         'save_path':save_path, 'save_prefix': save_prefix, \
         'ft_frame_rate': ft_frame_rate, 'fs_frame_rate':fs_frame_rate, \
         'rgb_power':rgb_power, 'duration_1':duration_1,'duration_2':duration_2, \
         'iti':iti,'iti_color':iti_color,'temporal_frequency':temporal_frequency, \
-        'spatial_period':spatial_period,'rate':rate,'high_max_lum':high_max_lum, \
+        'spatial_period':spatial_period,'high_max_lum':high_max_lum, \
         'high_min_lum':high_min_lum,'low_max_lum':low_max_lum, \
         'low_min_lum':low_min_lum,'signs':signs, \
         'high_contrast_firsts':high_contrast_firsts,'trial_types':trial_types, \
@@ -318,8 +337,6 @@ def main():
 
                 fs_square = load_txt(save_dir_prefix+'_fs_square.txt')
                 fs_timestamps = load_txt(save_dir_prefix+'_fs_timestamps.txt')
-                fs_stim_timestamps = load_txt(save_dir_prefix+'_fs_stim_timestamps.txt')
-                fs_theta = load_txt(save_dir_prefix+'_fs_theta.txt')
 
                 ft_frame = ft_frame_next
                 ft_theta = ft_theta_next
@@ -357,8 +374,6 @@ def main():
                 trial.attrs['end_time'] = trial_end_times[t]
                 trial.create_dataset("fs_square", data=fs_square)
                 trial.create_dataset("fs_timestamps", data=fs_timestamps)
-                trial.create_dataset("fs_stim_timestamps", data=fs_stim_timestamps)
-                trial.create_dataset("fs_theta", data=fs_theta)
                 trial.create_dataset("ft_frame", data=ft_frame)
                 trial.create_dataset("ft_square", data=ft_square)
                 trial.create_dataset("ft_timestamps", data=np.array(ft_timestamps)/1e3)
@@ -385,11 +400,6 @@ def main():
                     ft_timestamps = trial['ft_timestamps'][()]
                     print ("===== Trial " + str(t) + " ======")
                     latency_report(fs_timestamps, fs_square, ft_timestamps, ft_square, window_size=1)
-
-            # #Plot sync means
-            # fig_square = plt.figure()
-            # plt.plot(ft_square)
-            # fig_square.show()
 
         else: #not saving history
             # Delete fictrac files

@@ -51,10 +51,10 @@ def dir_to_tri_list(dir):
        # set screen width and height
        h = 3.29e-2
        pts = [
-            ((+0.1850, +0.5800), (-north_w/2, +side_w/2, -h/2)),
+            ((+0.1850, +0.5850), (-north_w/2, +side_w/2, -h/2)),
             ((+0.1850, +0.2800), (+north_w/2, +side_w/2, -h/2)),
             ((-0.0200, +0.2800), (+north_w/2, +side_w/2, +h/2)),
-            ((-0.0200, +0.5800), (-north_w/2, +side_w/2, +h/2))
+            ((-0.0200, +0.5850), (-north_w/2, +side_w/2, +h/2))
         ]
 
     elif dir == 'e':
@@ -173,10 +173,14 @@ def main():
         if temperature=="":
             temperature = 36.0
         print(temperature)
-        humidity = input("Enter humidity (e.g. 26): ")#26
+        humidity = input("Enter humidity (e.g. 28): ")#26
         if humidity=="":
-            humidity = 26
+            humidity = 28
         print(humidity)
+        airflow = input("Enter airflow (e.g. 0.8): ")#26
+        if airflow=="":
+            airflow = 0.8
+        print(airflow)
 
     n_repeats = input("Enter number of repeats (e.g. 35): ")#26
     if n_repeats=="":
@@ -312,8 +316,8 @@ def main():
 
     # Fix bar trajectory
     fix_score_threshold = .8
-    fix_sine_amplitude = 15
-    fix_sine_period = 1
+    fix_sine_amplitude = 75
+    fix_sine_period = 3
     fix_window = 2 #seconds
     fix_max_duration = 45
     sin_traj = SinusoidalTrajectory(amplitude=fix_sine_amplitude, period=fix_sine_period) # period of 1 second
@@ -327,7 +331,7 @@ def main():
             'save_path':save_path, 'save_prefix': save_prefix, \
             'ft_frame_rate': ft_frame_rate, 'fs_frame_rate':fs_frame_rate, \
             'rgb_power':rgb_power, 'current_time':current_time, \
-            'temperature':temperature, 'humidity':humidity, \
+            'temperature':temperature, 'humidity':humidity, 'airflow':airflow, \
             'trial_labels':trial_labels.tolist(), 'trial_structure':trial_structure.tolist(), \
             'n_repeats':n_repeats, 'n_trials':n_trials, 'stim_name':stim_name, \
             'stim_name':stim_name, 'speed':speed, 'presample_duration':presample_duration, \
@@ -370,7 +374,7 @@ def main():
     FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
     FICTRAC_PORT = 33334         # The port used by the server
     FICTRAC_BIN =    "/home/clandinin/lib/fictrac211/bin/fictrac"
-    FICTRAC_CONFIG = "/home/clandinin/lib/fictrac211/config_MC_cl.txt"
+    FICTRAC_CONFIG = "/home/clandinin/lib/fictrac211/config_MC.txt"
 
     # Start stim server
     manager = launch_stim_server(screen)
@@ -540,7 +544,7 @@ def main():
     # Plot fictrac summary and save png
     fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])[-2:]
     ft_summary_save_fn = os.path.join(parent_path, save_prefix+".png") if save_history else None
-    fictrac_utils.plot_ft_session_summary(os.path.join(parent_path, fictrac_files[0]), label=save_prefix, show=False, save=ft_summary_save_fn, window_size=5)
+    fictrac_utils.plot_ft_session_summary(os.path.join(parent_path, fictrac_files[0]), label=save_prefix, show=(not save_history), save=ft_summary_save_fn, window_size=5)
 
     if save_history:
         # Move fictrac files
