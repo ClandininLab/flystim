@@ -95,10 +95,10 @@ def main():
 
     # Stimulus parameters
     stim_name = "pause"
-    prime_speed = 30 #degrees per sec
-    probe_speed = 30 #degrees per sec
+    prime_speed = 5 #degrees per sec
+    probe_speed = 5 #degrees per sec
     preprime_duration = 1 #seconds
-    prime_duration = 4 #seconds
+    prime_duration = 2 #seconds
     occlusion_duration = 0.5 #seconds
     pause_duration = 1 #seconds
     probe_duration = 2 #seconds
@@ -109,19 +109,13 @@ def main():
 
     background_color = 0
 
-    bar_width = 15
+    bar_width = 5
     bar_height = 150
     bar_color = 1
     #bar_angle = 0
 
     occluder_height = 150
     occluder_color = 0.5
-
-    fix_score_threshold = .8
-    fix_sine_amplitude = 15
-    fix_sine_period = 1
-    fix_window = 2 #seconds
-    fix_max_duration = 45
 
     #######################
     # Stimulus construction
@@ -214,11 +208,8 @@ def main():
             level=logging.DEBUG
         )
 
-    # Set lightcrafter and GL environment settings
-    os.system('/home/clandinin/miniconda3/bin/lcr_ctl --fps 120 --red_current ' + str(rgb_power[0]) + ' --blue_current ' + str(rgb_power[2]) + ' --green_current ' + str(rgb_power[1]))
-
     # Create screen object
-    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.01, square_loc=(0.59,0.74))#square_side=0.08,coh_bar_traj_r square_loc='ur')
+    screen = Screen(server_number=1, id=1, fullscreen=True)#square_side=0.08,coh_bar_traj_r square_loc='ur')
     #print(screen)
 
     # Start stim server
@@ -253,19 +244,19 @@ def main():
 
         if trial_structure[t] == "inc_r": # invisible, inconsistent_r. 00, 01, 10, 11
             bar_traj = inc_bar_r
-            occ_traj = occluder_r_invisible
+            occ_traj = occluder_r_visible
             stim_duration = inc_stim_duration
         elif trial_structure[t] == "con_r": # invisible, consistent_r. 00, 01, 10, 11
             bar_traj = con_bar_r
-            occ_traj = occluder_r_invisible
+            occ_traj = occluder_r_visible
             stim_duration = con_stim_duration
         elif trial_structure[t] == "inc_l": # invisible, inconsistent_l. 00, 01, 10, 11
             bar_traj = inc_bar_l
-            occ_traj = occluder_l_invisible
+            occ_traj = occluder_l_visible
             stim_duration = inc_stim_duration
         elif trial_structure[t] == "con_l": # invisible, consistent_l. 00, 01, 10, 11
             bar_traj = con_bar_l
-            occ_traj = occluder_l_invisible
+            occ_traj = occluder_l_visible
             stim_duration = con_stim_duration
 
         if save_history:
@@ -286,8 +277,6 @@ def main():
         manager.stop_stim()
         t_end = time()
         t_iti_start = t_end
-
-        print(f"===== Trial end (FT dur: {(ts-ts_0)/1000:.{5}}s)======")
 
         # Save things
         if save_history:
