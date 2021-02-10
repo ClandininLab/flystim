@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from flystim.stim_server import launch_stim_server
-from flystim.screen import Screen, SubScreen
+from flystim.screen import Screen
 from flystim.trajectory import Trajectory
 import numpy as np
 from flystim.draw import draw_screens
@@ -37,7 +37,7 @@ def main():
     sleep(1.5)
 
     file_path = os.path.join(save_dir, 'crg_test.npy')
-    manager.save_rendered_movie(file_path)
+    manager.save_rendered_movie(file_path, downsample_xy=8)
 
 
 if __name__ == '__main__':

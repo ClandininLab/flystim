@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import platform
 import qimage2ndarray
+from skimage.transform import downscale_local_mean
 
 from flystim import stimuli
 from flystim.trajectory import Trajectory
@@ -247,15 +248,17 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.set_global_phi_offset(0)
         self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, self.screen.subscreens[0].pa, self.screen.subscreens[0].pb, self.screen.subscreens[0].pc, self.screen.horizontal_flip)
 
-    def save_rendered_movie(self, file_path):
+    def save_rendered_movie(self, file_path, downsample_xy=4):
         """
         Save rendered stim frames from stim_frames as 3D np array
         Must be used with append_stim_frames in start_stim
 
         :param file_path: full file path of saved array
         """
-        # TODO: downsample before save
-        np.save(file_path, np.stack(self.stim_frames, axis=2))
+        pre_size = np.stack(self.stim_frames, axis=2).shape
+        mov = downscale_local_mean(np.stack(self.stim_frames, axis=2), factors=(downsample_xy, downsample_xy, 1)).astype('uint8')
+        np.save(file_path, mov)
+        print('Downsampled from {} to {} and saved to {}'.format(pre_size, mov.shape, file_path), flush=True)
 
     def start_corner_square(self):
         """
