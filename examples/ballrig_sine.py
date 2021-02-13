@@ -129,19 +129,6 @@ def load_txt(fpath):
     with open(fpath, 'r') as handler:
         return np.array([float(line) for line in handler])
 
-def fixation_score(q_theta, template_theta):
-    '''
-    Pearson Correlation scoring
-    Equivalent to zscoring both theta and template then summing elementwise multiplication and normalizing.
-    '''
-    q_theta = np.unwrap(q_theta)
-
-    lag = np.argmax(np.correlate(template_theta, q_theta, mode='valid'))
-    template_shifted_trimmed = template_theta[lag:lag+len(q_theta)]
-
-    score = np.corrcoef(q_theta, template_shifted_trimmed)[0,1]
-    return score
-
 def main():
     #####################################################
     # part 1: draw the screen configuration
@@ -158,13 +145,18 @@ def main():
     else:
         save_history = False
 
+    closed_loop = input("Closed loop? (default: True): ")#"isoD1-F"
+    if closed_loop=="":
+        closed_loop = True
+    else:
+        closed_loop = closed_loop.lower() in ['true', '1', 't', 'y', 'yes']
+    print(closed_loop)
+    duration_in_min = input("Enter duration in minutes (e.g. 40): ")#26
+    if duration_in_min=="":
+        duration_in_min = 40
+    duration_in_min = float(duration_in_min)
+    print(duration_in_min)
     if save_history:
-        closed_loop = input("Closed loop? (default: True): ")#"isoD1-F"
-        if closed_loop=="":
-            closed_loop = True
-        else:
-            closed_loop = closed_loop.lower() in ['true', '1', 't', 'y', 'yes']
-        print(closed_loop)
         genotype = input("Enter genotype (e.g. isoD1-F-thirsty): ")#"isoD1-F"
         if genotype=="":
             genotype = "isoD1-F-thirsty"
@@ -185,11 +177,6 @@ def main():
         if airflow=="":
             airflow = 0.8
         print(airflow)
-    duration_in_min = input("Enter duration in minutes (e.g. 40): ")#26
-    if duration_in_min=="":
-        duration_in_min = 40
-    duration_in_min = float(duration_in_min)
-    print(duration_in_min)
 
     _ = input("Press enter to continue.")#26
 
@@ -272,7 +259,7 @@ def main():
     # Start stim server
     manager = launch_stim_server(screen)
     if save_history:
-        manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=inc_stim_duration+fix_max_duration)
+        manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=duration)
     manager.set_idle_background(background_color)
 
     #####################################################
@@ -323,7 +310,6 @@ def main():
     p.terminate()
     p.kill()
 
-    fix_mean_score = np.mean(fix_scores)
     print(f"===== Experiment duration: {(t_end-t_start)/60:.{5}} min =====")
 
     # Plot fictrac summary and save png
@@ -367,18 +353,19 @@ def main():
         ft_timestamps = []
         ft_square = []
 
-        while curr_time < t_end:
+        ft_line = ft_data_handler.readline()
+        while ft_line!="" and curr_time < t_end:
             save_dir_prefix = os.path.join(save_path, save_prefix)
             fs_square = load_txt(save_dir_prefix+'_fs_square.txt')
             fs_timestamps = load_txt(save_dir_prefix+'_fs_timestamps.txt')
 
-            ft_line = ft_data_handler.readline()
             ft_toks = ft_line.split(", ")
             curr_time = float(ft_toks[FT_TIMESTAMP_IDX])/1e3
             ft_frame.append(int(ft_toks[FT_FRAME_NUM_IDX]))
             ft_theta.append(float(ft_toks[FT_THETA_IDX]))
             ft_timestamps.append(float(ft_toks[FT_TIMESTAMP_IDX]))
             ft_square.append(float(ft_toks[FT_SQURE_IDX]))
+            ft_line = ft_data_handler.readline()
 
         h5f.create_dataset("fs_square", data=fs_square)
         h5f.create_dataset("fs_timestamps", data=fs_timestamps)
@@ -400,14 +387,11 @@ def main():
 
         # Latency report
         with h5py.File(os.path.join(parent_path, save_prefix + '.h5'), 'r') as h5f:
-            for t in range(0,n_trials,int(np.ceil(n_trials/5))):
-                trial = h5f['trials'][f'{t:03}']
-                fs_square = trial['fs_square'][()]
-                fs_timestamps = trial['fs_timestamps'][()]
-                ft_square = trial['ft_square'][()]
-                ft_timestamps = trial['ft_timestamps'][()]
-                print ("===== Trial " + str(t) + " ======")
-                latency_report(fs_timestamps, fs_square, ft_timestamps, ft_square, window_size=1)
+            fs_square = h5f['fs_square'][()]
+            fs_timestamps = h5f['fs_timestamps'][()]
+            ft_square = h5f['ft_square'][()]
+            ft_timestamps = h5f['ft_timestamps'][()]
+            latency_report(fs_timestamps, fs_square, ft_timestamps, ft_square, window_size=2)
 
     else: #not saving history
         # Delete fictrac files
