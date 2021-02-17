@@ -71,10 +71,6 @@ def dir_to_tri_list(dir):
 def make_tri_list():
     return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
 
-def load_txt(fpath):
-    with open(fpath, 'r') as handler:
-        return np.array([float(line) for line in handler])
-
 def main():
     #####################################################
     # part 1: draw the screen configuration
@@ -101,17 +97,17 @@ def main():
         if genotype=="":
             genotype = "isoD1-F"
         print(genotype)
-        age = input("Enter age in dpe (e.g. 1): ") #4
+        age = input("Enter age in dpe (e.g. 4): ") #4
         if age=="":
-            age = 1
+            age = 4
         print(age)
-        temperature = input("Enter temperature (e.g. 36.0): ") #36.0 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
+        temperature = input("Enter temperature (e.g. 35.0): ") #36.0 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
         if temperature=="":
-            temperature = 36.0
+            temperature = 35.0
         print(temperature)
-        humidity = input("Enter humidity (e.g. 28): ")#26
+        humidity = input("Enter humidity (e.g. 26): ")#26
         if humidity=="":
-            humidity = 28
+            humidity = 26
         print(humidity)
         airflow = input("Enter airflow (e.g. 0.8): ")#26
         if airflow=="":
@@ -211,7 +207,7 @@ def main():
 
     if do_fictrac:
         p = subprocess.Popen([FICTRAC_BIN, FICTRAC_CONFIG, "-v","ERR"], start_new_session=True)
-        sleep(2)
+        sleep(10)
 
     if save_history:
         trial_start_times = []
@@ -335,8 +331,8 @@ def main():
                 save_prefix_with_trial = save_prefix+"_t"+f'{t:03}'
                 save_dir_prefix = os.path.join(save_path, save_prefix_with_trial)
 
-                fs_square = load_txt(save_dir_prefix+'_fs_square.txt')
-                fs_timestamps = load_txt(save_dir_prefix+'_fs_timestamps.txt')
+                fs_square = np.loadtxt(save_dir_prefix+'_fs_square.txt')
+                fs_timestamps = np.loadtxt(save_dir_prefix+'_fs_timestamps.txt')
 
                 ft_frame = ft_frame_next
                 ft_theta = ft_theta_next

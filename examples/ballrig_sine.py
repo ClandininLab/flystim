@@ -125,10 +125,6 @@ def handle_fictrac_data(fictrac_sock, manager, theta_rad_0):
     manager.set_global_theta_offset(theta_deg)
     return frame_num, theta_rad_1, ts#
 
-def load_txt(fpath):
-    with open(fpath, 'r') as handler:
-        return np.array([float(line) for line in handler])
-
 def main():
     #####################################################
     # part 1: draw the screen configuration
@@ -267,7 +263,7 @@ def main():
     #####################################################
 
     p = subprocess.Popen([FICTRAC_BIN, FICTRAC_CONFIG, "-v","ERR"], start_new_session=True)
-    sleep(2)
+    sleep(10)
 
     if closed_loop:
         fictrac_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -340,8 +336,11 @@ def main():
         if closed_loop:
             h5f.attrs['theta_rad_0'] = theta_rad_0
 
-        # Process through ft_data_handler until it gets to the frame iti before first trial
+        save_dir_prefix = os.path.join(save_path, save_prefix)
+        fs_square = np.loadtxt(save_dir_prefix+'_fs_square.txt')
+        fs_timestamps = np.loadtxt(save_dir_prefix+'_fs_timestamps.txt')
 
+        # Process through ft_data_handler until it gets to the frame iti before first trial
         curr_time = 0
         while curr_time < t_start:
             ft_line = ft_data_handler.readline()
@@ -355,10 +354,6 @@ def main():
 
         ft_line = ft_data_handler.readline()
         while ft_line!="" and curr_time < t_end:
-            save_dir_prefix = os.path.join(save_path, save_prefix)
-            fs_square = load_txt(save_dir_prefix+'_fs_square.txt')
-            fs_timestamps = load_txt(save_dir_prefix+'_fs_timestamps.txt')
-
             ft_toks = ft_line.split(", ")
             curr_time = float(ft_toks[FT_TIMESTAMP_IDX])/1e3
             ft_frame.append(int(ft_toks[FT_FRAME_NUM_IDX]))
@@ -398,7 +393,6 @@ def main():
         print ("Deleting " + str(len(fictrac_files)) + " fictrac files.")
         for i in range(len(fictrac_files)):
             os.remove(os.path.join(parent_path, fictrac_files[i]))
-
 
 if __name__ == '__main__':
     main()

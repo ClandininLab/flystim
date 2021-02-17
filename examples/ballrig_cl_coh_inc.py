@@ -127,10 +127,6 @@ def handle_fictrac_data(fictrac_sock, manager, theta_rad_0):
     manager.set_global_theta_offset(theta_deg)
     return frame_num, theta_rad_1, ts#
 
-def load_txt(fpath):
-    with open(fpath, 'r') as handler:
-        return np.array([float(line) for line in handler])
-
 def fixation_score(q_theta, template_theta):
     '''
     Pearson Correlation scoring
@@ -387,7 +383,7 @@ def main():
     #####################################################
 
     p = subprocess.Popen([FICTRAC_BIN, FICTRAC_CONFIG, "-v","ERR"], start_new_session=True)
-    sleep(2)
+    sleep(10)
 
     fictrac_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     fictrac_sock.bind((FICTRAC_HOST, FICTRAC_PORT))
@@ -597,8 +593,8 @@ def main():
         for t in range(n_trials):
             save_dir_prefix = os.path.join(save_path, save_prefix+"_t"+f'{t:03}')
 
-            fs_square = load_txt(save_dir_prefix+'_fs_square.txt')
-            fs_timestamps = load_txt(save_dir_prefix+'_fs_timestamps.txt')
+            fs_square = np.loadtxt(save_dir_prefix+'_fs_square.txt')
+            fs_timestamps = np.loadtxt(save_dir_prefix+'_fs_timestamps.txt')
 
             ft_frame = ft_frame_next
             ft_theta = ft_theta_next
