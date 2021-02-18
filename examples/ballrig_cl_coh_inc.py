@@ -383,11 +383,16 @@ def main():
     #####################################################
 
     p = subprocess.Popen([FICTRAC_BIN, FICTRAC_CONFIG, "-v","ERR"], start_new_session=True)
-    sleep(10)
+    sleep(2)
 
     fictrac_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     fictrac_sock.bind((FICTRAC_HOST, FICTRAC_PORT))
     fictrac_sock.setblocking(0)
+
+    fictrac_buffer_duration = 8
+    fictrac_buffer_start = time()
+    while time()-fictrac_buffer_start < fictrac_buffer_duration:
+        _ = fictrac_get_data(fictrac_sock)
 
     if save_history:
         fix_scores_all = []

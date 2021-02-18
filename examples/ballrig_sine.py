@@ -263,12 +263,20 @@ def main():
     #####################################################
 
     p = subprocess.Popen([FICTRAC_BIN, FICTRAC_CONFIG, "-v","ERR"], start_new_session=True)
-    sleep(10)
+    sleep(2)
 
     if closed_loop:
         fictrac_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         fictrac_sock.bind((FICTRAC_HOST, FICTRAC_PORT))
         fictrac_sock.setblocking(0)
+
+    fictrac_buffer_duration = 8
+    if closed_loop:
+        fictrac_buffer_start = time()
+        while time()-fictrac_buffer_start < fictrac_buffer_duration:
+            _ = fictrac_get_data(fictrac_sock)
+    else:
+        sleep(fictrac_buffer_duration)
 
     if save_history:
         manager.start_saving_history()
@@ -307,6 +315,8 @@ def main():
     p.kill()
 
     print(f"===== Experiment duration: {(t_end-t_start)/60:.{5}} min =====")
+
+    post_processing_start = time()
 
     # Plot fictrac summary and save png
     fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])[-2:]
@@ -393,6 +403,9 @@ def main():
         print ("Deleting " + str(len(fictrac_files)) + " fictrac files.")
         for i in range(len(fictrac_files)):
             os.remove(os.path.join(parent_path, fictrac_files[i]))
+
+    post_processing_duration = time() - post_processing_start
+    print(f'Post processing: {post_processing_duration/60} minutes')
 
 if __name__ == '__main__':
     main()
