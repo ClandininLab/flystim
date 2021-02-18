@@ -7,7 +7,7 @@ import logging
 from flystim.draw import draw_screens
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
-from flystim.ballrig_util import latency_report
+from flystim.ballrig_util import latency_report, make_tri_list
 
 import sys
 from time import sleep, time, strftime, localtime
@@ -29,47 +29,6 @@ FT_THETA_IDX = 16
 FT_TIMESTAMP_IDX = 21
 FT_SQURE_IDX = 25
 
-def dir_to_tri_list(dir):
-
-    north_w = 2.956e-2
-    side_w = 2.96e-2
-
-    # set coordinates as a function of direction
-    if dir == 'w':
-       # set screen width and height
-       h = 3.10e-2
-       pts = [
-            ((+0.4900, -0.3400), (-north_w/2, -side_w/2, -h/2)),
-            ((+0.4900, -0.6550), (-north_w/2, +side_w/2, -h/2)),
-            ((+0.2850, -0.6550), (-north_w/2, +side_w/2, +h/2)),
-            ((+0.2850, -0.3400), (-north_w/2, -side_w/2, +h/2))
-        ]
-    elif dir == 'n':
-       # set screen width and height
-       h = 3.29e-2
-       pts = [
-            ((+0.1850, +0.5850), (-north_w/2, +side_w/2, -h/2)),
-            ((+0.1850, +0.2800), (+north_w/2, +side_w/2, -h/2)),
-            ((-0.0200, +0.2800), (+north_w/2, +side_w/2, +h/2)),
-            ((-0.0200, +0.5850), (-north_w/2, +side_w/2, +h/2))
-        ]
-
-    elif dir == 'e':
-        # set screen width and height
-        h = 3.40e-2
-        pts = [
-            ((-0.1350, -0.3550), (+north_w/2, +side_w/2, -h/2)),
-            ((-0.1350, -0.6550), (+north_w/2, -side_w/2, -h/2)),
-            ((-0.3500, -0.6550), (+north_w/2, -side_w/2, +h/2)),
-            ((-0.3500, -0.3550), (+north_w/2, +side_w/2, +h/2))
-        ]
-    else:
-        raise ValueError('Invalid direction.')
-
-    return Screen.quad_to_tri_list(*pts)
-
-def make_tri_list():
-    return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
 
 def main():
     #####################################################
@@ -196,18 +155,18 @@ def main():
     FICTRAC_CONFIG = "/home/clandinin/lib/fictrac211/config_MC.txt"
 
     # Start stim server
-    manager = launch_stim_server(screen)
+    fs_manager = launch_stim_server(screen)
     if save_history:
-        manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=stim_duration+iti*2)
-    manager.set_idle_background(iti_color)
+        fs_manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=stim_duration+iti*2)
+    fs_manager.set_idle_background(iti_color)
 
     #####################################################
     # part 3: start the loop
     #####################################################
 
     if do_fictrac:
-        p = subprocess.Popen([FICTRAC_BIN, FICTRAC_CONFIG, "-v","ERR"], start_new_session=True)
-        sleep(10)
+        ft_manager = ftu.FtManager(ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG)
+        ft_manager.sleep(8) #allow fictrac to gather data
 
     if save_history:
         trial_start_times = []
@@ -216,8 +175,8 @@ def main():
         trial_end_ft_frames = []
 
     # Pretend previous trial ended here before trial 0
-    t_iti_start = time()
-    trial_end_time_neg1 = t_iti_start #timestamp of ITI before first trial
+    trial_end_time_neg1 = time() #timestamp of ITI before first trial
+    sleep(iti/2)
 
     # Loop through trials
     for t in range(n_trials):
@@ -232,50 +191,37 @@ def main():
             max_lum_1,min_lum_1 = low_max_lum,low_min_lum
             max_lum_2,min_lum_2 = high_max_lum,high_min_lum
 
-        while (time() - t_iti_start) < iti/2:
-            continue
-
         if save_history:
-            manager.start_saving_history()
+            fs_manager.start_saving_history()
 
-        while (time() - t_iti_start) < iti:
-            continue
+        sleep(iti/2)
 
         print(f"===== Trial {t}; {'<-' if sign==1 else '->'} {'High First' if high_contrast_first else 'Low First'} ======")
-        manager.load_stim(name='SineGrating', period=spatial_period, rate=sign*rate, color=max_lum_1, background=min_lum_1, angle=0, offset=offsets[t]) #RotatingBars for square grating
+        fs_manager.load_stim(name='SineGrating', period=spatial_period, rate=sign*rate, color=max_lum_1, background=min_lum_1, angle=0, offset=offsets[t]) #RotatingBars for square grating
+        fs_manager.start_stim()
         t_start = time()
-        manager.start_stim()
         sleep(duration_1)
-        manager.update_stim(color=max_lum_2, background=min_lum_2)
+        fs_manager.update_stim(color=max_lum_2, background=min_lum_2)
         sleep(duration_2)
-        manager.stop_stim()
-
+        fs_manager.stop_stim()
         t_end = time()
-        t_iti_start = t_end
 
         print(f"===== Trial end (dur: {t_end-t_start:.{5}}s)======")
-        while (time() - t_iti_start) < iti/2:
-            continue
+        sleep(iti/2)
         if save_history:
-            manager.stop_saving_history()
-
-        # Save things
-        if save_history:
-            save_prefix_with_trial = save_prefix+"_t"+f'{t:03}'
-            manager.set_save_prefix(save_prefix_with_trial)
-            manager.save_history()
+            fs_manager.stop_saving_history()
+            fs_manager.set_save_prefix(save_prefix+"_t"+f'{t:03}')
+            fs_manager.save_history()
 
             trial_start_times.append(t_start)
             trial_end_times.append(t_end)
 
     # Burn off the second half of last ITI
-    while (time() - t_iti_start) < iti:
-        continue
+    sleep(iti/2)
 
     if do_fictrac:
         # close fictrac
-        p.terminate()
-        p.kill()
+        ft_manager.close()
 
         # Plot fictrac summary and save png
         fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])[-2:]

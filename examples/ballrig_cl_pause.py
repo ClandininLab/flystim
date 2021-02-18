@@ -8,7 +8,7 @@ from flystim.draw import draw_screens
 from flystim.trajectory import RectangleTrajectory, RectangleAnyTrajectory, SinusoidalTrajectory
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
-from flystim.util import latency_report
+from flystim.ballrig_util import latency_report
 
 import sys
 from time import sleep, time, strftime, localtime

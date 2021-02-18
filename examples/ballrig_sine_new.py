@@ -8,7 +8,8 @@ from flystim.draw import draw_screens
 from flystim.trajectory import RectangleTrajectory, RectangleAnyTrajectory, SinusoidalTrajectory
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
-from flystim.ballrig_util import latency_report
+from flystim.ballrig_util import latency_report, make_tri_list
+from flystim import fictrac_util as ftu
 
 import sys
 from time import sleep, time, strftime, localtime
@@ -30,100 +31,6 @@ FT_THETA_IDX = 16
 FT_TIMESTAMP_IDX = 21
 FT_SQURE_IDX = 25
 
-def dir_to_tri_list(dir):
-
-    north_w = 2.956e-2
-    side_w = 2.96e-2
-
-    # set coordinates as a function of direction
-    if dir == 'w':
-       # set screen width and height
-       h = 3.10e-2
-       pts = [
-            ((+0.4900, -0.3400), (-north_w/2, -side_w/2, -h/2)),
-            ((+0.4900, -0.6550), (-north_w/2, +side_w/2, -h/2)),
-            ((+0.2850, -0.6550), (-north_w/2, +side_w/2, +h/2)),
-            ((+0.2850, -0.3400), (-north_w/2, -side_w/2, +h/2))
-        ]
-    elif dir == 'n':
-       # set screen width and height
-       h = 3.29e-2
-       pts = [
-            ((+0.1850, +0.5850), (-north_w/2, +side_w/2, -h/2)),
-            ((+0.1850, +0.2800), (+north_w/2, +side_w/2, -h/2)),
-            ((-0.0200, +0.2800), (+north_w/2, +side_w/2, +h/2)),
-            ((-0.0200, +0.5850), (-north_w/2, +side_w/2, +h/2))
-        ]
-
-    elif dir == 'e':
-        # set screen width and height
-        h = 3.40e-2
-        pts = [
-            ((-0.1350, -0.3550), (+north_w/2, +side_w/2, -h/2)),
-            ((-0.1350, -0.6550), (+north_w/2, -side_w/2, -h/2)),
-            ((-0.3500, -0.6550), (+north_w/2, -side_w/2, +h/2)),
-            ((-0.3500, -0.3550), (+north_w/2, +side_w/2, +h/2))
-        ]
-    else:
-        raise ValueError('Invalid direction.')
-
-    return Screen.quad_to_tri_list(*pts)
-
-def make_tri_list():
-    return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
-
-ft_buffer = ""
-def fictrac_get_data(sock):
-    global ft_buffer
-
-    # if not select.select([sock], [], [])[0]:
-    #     return fictrac_get_data(sock)
-    ready = select.select([sock], [], [])[0]
-    if ready:
-        data = sock.recv(4098)
-    else:
-        return fictrac_get_data(sock)
-
-    # Decode received data
-    ogline = data.decode('UTF-8')
-    line = ft_buffer + ogline
-    endline = line.rfind("\n")
-    if endline == -1: # there is no linebreak
-        startline = line.rfind("FT")
-        if startline != -1: #there is line start
-            line = line[startline:]
-        ft_buffer += line # add (perhaps) trimmed line to buffer
-        logging.warning("No line end: %s", line)
-        return fictrac_get_data(sock)
-    else: # there is a linebreak
-        ft_buffer = line[endline:] # write everything after linebreak to the buffer
-        line = line[:endline]
-        startline = line.rfind("FT")
-        if startline == -1: #there is no line start... this shouldn't happen bc we have a buffer
-            logging.warning("No line start: %s", line)
-            return fictrac_get_data(sock)
-        else: # start line exists as well as a linebreak, so trim to the start
-            line = line[startline:]
-
-    # There is a complete line!
-    toks = line.split(", ")
-
-    if len(toks) != 27:
-        logging.warning("This should not happen: %s", str(len(toks)) + ' ' + line)
-        return fictrac_get_data(sock)
-
-    frame_num = int(toks[FT_FRAME_NUM_IDX+1])
-    heading = float(toks[FT_THETA_IDX+1])
-    ts = float(toks[FT_TIMESTAMP_IDX+1])#
-
-    return (frame_num, heading, ts)#
-
-def handle_fictrac_data(fictrac_sock, manager, theta_rad_0):
-    frame_num, theta_rad_1, ts = fictrac_get_data(fictrac_sock)#
-    theta_rad = theta_rad_1 - theta_rad_0 if theta_rad_0 is not None else 0
-    theta_deg = degrees(theta_rad)
-    manager.set_global_theta_offset(theta_deg)
-    return frame_num, theta_rad_1, ts#
 
 def main():
     #####################################################
@@ -253,70 +160,49 @@ def main():
     FICTRAC_CONFIG = "/home/clandinin/lib/fictrac211/config_MC.txt"
 
     # Start stim server
-    manager = launch_stim_server(screen)
+    fs_manager = launch_stim_server(screen)
     if save_history:
-        manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=duration)
-    manager.set_idle_background(background_color)
+        fs_manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=duration)
+    fs_manager.set_idle_background(background_color)
 
     #####################################################
     # part 3: start the loop
     #####################################################
 
-    p = subprocess.Popen([FICTRAC_BIN, FICTRAC_CONFIG, "-v","ERR"], start_new_session=True)
-    sleep(2)
-
     if closed_loop:
-        fictrac_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        fictrac_sock.bind((FICTRAC_HOST, FICTRAC_PORT))
-        fictrac_sock.setblocking(0)
-
-    fictrac_buffer_duration = 8
-    if closed_loop:
-        fictrac_buffer_start = time()
-        while time()-fictrac_buffer_start < fictrac_buffer_duration:
-            _ = fictrac_get_data(fictrac_sock)
+        ft_manager = ftu.FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT)
     else:
-        sleep(fictrac_buffer_duration)
+        ft_manager = ftu.FtManager(ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG)
+    ft_manager.sleep(8) #allow fictrac to gather data
 
     if save_history:
-        manager.start_saving_history()
+        fs_manager.start_saving_history()
 
     ####################### Confirm Fixation here #########################
 
     print("===== Start fixation ======")
 
-
-    manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
+    fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
     if closed_loop:
-        _,theta_rad_0,_ = handle_fictrac_data(fictrac_sock, manager, None)
-    manager.start_stim()
+        ft_manager.set_theta_0()
+    fs_manager.start_stim()
     t_start = time()
 
-    # Fill the queue of t and theta with initial 2 seconds then continue until iti is up
-    if closed_loop:
-        while time()-t_start < duration:
-            _ = handle_fictrac_data(fictrac_sock, manager, theta_rad_0)
-    else:
-        sleep(duration)
+    ft_manager.update_theta_for(duration) if closed_loop else ft_manager.sleep(duration)
 
-    manager.stop_stim()
+    fs_manager.stop_stim()
     t_end = time()
 
     # Save things
     if save_history:
-        manager.stop_saving_history()
-        manager.set_save_prefix(save_prefix)
-        manager.save_history()
+        fs_manager.stop_saving_history()
+        fs_manager.set_save_prefix(save_prefix)
+        fs_manager.save_history()
 
     # close fictrac
-    if closed_loop:
-        fictrac_sock.close()
-    p.terminate()
-    p.kill()
+    ft_manager.close()
 
     print(f"===== Experiment duration: {(t_end-t_start)/60:.{5}} min =====")
-
-    post_processing_start = time()
 
     # Plot fictrac summary and save png
     fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])[-2:]
@@ -403,9 +289,6 @@ def main():
         print ("Deleting " + str(len(fictrac_files)) + " fictrac files.")
         for i in range(len(fictrac_files)):
             os.remove(os.path.join(parent_path, fictrac_files[i]))
-
-    post_processing_duration = time() - post_processing_start
-    print(f'Post processing: {post_processing_duration/60} minutes')
 
 if __name__ == '__main__':
     main()
