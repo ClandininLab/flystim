@@ -9,9 +9,9 @@ from time import sleep
 
 
 def main():
-    screen = Screen(fullscreen=False, server_number=0, id=0, vsync=True)
+    screen = Screen(fullscreen=False, server_number=0, id=0, vsync=False)
 
-    draw_screens(screen)
+    # draw_screens(screen)
 
     manager = launch_stim_server(screen)
 
@@ -28,7 +28,7 @@ def main():
                            'offset': 0}
 
 
-    manager.load_stim(name='CylindricalGrating', period=10, mean=0.5, contrast=contrast_trajectory, offset=0.0, profile='square',
+    manager.load_stim(name='CylindricalGrating', period=10, mean=0.5, contrast=1, offset=0.0, profile='square',
                       color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0)
 
     sleep(1)
