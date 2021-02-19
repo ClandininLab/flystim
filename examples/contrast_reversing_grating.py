@@ -16,13 +16,19 @@ def main():
     manager = launch_stim_server(screen)
 
     # contrast-reversing grating
-    tf = 1 # Hz
-    t = np.linspace(0, 6, 100)
-    c = np.sin(2*np.pi*tf*t)
-    tv_pairs = list(zip(t, c))
-    contrast_traj = Trajectory(tv_pairs, kind='linear').to_dict()
+    # tf = 1 # Hz
+    # t = np.linspace(0, 6, 100)
+    # c = np.sin(2*np.pi*tf*t)
+    # tv_pairs = list(zip(t, c))
+    # contrast_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
-    manager.load_stim(name='CylindricalGrating', period=10, mean=0.5, contrast=contrast_traj, offset=0.0, profile='square',
+    contrast_trajectory = {'name': 'Sinusoid',
+                           'temporal_frequency': 1,
+                           'amplitude': 1,
+                           'offset': 0}
+
+
+    manager.load_stim(name='CylindricalGrating', period=10, mean=0.5, contrast=contrast_trajectory, offset=0.0, profile='square',
                       color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0)
 
     sleep(1)

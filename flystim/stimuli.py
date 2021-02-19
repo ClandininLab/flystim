@@ -664,9 +664,8 @@ class CoherentMotionDotField(BaseProgram):
         self.stim_object = copy.copy(self.stim_object_template).rotate(np.radians(theta), np.radians(phi), 0)
 
 
-
 def return_for_time_t(parameter, t):
-    if type(parameter) is dict:
-        return Trajectory.from_dict(parameter).eval_at(t)
+    if type(parameter) is dict: # trajectory-specifying dict
+        return Trajectory(parameter).getValue(t)
     else:
         return parameter

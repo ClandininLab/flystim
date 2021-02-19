@@ -8,20 +8,20 @@ from time import sleep
 
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=True))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=False))
 
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
-    tv_pairs = [(0, -45), (4, 45)]
-    theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
+    theta_trajectory = {'name': 'tv_pairs',
+                        'tv_pairs': [(0, -45), (4, 45)],
+                        'kind': 'linear'}
 
-    tf = 2 # Hz
-    t = np.linspace(0, 6, 100)
-    c = np.sin(2*np.pi*tf*t) + 1
-    tv_pairs = list(zip(t, c))
-    color_traj = Trajectory(tv_pairs, kind='linear').to_dict()
+    color_trajectory = {'name': 'Sinusoid',
+                        'temporal_frequency': 2,
+                        'amplitude': 1,
+                        'offset': 1}
 
-    manager.load_stim(name='MovingSpot', radius=5, sphere_radius=1, color=color_traj, theta=theta_traj, phi=0, hold=True)
+    manager.load_stim(name='MovingSpot', radius=5, sphere_radius=1, color=color_trajectory, theta=theta_trajectory, phi=0, hold=True)
 
     sleep(1)
 
