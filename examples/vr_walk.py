@@ -29,7 +29,6 @@ def main():
     manager.load_stim(name='Tower', color=[0, 1, 1, 1.0], cylinder_location=[0.0, -1, z_level],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) #g-b -y, center
     manager.load_stim(name='Tower', color=[1, 0, 1, 1], cylinder_location=[+0.25, -1, z_level],  cylinder_height=0.1, cylinder_radius=0.05, hold=True) #purple -y, right
 
-
     tt = np.arange(0, 12, 0.01) # seconds
     velocity_x = 0.0 # meters per sec
     velocity_y = 0.2
@@ -41,12 +40,17 @@ def main():
     dtheta = tt * 0.0
     theta = np.cumsum(dtheta)
 
-    fly_x_trajectory = Trajectory(list(zip(tt, xx))).to_dict()
-    fly_y_trajectory = Trajectory(list(zip(tt, yy))).to_dict()
-    fly_theta_trajectory = Trajectory(list(zip(tt, theta))).to_dict()
-    manager.set_fly_trajectory(fly_x_trajectory,
-                               fly_y_trajectory,
-                               fly_theta_trajectory)
+    fly_x_trajectory = {'name': 'tv_pairs',
+                        'tv_pairs': list(zip(tt, xx)),
+                        'kind': 'linear'}
+    fly_y_trajectory = {'name': 'tv_pairs',
+                        'tv_pairs': list(zip(tt, yy)),
+                        'kind': 'linear'}
+    fly_theta_trajectory = {'name': 'tv_pairs',
+                            'tv_pairs': list(zip(tt, theta)),
+                            'kind': 'linear'}
+
+    manager.set_fly_trajectory(fly_x_trajectory, fly_y_trajectory, fly_theta_trajectory)
 
     sleep(0.5)
 

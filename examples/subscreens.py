@@ -45,18 +45,17 @@ def main():
 
     manager = launch_stim_server(screen)
 
-
-    tv_pairs = [(0, 0), (4, 360)]
-    angle_traj = Trajectory(tv_pairs, kind='linear').to_dict()
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
     manager.load_stim(name='RotatingGrating', rate=25, period=30, mean=0.5, contrast=1.0, offset=0.0, profile='square',
                       color=[1, 1, 1, 1], cylinder_radius=1.1, cylinder_height=10, theta=0, phi=0, angle=90, hold=True)
 
     tv_pairs = [(0, 0), (4, 360)]
-    theta_traj = Trajectory(tv_pairs, kind='linear').to_dict()
+    theta_traj = {'name': 'tv_pairs',
+                  'tv_pairs': tv_pairs,
+                  'kind': 'linear'}
 
-    manager.load_stim(name='MovingPatch',width=30, height=30, phi=0, color=[1, 0, 0, 1], theta=theta_traj, hold=True, angle=0)
+    manager.load_stim(name='MovingPatch', width=30, height=30, phi=0, color=[1, 0, 0, 1], theta=theta_traj, hold=True, angle=0)
 
     sleep(0.5)
 
