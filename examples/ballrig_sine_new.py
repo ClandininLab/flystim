@@ -1,36 +1,29 @@
 #!/usr/bin/env python3
 
-# Example program showing rendering onto three subscreens
-
+import sys, os
+import numpy as np
+import matplotlib.pyplot as plt
+import h5py
 import logging
+from time import sleep, time, strftime, localtime
 
-from flystim.draw import draw_screens
-from flystim.trajectory import RectangleTrajectory, RectangleAnyTrajectory, SinusoidalTrajectory
+#from flystim.draw import draw_screens
+from flystim.trajectory import RectangleAnyTrajectory, SinusoidalTrajectory
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
 from flystim.ballrig_util import latency_report, make_tri_list
 from flystim import fictrac_util as ftu
 
-import sys
-from time import sleep, time, strftime, localtime
-import numpy as np
-import math
-from math import degrees
-import itertools
-import os, subprocess
-import h5py
-import socket
-import select
-
-import matplotlib.pyplot as plt
-
 from ballrig_analysis.utils import fictrac_utils
 
+FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
+FICTRAC_PORT = 33334         # The port used by the server
+FICTRAC_BIN =    "/home/clandinin/lib/fictrac211/bin/fictrac"
+FICTRAC_CONFIG = "/home/clandinin/lib/fictrac211/config_MC.txt"
 FT_FRAME_NUM_IDX = 0
 FT_THETA_IDX = 16
 FT_TIMESTAMP_IDX = 21
 FT_SQURE_IDX = 25
-
 
 def main():
     #####################################################
@@ -154,11 +147,6 @@ def main():
     screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.01, square_loc=(0.59,0.74))#square_side=0.08,coh_bar_traj_r square_loc='ur')
     #print(screen)
 
-    FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
-    FICTRAC_PORT = 33334         # The port used by the server
-    FICTRAC_BIN =    "/home/clandinin/lib/fictrac211/bin/fictrac"
-    FICTRAC_CONFIG = "/home/clandinin/lib/fictrac211/config_MC.txt"
-
     # Start stim server
     fs_manager = launch_stim_server(screen)
     if save_history:
@@ -230,7 +218,7 @@ def main():
         h5f.attrs['t_start'] = t_start
         h5f.attrs['t_end'] = t_end
         if closed_loop:
-            h5f.attrs['theta_rad_0'] = theta_rad_0
+            h5f.attrs['theta_rad_0'] = ft_manager.theta_rad_0
 
         save_dir_prefix = os.path.join(save_path, save_prefix)
         fs_square = np.loadtxt(save_dir_prefix+'_fs_square.txt')
