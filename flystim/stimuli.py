@@ -4,7 +4,7 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import Trajectory
 import flystim.distribution as distribution
-from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints
+from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect
 import time # for debugging and benchmarking
 import copy
 
@@ -129,6 +129,101 @@ class MovingPatch(BaseProgram):
                                            height=height,
                                            sphere_radius=self.sphere_radius,
                                            color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+
+class TexturedSphericalPatch(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.use_texture = True
+
+    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+        """
+        Stimulus consisting of a rectangular patch on the surface of a sphere. Patch is rectangular in spherical coordinates.
+
+        :param width: Width in degrees (azimuth)
+        :param height: Height in degrees (elevation)
+        :param sphere_radius: Radius of the sphere (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.width = width
+        self.height = height
+        self.sphere_radius = sphere_radius
+        self.color = color
+        self.theta = theta
+        self.phi = phi
+        self.angle = angle
+
+    def updateTexture(self):
+        # overwrite in subclass
+        pass
+
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        color = return_for_time_t(self.color, t)
+        # TODO: is there a way to make this object once in configure then update with width/height in eval_at?
+        self.stim_object = GlSphericalTexturedRect(width=width,
+                                                   height=height,
+                                                   sphere_radius=self.sphere_radius,
+                                                   color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+
+
+class RandomGridOnSphericalPatch(TexturedSphericalPatch):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, patch_width=10, patch_height=10, distribution_data=None, update_rate=60.0, start_seed=0,
+                  width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+        """
+        Random square grid pattern painted on the inside of a cylinder
+
+        :param patch width: Azimuth extent (degrees) of each patch
+        :param patch height: Elevation extent (degrees) of each patch
+        :param distribution_data: dict. containing name and args/kwargs for random distribution (see flystim.distribution)
+        :param update_rate: Hz, update rate of bar intensity
+        :param start_seed: seed with which to start rng at the beginning of the stimulus presentation
+
+        :other params: see TexturedSphericalPatch
+        """
+
+
+        super().configure(width=width, height=height, sphere_radius=sphere_radius, color=color, theta=theta, phi=phi, angle=angle)
+
+        # get the noise distribution
+        if distribution_data is None:
+            distribution_data = {'name': 'Uniform',
+                                 'args': [0, 1],
+                                 'kwargs': {}}
+        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args', []), **distribution_data.get('kwargs', {}))
+
+        self.patch_width = patch_width
+        self.patch_height = patch_height
+        self.start_seed = start_seed
+        self.update_rate = update_rate
+
+        self.stim_object = GlSphericalTexturedRect(width=width,
+                                                   height=height,
+                                                   sphere_radius=self.sphere_radius,
+                                                   color=color,
+                                                   texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        # set the seed
+        seed = int(round(self.start_seed + t*self.update_rate))
+        np.random.seed(seed)
+        # get the random values
+        face_colors = 255*self.noise_distribution.get_random_values((10, 10))
+        # make the texture
+        img = np.reshape(face_colors, (10, 10)).astype(np.uint8) # TODO FIXME
+        self.texture_interpolation = 'NEAREST'
+        self.texture_image = img
+
 
 
 class TexturedCylinder(BaseProgram):

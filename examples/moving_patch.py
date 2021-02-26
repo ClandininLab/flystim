@@ -21,7 +21,9 @@ def main():
     tv_pairs = list(zip(t, c))
     color_traj = Trajectory(tv_pairs, kind='linear').to_dict()
 
-    manager.load_stim(name='MovingSpot', radius=5, sphere_radius=1, color=color_traj, theta=theta_traj, phi=0, hold=True)
+    # manager.load_stim(name='MovingPatch', width=5, height=10, sphere_radius=1, color=color_traj, theta=theta_traj, phi=0, hold=True)
+
+    manager.load_stim(name='RandomGridOnSphericalPatch', width=40, height=40)
 
     sleep(1)
 

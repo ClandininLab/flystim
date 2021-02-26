@@ -170,6 +170,60 @@ class GlSphericalRect(GlVertices):
         return cartesian_coords
 
 
+class GlSphericalTexturedRect(GlVertices):
+    def __init__(self,
+                 width=20,  # degrees, theta
+                 height=20,  # degrees, phi
+                 sphere_radius=1,  # meters
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 n_steps_x=6,
+                 n_steps_y=6,
+                 texture=False,
+                 texture_shift=(0, 0)):
+        super().__init__()
+        if type(color) is not list:
+            if type(color) is tuple:
+                color = list(color)
+            else:
+                color = [color, color, color, 1]
+
+        d_theta = (1/n_steps_x) * radians(width)
+        d_phi = (1/n_steps_y) * radians(height)
+        for rr in range(n_steps_y):
+            for cc in range(n_steps_x):
+                # render patch at the equator (phi=pi/2) so it's not near the poles
+                # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
+                theta = np.pi/2 + radians(width) * (-1/2 + (cc/n_steps_x))
+                phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
+                v1 = self.sphericalToCartesian((sphere_radius, theta, phi))
+                v2 = self.sphericalToCartesian((sphere_radius, theta, phi + d_phi))
+                v3 = self.sphericalToCartesian((sphere_radius, theta + d_theta, phi))
+                v4 = self.sphericalToCartesian((sphere_radius, theta + d_theta, phi + d_phi))
+                if texture:
+                    tc1 = (cc/n_steps_x, rr/n_steps_y)
+                    tc2 = (cc/n_steps_x, (rr+1)/n_steps_y)
+                    tc3 = ((cc+1)/n_steps_x, rr/n_steps_y)
+                    tc4 = ((cc+1)/n_steps_x, (rr+1)/n_steps_y)
+                    self.add(GlTri(v1, v2, v4, color, [sum(x) for x in zip(tc1, texture_shift)],
+                                                      [sum(x) for x in zip(tc2, texture_shift)],
+                                                      [sum(x) for x in zip(tc4, texture_shift)]))
+
+                    self.add(GlTri(v1, v3, v4, color, [sum(x) for x in zip(tc1, texture_shift)],
+                                                      [sum(x) for x in zip(tc3, texture_shift)],
+                                                      [sum(x) for x in zip(tc4, texture_shift)]))
+                else:
+                    self.add(GlTri(v1, v2, v4, color))
+                    self.add(GlTri(v1, v3, v4, color))
+
+
+    def sphericalToCartesian(self, spherical_coords):
+        r, theta, phi = spherical_coords
+        cartesian_coords = (r * np.sin(phi) * np.cos(theta),
+                            r * np.sin(phi) * np.sin(theta),
+                            r * np.cos(phi))
+        return cartesian_coords
+
+
 class GlSphericalCirc(GlVertices):
     def __init__(self,
                  circle_radius=10,  # degrees in spherical coordinates
