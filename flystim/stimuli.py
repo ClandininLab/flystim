@@ -156,32 +156,28 @@ class TexturedSphericalPatch(BaseProgram):
         self.phi = phi
         self.angle = angle
 
+        self.stim_object = GlSphericalTexturedRect(width=self.width,
+                                                   height=self.height,
+                                                   sphere_radius=self.sphere_radius,
+                                                   color=self.color, n_steps_x=6, n_steps_y=6, texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+
     def updateTexture(self):
         # overwrite in subclass
         pass
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
-        width = return_for_time_t(self.width, t)
-        height = return_for_time_t(self.height, t)
-        theta = return_for_time_t(self.theta, t)
-        phi = return_for_time_t(self.phi, t)
-        angle = return_for_time_t(self.angle, t)
-        color = return_for_time_t(self.color, t)
-        # TODO: is there a way to make this object once in configure then update with width/height in eval_at?
-        self.stim_object = GlSphericalTexturedRect(width=width,
-                                                   height=height,
-                                                   sphere_radius=self.sphere_radius,
-                                                   color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+        # overwrite in subclass
+        pass
 
 
 class RandomGridOnSphericalPatch(TexturedSphericalPatch):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, patch_width=10, patch_height=10, distribution_data=None, update_rate=60.0, start_seed=0,
-                  width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+    def configure(self, patch_width=5, patch_height=5, distribution_data=None, update_rate=60.0, start_seed=0,
+                  width=30, height=30, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
         """
-        Random square grid pattern painted on the inside of a cylinder
+        Random square grid pattern painted on a spherical patch.
 
         :param patch width: Azimuth extent (degrees) of each patch
         :param patch height: Elevation extent (degrees) of each patch
@@ -191,8 +187,6 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
 
         :other params: see TexturedSphericalPatch
         """
-
-
         super().configure(width=width, height=height, sphere_radius=sphere_radius, color=color, theta=theta, phi=phi, angle=angle)
 
         # get the noise distribution
@@ -207,22 +201,30 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         self.start_seed = start_seed
         self.update_rate = update_rate
 
-        self.stim_object = GlSphericalTexturedRect(width=width,
-                                                   height=height,
-                                                   sphere_radius=self.sphere_radius,
-                                                   color=color,
-                                                   texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+        self.n_patches_width = int(np.floor(width/self.patch_width))
+        self.n_patches_height = int(np.floor(height/self.patch_height))
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def updateTexture(self, t):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
         # get the random values
-        face_colors = 255*self.noise_distribution.get_random_values((10, 10))
+        face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
         # make the texture
-        img = np.reshape(face_colors, (10, 10)).astype(np.uint8) # TODO FIXME
+        img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+
+        # TEST CHECKERBOARD
+        # x = np.zeros((self.n_patches_height, self.n_patches_width), dtype=int)
+        # x[1::2, ::2] = 255
+        # x[::2, 1::2] = 255
+        # img = x.astype(np.uint8)
+
         self.texture_interpolation = 'NEAREST'
         self.texture_image = img
+
+    def eval_at(self, t, fly_position=[0, 0, 0]):
+        self.updateTexture(t)
+
 
 
 
