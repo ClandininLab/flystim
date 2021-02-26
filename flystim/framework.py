@@ -123,10 +123,10 @@ class StimDisplay(QtOpenGL.QGLWidget):
         if self.stim_list:
             t = time.time()
             if self.use_fly_trajectory:
-                self.set_global_fly_pos(self.fly_x_trajectory.eval_at(self.get_stim_time(t)),
-                                        self.fly_y_trajectory.eval_at(self.get_stim_time(t)),
+                self.set_global_fly_pos(self.fly_x_trajectory.getValue(self.get_stim_time(t)),
+                                        self.fly_y_trajectory.getValue(self.get_stim_time(t)),
                                         0)
-                self.set_global_theta_offset(self.fly_theta_trajectory.eval_at(self.get_stim_time(t)))  # deg -> radians
+                self.set_global_theta_offset(self.fly_theta_trajectory.getValue(self.get_stim_time(t)))  # deg -> radians
 
             # For each subscreen associated with this screen: get the perspective matrix
             perspectives = [get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, x.pa, x.pb, x.pc, self.screen.horizontal_flip) for x in self.screen.subscreens]
@@ -173,9 +173,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         :param theta_trajectory: degrees on the azimuthal plane, dict from Trajectory including time, value pairs
         """
         self.use_fly_trajectory = True
-        self.fly_x_trajectory = Trajectory.from_dict(x_trajectory)
-        self.fly_y_trajectory = Trajectory.from_dict(y_trajectory)
-        self.fly_theta_trajectory = Trajectory.from_dict(theta_trajectory)
+        self.fly_x_trajectory = Trajectory(x_trajectory)
+        self.fly_y_trajectory = Trajectory(y_trajectory)
+        self.fly_theta_trajectory = Trajectory(theta_trajectory)
 
     def load_stim(self, name, hold=False, **kwargs):
         """

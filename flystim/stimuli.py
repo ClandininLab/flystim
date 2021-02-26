@@ -296,10 +296,10 @@ class CylindricalGrating(TexturedCylinder):
                                       color=[1, 1, 1, 1],
                                       texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
-        if np.any([type(x) == dict for x in [mean, contrast, offset]]):
-            pass
-        else:
-            self.updateTexture(self.mean, self.contrast, self.offset)
+        mean = return_for_time_t(self.mean, 0)
+        contrast = return_for_time_t(self.contrast, 0)
+        offset = return_for_time_t(self.offset, 0)
+        self.updateTexture(mean, contrast, offset)
 
     def updateTexture(self, mean, contrast, offset):
         # make the texture image
@@ -320,27 +320,11 @@ class CylindricalGrating(TexturedCylinder):
         self.texture_image = img
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
-        need_to_update_texture = False
-        if type(self.mean) is dict:
-            mean = Trajectory.from_dict(self.mean).eval_at(t)
-            need_to_update_texture = True
-        else:
-            mean = self.mean
+        mean = return_for_time_t(self.mean, t)
+        contrast = return_for_time_t(self.contrast, t)
+        offset = return_for_time_t(self.offset, t)
 
-        if type(self.contrast) is dict:
-            contrast = Trajectory.from_dict(self.contrast).eval_at(t)
-            need_to_update_texture = True
-        else:
-            contrast = self.contrast
-
-        if type(self.offset) is dict:
-            offset = Trajectory.from_dict(self.offset).eval_at(t)
-            need_to_update_texture = True
-        else:
-            offset = self.offset
-
-        if need_to_update_texture:
-            self.updateTexture(mean, contrast, offset)
+        self.updateTexture(mean, contrast, offset)
 
 class RotatingGrating(CylindricalGrating):
     def __init__(self, screen):
@@ -742,26 +726,19 @@ class CoherentMotionDotField(BaseProgram):
         self.phi_trajectory = phi_trajectory
 
         self.stim_object_template = GlSphericalPoints(sphere_radius=self.sphere_radius,
-                                             color=self.color,
-                                             theta=self.theta_locations,
-                                             phi=self.phi_locations)
+                                                      color=self.color,
+                                                      theta=self.theta_locations,
+                                                      phi=self.phi_locations)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
-        if type(self.theta_trajectory) is dict:
-            theta = Trajectory.from_dict(self.theta_trajectory).eval_at(t)
-        else:
-            theta = self.theta_trajectory
-        if type(self.phi_trajectory) is dict:
-            phi = Trajectory.from_dict(self.phi_trajectory).eval_at(t)
-        else:
-            phi = self.phi_trajectory
+        theta = return_for_time_t(self.theta_trajectory, t)
+        phi = return_for_time_t(self.phi_trajectory, t)
 
         self.stim_object = copy.copy(self.stim_object_template).rotate(np.radians(theta), np.radians(phi), 0)
 
 
-
 def return_for_time_t(parameter, t):
-    if type(parameter) is dict:
-        return Trajectory.from_dict(parameter).eval_at(t)
+    if type(parameter) is dict: # trajectory-specifying dict
+        return Trajectory(parameter).getValue(t)
     else:
         return parameter

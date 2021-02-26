@@ -12,16 +12,18 @@ def main():
 
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
-    theta_trajectory = {'name': 'tv_pairs',
-                        'tv_pairs': [(0, -45), (4, 45)],
-                        'kind': 'linear'}
+    loom_trajectory = {'name': 'Loom',
+                       'rv_ratio': 0.08,
+                       'stim_time': 4,
+                       'start_size': 3,
+                       'end_size': 90}
 
     color_trajectory = {'name': 'Sinusoid',
                         'temporal_frequency': 2,
                         'amplitude': 1,
                         'offset': 1}
 
-    manager.load_stim(name='MovingSpot', radius=5, sphere_radius=1, color=color_trajectory, theta=theta_trajectory, phi=0, hold=True)
+    manager.load_stim(name='MovingSpot', radius=loom_trajectory, sphere_radius=1, color=color_trajectory, theta=0, phi=0, hold=True)
 
     sleep(1)
 
