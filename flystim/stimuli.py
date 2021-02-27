@@ -1,12 +1,20 @@
+"""
+Stimulus classes.
+
+Each class is is derived from flystim.base.BaseProgram, which handles the GL context and shader programs
+
+"""
+
 import numpy as np
 import os
 import array
 from flystim.base import BaseProgram
-from flystim.trajectory import Trajectory
+from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
 from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect
 import time # for debugging and benchmarking
 import copy
+
 
 class ConstantBackground(BaseProgram):
     def __init__(self, screen):
@@ -73,11 +81,12 @@ class MovingSpot(BaseProgram):
         :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
         *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
-        self.radius = radius
         self.sphere_radius = sphere_radius
-        self.color = color
-        self.theta = theta
-        self.phi = phi
+
+        self.radius = make_as_trajectory(radius)
+        self.color = make_as_trajectory(color)
+        self.theta = make_as_trajectory(theta)
+        self.phi = make_as_trajectory(phi)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         radius = return_for_time_t(self.radius, t)
@@ -88,8 +97,7 @@ class MovingSpot(BaseProgram):
         self.stim_object = GlSphericalCirc(circle_radius=radius,
                                            sphere_radius=self.sphere_radius,
                                            color=color,
-                                           n_steps=36).rotate(np.radians(theta), np.radians(phi), 0 )
-
+                                           n_steps=36).rotate(np.radians(theta), np.radians(phi), 0)
 
 
 class MovingPatch(BaseProgram):
@@ -109,13 +117,13 @@ class MovingPatch(BaseProgram):
         :param angle: degrees orientation of patch (roll rotation around x axis)
         *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
-        self.width = width
-        self.height = height
+        self.width = make_as_trajectory(width)
+        self.height = make_as_trajectory(height)
         self.sphere_radius = sphere_radius
-        self.color = color
-        self.theta = theta
-        self.phi = phi
-        self.angle = angle
+        self.color = make_as_trajectory(color)
+        self.theta = make_as_trajectory(theta)
+        self.phi = make_as_trajectory(phi)
+        self.angle = make_as_trajectory(angle)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         width = return_for_time_t(self.width, t)
@@ -129,6 +137,7 @@ class MovingPatch(BaseProgram):
                                            height=height,
                                            sphere_radius=self.sphere_radius,
                                            color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+
 
 class TexturedSphericalPatch(BaseProgram):
     def __init__(self, screen):
@@ -226,8 +235,6 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         self.updateTexture(t)
 
 
-
-
 class TexturedCylinder(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
@@ -248,9 +255,9 @@ class TexturedCylinder(BaseProgram):
         self.color = color
         self.cylinder_radius = cylinder_radius
         self.cylinder_height = cylinder_height
-        self.theta = theta
-        self.phi = phi
-        self.angle = angle
+        self.theta = make_as_trajectory(theta)
+        self.phi = make_as_trajectory(phi)
+        self.angle = make_as_trajectory(angle)
 
     def updateTexture(self):
         # overwrite in subclass
@@ -298,10 +305,11 @@ class CylindricalGrating(TexturedCylinder):
                                       color=[1, 1, 1, 1],
                                       texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
-        mean = return_for_time_t(self.mean, 0)
-        contrast = return_for_time_t(self.contrast, 0)
-        offset = return_for_time_t(self.offset, 0)
-        self.updateTexture(mean, contrast, offset)
+        self.mean = make_as_trajectory(mean)
+        self.contrast = make_as_trajectory(contrast)
+        self.offset = make_as_trajectory(offset)
+
+        self.updateTexture(return_for_time_t(self.mean, 0), return_for_time_t(self.contrast, 0), return_for_time_t(self.offset, 0))
 
     def updateTexture(self, mean, contrast, offset):
         # make the texture image
@@ -328,6 +336,7 @@ class CylindricalGrating(TexturedCylinder):
 
         self.updateTexture(mean, contrast, offset)
 
+
 class RotatingGrating(CylindricalGrating):
     def __init__(self, screen):
         super().__init__(screen=screen)
@@ -353,12 +362,12 @@ class RotatingGrating(CylindricalGrating):
         self.updateTexture(mean=mean, contrast=contrast, offset=offset)
 
         self.stim_object_template = GlCylinder(cylinder_height=self.cylinder_height,
-                                              cylinder_radius=self.cylinder_radius,
-                                              cylinder_angular_extent=self.cylinder_angular_extent,
-                                              color=self.color,
-                                              alpha_by_face=self.alpha_by_face,
-                                              n_faces=self.n_faces,
-                                              texture=True)
+                                               cylinder_radius=self.cylinder_radius,
+                                               cylinder_angular_extent=self.cylinder_angular_extent,
+                                               color=self.color,
+                                               alpha_by_face=self.alpha_by_face,
+                                               n_faces=self.n_faces,
+                                               texture=True)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         shift_u = t*self.rate/self.cylinder_angular_extent
@@ -396,7 +405,7 @@ class RandomBars(TexturedCylinder):
             distribution_data = {'name': 'Uniform',
                                  'args': [0, 1],
                                  'kwargs': {}}
-        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args',[]), **distribution_data.get('kwargs',{}))
+        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args', []), **distribution_data.get('kwargs', {}))
 
         self.period = period
         self.width = width
@@ -412,11 +421,11 @@ class RandomBars(TexturedCylinder):
         self.cylinder_angular_extent = self.n_bars * self.period  # degrees
 
         self.stim_object_template = GlCylinder(cylinder_height=self.cylinder_height,
-                                      cylinder_radius=self.cylinder_radius,
-                                      cylinder_angular_extent=self.cylinder_angular_extent,
-                                      color=self.color,
-                                      cylinder_location=self.cylinder_location,
-                                      texture=True)
+                                               cylinder_radius=self.cylinder_radius,
+                                               cylinder_angular_extent=self.cylinder_angular_extent,
+                                               color=self.color,
+                                               cylinder_location=self.cylinder_location,
+                                               texture=True)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         theta = return_for_time_t(self.theta, t)
@@ -724,8 +733,8 @@ class CoherentMotionDotField(BaseProgram):
         self.color = color
         self.theta_locations = theta_locations
         self.phi_locations = phi_locations
-        self.theta_trajectory = theta_trajectory
-        self.phi_trajectory = phi_trajectory
+        self.theta_trajectory = make_as_trajectory(theta_trajectory)
+        self.phi_trajectory = make_as_trajectory(phi_trajectory)
 
         self.stim_object_template = GlSphericalPoints(sphere_radius=self.sphere_radius,
                                                       color=self.color,
@@ -737,10 +746,3 @@ class CoherentMotionDotField(BaseProgram):
         phi = return_for_time_t(self.phi_trajectory, t)
 
         self.stim_object = copy.copy(self.stim_object_template).rotate(np.radians(theta), np.radians(phi), 0)
-
-
-def return_for_time_t(parameter, t):
-    if type(parameter) is dict: # trajectory-specifying dict
-        return Trajectory(parameter).getValue(t)
-    else:
-        return parameter

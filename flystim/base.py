@@ -1,3 +1,14 @@
+"""
+Base stimulus class.
+
+Handles GL context, shader programs common to all flystim stim classes.
+
+See flystim.stimuli for available child stimulus classes. Overwrite methods in child classes like:
+    configure
+    eval_at
+
+"""
+
 import moderngl
 
 

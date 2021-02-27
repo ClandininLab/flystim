@@ -95,7 +95,7 @@ def main():
         fly_theta_trajectory = {'name': 'tv_pairs',
                                 'tv_pairs': list(zip(tt, theta)),
                                 'kind': 'linear'}
-        multicall_load.set_fly_trajectory(fly_x_trajectory, fly_y_trajectory, fly_theta_trajectory)
+        multicall_load.set_fly_trajectory(fly_x_trajectory, fly_y_trajectory, 0)
 
         multicall_load() # load stims
 
