@@ -168,7 +168,7 @@ class TexturedSphericalPatch(BaseProgram):
         self.stim_object = GlSphericalTexturedRect(width=self.width,
                                                    height=self.height,
                                                    sphere_radius=self.sphere_radius,
-                                                   color=self.color, n_steps_x=6, n_steps_y=6, texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+                                                   color=self.color, n_steps_x=12, n_steps_y=12, texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
     def updateTexture(self):
         # overwrite in subclass
