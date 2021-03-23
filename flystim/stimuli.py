@@ -20,14 +20,14 @@ class ConstantBackground(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, color=[0.5, 0.5, 0.5, 1.0], center=[0,0,0], side_length=100):
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], center=[0, 0, 0], side_length=100):
         """
-        Big skybox to simulate a constant background behind stimuli
+        Big skybox to simulate a constant background behind stimuli.
+
         :param color: [r,g,b,a]
         :param center: [x,y,z]
         :param side_length: meters, side length of cube
         """
-
         self.color = color
         self.center = center
         self.side_length = side_length
@@ -47,12 +47,12 @@ class Floor(BaseProgram):
 
     def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=-0.1, side_length=5):
         """
-        Infinite floor
+        Infinite floor.
+
         :param color: [r,g,b,a]
         :param z_level: meters, level at which the floor is on the z axis (-z is below the fly)
         :param side_length: meters
         """
-
         self.color = color
 
         v1 = (-side_length, -side_length, z_level)
@@ -213,6 +213,9 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         self.n_patches_width = int(np.floor(width/self.patch_width))
         self.n_patches_height = int(np.floor(height/self.patch_height))
 
+        img = np.zeros((self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        self.add_texture_gl(img, texture_interpolation='NEAREST')
+
     def updateTexture(self, t):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
@@ -228,8 +231,7 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         # x[::2, 1::2] = 255
         # img = x.astype(np.uint8)
 
-        self.texture_interpolation = 'NEAREST'
-        self.texture_image = img
+        self.update_texture_gl(img)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         self.updateTexture(t)
@@ -242,8 +244,7 @@ class TexturedCylinder(BaseProgram):
 
     def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0.0):
         """
-        Parent class for a Cylinder with a texture painted on it. Designed for stimuli where the fly is
-        at (0, 0, 0)
+        Parent class for a Cylinder with a texture painted on it. Fly is at (0, 0, 0).
 
         :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome.
         :param cylinder_radius: meters
@@ -275,7 +276,7 @@ class CylindricalGrating(TexturedCylinder):
     def configure(self, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='sine',
                   color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0.0):
         """
-        Grating texture painted on a cylinder
+        Grating texture painted on a cylinder.
 
         :param period: spatial period, degrees
         :param mean: mean intensity of grating texture
@@ -309,6 +310,12 @@ class CylindricalGrating(TexturedCylinder):
         self.contrast = make_as_trajectory(contrast)
         self.offset = make_as_trajectory(offset)
 
+        img = np.zeros((1, 512)).astype(np.uint8)
+        if self.profile == 'sine':
+            self.add_texture_gl(img, texture_interpolation='LINEAR')
+        elif self.profile == 'square':
+            self.add_texture_gl(img, texture_interpolation='NEAREST')
+
         self.updateTexture(return_for_time_t(self.mean, 0), return_for_time_t(self.contrast, 0), return_for_time_t(self.offset, 0))
 
     def updateTexture(self, mean, contrast, offset):
@@ -317,17 +324,15 @@ class CylindricalGrating(TexturedCylinder):
         xx = np.linspace(0, np.radians(self.cylinder_angular_extent), 512)
 
         if self.profile == 'sine':
-            self.texture_interpolation = 'LML'
             yy = np.sin(np.radians(offset) + sf*2*np.pi*xx)  # [-1, 1]
         elif self.profile == 'square':
-            self.texture_interpolation = 'NEAREST'
             yy = np.sin(np.radians(offset) + sf*2*np.pi*xx)
             yy[yy >= 0] = 1
             yy[yy < 0] = -1
 
         yy = 255*(mean + contrast*mean*yy)  # shift/scale from [-1,1] to mean and contrast and scale to [0,255] for uint8
         img = np.expand_dims(yy, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
-        self.texture_image = img
+        self.update_texture_gl(img)
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         mean = return_for_time_t(self.mean, t)
@@ -344,7 +349,8 @@ class RotatingGrating(CylindricalGrating):
     def configure(self, rate=10, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
                   color=[1, 1, 1, 1], alpha_by_face=None, cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0):
         """
-        Subclass of CylindricalGrating that rotates the grating along the varying axis of the grating
+        Subclass of CylindricalGrating that rotates the grating along the varying axis of the grating.
+
         Note that the rotation effect is achieved by translating the texture on a semi-cylinder. This
         allows for arbitrary spatial periods to be achieved with no discontinuities in the grating
 
@@ -382,7 +388,8 @@ class RandomBars(TexturedCylinder):
                   distribution_data=None, update_rate=60.0, start_seed=0,
                   color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0, cylinder_location=(0, 0, 0)):
         """
-        Periodic bars of randomized intensity painted on the inside of a cylinder
+        Periodic bars of randomized intensity painted on the inside of a cylinder.
+
         :param period: spatial period (degrees) of bar locations
         :param width: width (degrees) of each bar
         :param vert_extent: vertical extent (degrees) of bars
@@ -415,6 +422,9 @@ class RandomBars(TexturedCylinder):
         self.update_rate = update_rate
         self.start_seed = start_seed
         self.cylinder_location = cylinder_location
+
+        img = np.zeros((1, 255)).astype(np.uint8)
+        self.add_texture_gl(img, texture_interpolation='NEAREST')
 
         # Only renders part of the cylinder if the period is not a divisor of 360
         self.n_bars = int(np.floor(360/self.period))
@@ -449,9 +459,7 @@ class RandomBars(TexturedCylinder):
 
         # make the texture
         img = np.expand_dims(255*profile, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
-        self.texture_interpolation = 'NEAREST'
-        self.texture_image = img
-
+        self.update_texture_gl(img)
 
 
 class RandomGrid(TexturedCylinder):
@@ -462,7 +470,7 @@ class RandomGrid(TexturedCylinder):
                   distribution_data=None, update_rate=60.0, start_seed=0,
                   color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
         """
-        Random square grid pattern painted on the inside of a cylinder
+        Random square grid pattern painted on the inside of a cylinder.
 
         :param patch width: Azimuth extent (degrees) of each patch
         :param patch height: Elevation extent (degrees) of each patch
@@ -474,7 +482,6 @@ class RandomGrid(TexturedCylinder):
 
         :other params: see TexturedCylinder
         """
-
         # Only renders part of the cylinder if the period is not a divisor of cylinder_angular_extent
         self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
         self.cylinder_angular_extent = self.n_patches_width * patch_width
@@ -500,6 +507,9 @@ class RandomGrid(TexturedCylinder):
         self.start_seed = start_seed
         self.update_rate = update_rate
 
+        img = np.zeros((self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        self.add_texture_gl(img, texture_interpolation='NEAREST')
+
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
@@ -514,8 +524,7 @@ class RandomGrid(TexturedCylinder):
         face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
         # make the texture
         img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
-        self.texture_interpolation = 'NEAREST'
-        self.texture_image = img
+        self.update_texture_gl(img)
 
 
 class Checkerboard(TexturedCylinder):
@@ -525,7 +534,7 @@ class Checkerboard(TexturedCylinder):
     def configure(self, patch_width=4, patch_height=4, cylinder_vertical_extent=160, cylinder_angular_extent=360,
                   color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
         """
-        Periodic checkerboard pattern painted on the inside of a cylinder
+        Periodic checkerboard pattern painted on the inside of a cylinder.
 
         :param patch width: Azimuth extent (degrees) of each patch
         :param patch height: Elevation extent (degrees) of each patch
@@ -564,8 +573,7 @@ class Checkerboard(TexturedCylinder):
 
         # make and apply the texture
         img = (255*face_colors).astype(np.uint8)
-        self.texture_interpolation = 'NEAREST'
-        self.texture_image = img
+        self.add_texture_gl(img, texture_interpolation='NEAREST')
 
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
@@ -583,13 +591,13 @@ class Tower(BaseProgram):
 
     def configure(self, color=[1, 0, 0, 1], cylinder_radius=0.5, cylinder_height=0.5, cylinder_location=[+5, 0, 0], n_faces=16):
         """
-        Cylindrical tower object in arbitrary x, y, z coords
+        Cylindrical tower object in arbitrary x, y, z coords.
+
         :param color: [r,g,b,a] color of cylinder. Applied to entire texture, which is monochrome
         :param cylinder_radius: meters
         :param cylinder_height: meters
         :param cylinder_location: [x, y, z] location of the center of the cylinder, meters
         :param n_faces: number of quad faces to make the cylinder out of
-
         """
         self.color = color
         self.cylinder_radius = cylinder_radius
@@ -606,6 +614,7 @@ class Tower(BaseProgram):
     def eval_at(self, t, fly_position=[0, 0, 0]):
         pass
 
+
 class TexturedGround(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
@@ -613,12 +622,12 @@ class TexturedGround(BaseProgram):
 
     def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=-0.1, side_length=5, rand_seed=0):
         """
-        Infinite textured ground
+        Infinite textured ground.
+
         :param color: [r,g,b,a]
         :param z_level: meters, level at which the floor is on the z axis (-z is below the fly)
         :param side_length: meters
         """
-
         self.color = color
         self.rand_seed = rand_seed
 
@@ -627,18 +636,17 @@ class TexturedGround(BaseProgram):
         v3 = (side_length, side_length, z_level)
         v4 = (-side_length, side_length, z_level)
 
-        self.stim_object = GlQuad(v1, v2, v3, v4,  self.color,
+        self.stim_object = GlQuad(v1, v2, v3, v4, self.color,
                                   tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1),
                                   texture_shift=(0, 0), use_texture=True)
 
         # create the texture
         np.random.seed(self.rand_seed)
-        face_colors = np.random.uniform(size=(128,128))
+        face_colors = np.random.uniform(size=(128, 128))
 
         # make and apply the texture
         img = (255*face_colors).astype(np.uint8)
-        self.texture_interpolation = 'LINEAR'
-        self.texture_image = img
+        self.add_texture_gl(img, texture_interpolation='LINEAR')
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         pass
@@ -660,31 +668,31 @@ class HorizonCylinder(TexturedCylinder):
 
         if load_image:
             with open(image_path, 'rb') as handle:
-               s = handle.read()
+                s = handle.read()
             arr = array.array('H', s)
             arr.byteswap()
             img = np.array(arr, dtype='uint16').reshape(1024, 1536)
             img = np.uint8(255*(img / np.max(img)))
-            img = img[:,:1024]
+            img = img[:, :1024]
 
         else:
             # use a dummy texture
             np.random.seed(0)
-            face_colors = np.random.uniform(size=(128,128))
+            face_colors = np.random.uniform(size=(128, 128))
             img = (255*face_colors).astype(np.uint8)
 
-        self.texture_interpolation = 'LINEAR'
-        self.texture_image = img
+        self.add_texture_gl(img, texture_interpolation='LINEAR')
 
         self.stim_template = GlCylinder(cylinder_height=self.cylinder_height,
-                                      cylinder_radius=self.cylinder_radius,
-                                      cylinder_location=(0, 0, 0),
-                                      color=self.color,
-                                      texture=True).rotz(np.radians(180))
+                                        cylinder_radius=self.cylinder_radius,
+                                        cylinder_location=(0, 0, 0),
+                                        color=self.color,
+                                        texture=True).rotz(np.radians(180))
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         cyl_position = fly_position.copy()
         self.stim_object = copy.copy(self.stim_template).translate(cyl_position)
+
 
 class Forest(BaseProgram):
     def __init__(self, screen):
@@ -692,7 +700,8 @@ class Forest(BaseProgram):
 
     def configure(self, color=[1, 1, 1, 1], cylinder_radius=0.5, cylinder_height=0.5, n_faces=16, cylinder_locations=[[+5, 0, 0]]):
         """
-        Collection of tower objects created with a single shader program
+        Collection of tower objects created with a single shader program.
+
         """
         self.color = color
         self.cylinder_radius = cylinder_radius
@@ -704,10 +713,10 @@ class Forest(BaseProgram):
 
         # This step is slow. Make template once then use .translate() on copies to make cylinders
         cylinder = GlCylinder(cylinder_height=self.cylinder_height,
-                                        cylinder_radius=self.cylinder_radius,
-                                        cylinder_location=[0,0,0],
-                                        color=self.color,
-                                        n_faces=self.n_faces)
+                              cylinder_radius=self.cylinder_radius,
+                              cylinder_location=[0, 0, 0],
+                              color=self.color,
+                              n_faces=self.n_faces)
 
         for tree_loc in self.cylinder_locations:
             new_cyl = copy.copy(cylinder).translate(tree_loc)
@@ -724,7 +733,8 @@ class CoherentMotionDotField(BaseProgram):
 
     def configure(self, point_size=20, sphere_radius=1, color=[1, 1, 1, 1], theta_locations=[0], phi_locations=[0], theta_trajectory=0, phi_trajectory=0):
         """
-        Collection of moving points created with a single shader
+        Collection of moving points created with a single shader.
+
         Each point can have a distinct offset (center), and all move with a single coherent motion trajectory along a sphere
         Note that points are all the same size, so no area correction is made for perspective
         """

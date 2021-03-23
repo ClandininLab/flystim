@@ -30,10 +30,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def __init__(self, screen, server, app):
         """
+        Initialize the StimDisplay obect.
+
         :param screen: Screen object (from flystim.screen) corresponding to the screen on which the stimulus will
         be displayed.
         """
-
         # call super constructor
         super().__init__(make_qt_format(vsync=screen.vsync))
 
@@ -178,11 +179,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def load_stim(self, name, hold=False, **kwargs):
         """
-        Loads the stimulus with the given name, using the given params.  After the stimulus is loaded, the
-        background color is changed to the one specified in the stimulus, and the stimulus is evaluated at time 0.
+        Load the stimulus with the given name, using the given params.
+
+        After the stimulus is loaded, the background color is changed to the one specified in the stimulus, and the stimulus is evaluated at time 0.
         :param name: Name of the stimulus (should be a class name)
         """
-
         if hold is False:
             self.stim_list = []
 
@@ -194,11 +195,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def start_stim(self, t, append_stim_frames=False):
         """
-        Starts the stimulus animation, using the given time as t=0
+        Start the stimulus animation, using the given time as t=0.
+
         :param t: Time corresponding to t=0 of the animation
         :param append_stim_frames: bool, append frames to stim_frames list, for saving stim movie. May affect performance.
         """
-
         self.profile_frame_times = []
         self.stim_frames = []
         self.append_stim_frames = append_stim_frames
@@ -229,6 +230,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
                     print('*** ' + stim_names + ' ***')
                     print(fps_data.describe(percentiles=[0.01, 0.05, 0.1, 0.9, 0.95, 0.99]))
                     print('*** end of statistics ***')
+
 
         # reset stim variables
         self.stim_list = []

@@ -20,9 +20,8 @@ class BaseProgram:
         # set screen
         self.screen = screen
         self.num_tri = num_tri
-        self.texture_image = None
         self.use_texture = False
-        self.texture_interpolation = 'LINEAR' # LINEAR, NEAREST
+        self.texture = None
         self.draw_mode = 'TRIANGLES' # TRIANGLES, POINTS
         self.point_size = 2 # pixels on screen, only for POINTS draw_mode
 
@@ -35,6 +34,11 @@ class BaseProgram:
         self.prog = self.create_prog()
 
         self.update_vertex_objects()
+
+        if self.use_texture:
+            self.prog['use_texture'].value = True
+        else:
+            self.prog['use_texture'].value = False
 
     def configure(self, *args, **kwargs):
         pass
@@ -52,13 +56,8 @@ class BaseProgram:
         self.update_vertex_objects()
 
         if self.use_texture:
-            self.prog['use_texture'].value = True
-
-            self.add_texture(self.texture_image)
             vertices = len(data) // 9
         else:
-            self.prog['use_texture'].value = False
-
             vertices = len(data) // 7
 
         # write data to VBO
@@ -88,18 +87,22 @@ class BaseProgram:
             self.vbo = self.ctx.buffer(reserve=self.num_tri*3*7*4)  # 3 points, 7 values, 4 bytes per value
             self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
 
-    def add_texture(self, texture_image):
+    def add_texture_gl(self, texture_image, texture_interpolation='LINEAR'):
         self.texture = self.ctx.texture(size=(texture_image.shape[1], texture_image.shape[0]),
                                         components=1,
                                         data=texture_image.tobytes())  # size = (width, height)
-        if self.texture_interpolation == 'NEAREST':
+
+        if texture_interpolation == 'NEAREST':
             self.texture.filter = (moderngl.NEAREST, moderngl.NEAREST)
-        elif self.texture_interpolation == 'LINEAR':
+        elif texture_interpolation == 'LINEAR':
             self.texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
         else:
             self.texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
 
         self.texture.use()
+
+    def update_texture_gl(self, texture_image):
+        self.texture.write(data=texture_image.tobytes())
 
     def eval_at(self, t, fly_position=[0, 0, 0]):
         """
