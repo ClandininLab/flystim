@@ -37,7 +37,7 @@ class ConstantBackground(BaseProgram):
                   '+z': self.color, '-z': self.color}
         self.stim_object = GlCube(colors, center=self.center, side_length=self.side_length)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
 
@@ -62,7 +62,7 @@ class Floor(BaseProgram):
         color = self.color
         self.stim_object = GlQuad(v1, v2, v3, v4, color)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
 
@@ -88,7 +88,7 @@ class MovingSpot(BaseProgram):
         self.theta = make_as_trajectory(theta)
         self.phi = make_as_trajectory(phi)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         radius = return_for_time_t(self.radius, t)
         theta = return_for_time_t(self.theta, t)
         phi = return_for_time_t(self.phi, t)
@@ -97,7 +97,7 @@ class MovingSpot(BaseProgram):
         self.stim_object = GlSphericalCirc(circle_radius=radius,
                                            sphere_radius=self.sphere_radius,
                                            color=color,
-                                           n_steps=36).rotate(np.radians(theta), np.radians(phi), 0)
+                                           n_steps=36).rotate(np.radians(theta) + fly_heading[0], np.radians(phi) + fly_heading[1], 0).translate(fly_position.copy())
 
 
 class MovingPatch(BaseProgram):
@@ -125,7 +125,7 @@ class MovingPatch(BaseProgram):
         self.phi = make_as_trajectory(phi)
         self.angle = make_as_trajectory(angle)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         width = return_for_time_t(self.width, t)
         height = return_for_time_t(self.height, t)
         theta = return_for_time_t(self.theta, t)
@@ -174,7 +174,7 @@ class TexturedSphericalPatch(BaseProgram):
         # overwrite in subclass
         pass
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         # overwrite in subclass
         pass
 
@@ -233,7 +233,7 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
 
         self.update_texture_gl(img)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         self.updateTexture(t)
 
 
@@ -264,7 +264,7 @@ class TexturedCylinder(BaseProgram):
         # overwrite in subclass
         pass
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         # overwrite in subclass
         pass
 
@@ -334,7 +334,7 @@ class CylindricalGrating(TexturedCylinder):
         img = np.expand_dims(yy, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
         self.update_texture_gl(img)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         mean = return_for_time_t(self.mean, t)
         contrast = return_for_time_t(self.contrast, t)
         offset = return_for_time_t(self.offset, t)
@@ -375,7 +375,7 @@ class RotatingGrating(CylindricalGrating):
                                                n_faces=self.n_faces,
                                                texture=True)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         shift_u = t*self.rate/self.cylinder_angular_extent
         self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
@@ -437,7 +437,7 @@ class RandomBars(TexturedCylinder):
                                                cylinder_location=self.cylinder_location,
                                                texture=True)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         theta = return_for_time_t(self.theta, t)
         phi = return_for_time_t(self.phi, t)
         angle = return_for_time_t(self.angle, t)
@@ -516,7 +516,7 @@ class RandomGrid(TexturedCylinder):
                                       color=self.color,
                                       texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
@@ -581,7 +581,7 @@ class Checkerboard(TexturedCylinder):
                                       color=self.color,
                                       texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
 
@@ -611,7 +611,7 @@ class Tower(BaseProgram):
                                       color=self.color,
                                       n_faces=self.n_faces)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
 
@@ -648,7 +648,7 @@ class TexturedGround(BaseProgram):
         img = (255*face_colors).astype(np.uint8)
         self.add_texture_gl(img, texture_interpolation='LINEAR')
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
 
@@ -689,7 +689,7 @@ class HorizonCylinder(TexturedCylinder):
                                         color=self.color,
                                         texture=True).rotz(np.radians(180))
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         cyl_position = fly_position.copy()
         self.stim_object = copy.copy(self.stim_template).translate(cyl_position)
 
@@ -722,7 +722,7 @@ class Forest(BaseProgram):
             new_cyl = copy.copy(cylinder).translate(tree_loc)
             self.stim_object.add(new_cyl)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
 
@@ -751,7 +751,7 @@ class CoherentMotionDotField(BaseProgram):
                                                       theta=self.theta_locations,
                                                       phi=self.phi_locations)
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         theta = return_for_time_t(self.theta_trajectory, t)
         phi = return_for_time_t(self.phi_trajectory, t)
 

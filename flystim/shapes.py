@@ -229,6 +229,7 @@ class GlSphericalCirc(GlVertices):
                  circle_radius=10,  # degrees in spherical coordinates
                  sphere_radius=1,  # meters
                  color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 sphere_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of sphere
                  n_steps=36):
         super().__init__()
         if type(color) is not list:
@@ -250,7 +251,7 @@ class GlSphericalCirc(GlVertices):
                                             np.pi/2 + radians(circle_radius)*np.cos(angles[wedge+1]),
                                             np.pi/2 + radians(circle_radius)*np.sin(angles[wedge+1])))
 
-            self.add(GlTri(v1, v2, v_center, color))
+            self.add(GlTri(v1, v2, v_center, color).translate(sphere_location))
 
     def sphericalToCartesian(self, spherical_coords):
         r, theta, phi = spherical_coords

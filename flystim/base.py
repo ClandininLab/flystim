@@ -43,14 +43,14 @@ class BaseProgram:
     def configure(self, *args, **kwargs):
         pass
 
-    def paint_at(self, t, viewports, perspectives, fly_position=[0, 0, 0]):
+    def paint_at(self, t, viewports, perspectives, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         """
         :param t: current time in seconds
         :param viewports: list of viewport arrays for each subscreen - (xmin, ymin, width, height) in display device pixels
         :param perspectives: list of perspective matrices for each subscreen, generated using perspective.GenPerspective and subscreen corners
         :param fly_position: x, y, z position of fly (meters)
         """
-        self.eval_at(t, fly_position=fly_position) # update any stim objects that depend on fly position
+        self.eval_at(t, fly_position=fly_position, fly_heading=fly_heading) # update any stim objects that depend on fly position
 
         data = self.stim_object.data # get stim object vertex data
         self.update_vertex_objects()
@@ -104,7 +104,7 @@ class BaseProgram:
     def update_texture_gl(self, texture_image):
         self.texture.write(data=texture_image.tobytes())
 
-    def eval_at(self, t, fly_position=[0, 0, 0]):
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         """
         :param t: current time in seconds
         """

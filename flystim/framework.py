@@ -134,7 +134,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             for stim in self.stim_list:
                 if self.stim_started:
-                    stim.paint_at(self.get_stim_time(t), self.subscreen_viewports, perspectives, fly_position=self.global_fly_pos.copy())
+                    stim.paint_at(self.get_stim_time(t),
+                                  self.subscreen_viewports,
+                                  perspectives,
+                                  fly_position=self.global_fly_pos.copy(),
+                                  fly_heading=[self.global_theta_offset+0, self.global_phi_offset+0])
                 else:
                     [self.clear_viewport(viewport=x) for x in self.subscreen_viewports]
 
