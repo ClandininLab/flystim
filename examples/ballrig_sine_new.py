@@ -12,14 +12,14 @@ from flystim.trajectory import RectangleAnyTrajectory, SinusoidalTrajectory
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
 from flystim.ballrig_util import latency_report, make_tri_list
-from flystim import fictrac_util as ftu
+from ftutil.ft_managers import FtManager, FtSocketManager, FtClosedLoopManager
 
 from ballrig_analysis.utils import fictrac_utils
 
 FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
 FICTRAC_PORT = 33334         # The port used by the server
-FICTRAC_BIN =    "/home/clandinin/lib/fictrac211/bin/fictrac"
-FICTRAC_CONFIG = "/home/clandinin/lib/fictrac211/config_MC.txt"
+FICTRAC_BIN =    "/home/clandininlab/lib/fictrac211/bin/fictrac"
+FICTRAC_CONFIG = "/home/clandininlab/lib/fictrac211/config_MC.txt"
 FT_FRAME_NUM_IDX = 0
 FT_THETA_IDX = 16
 FT_TIMESTAMP_IDX = 21
@@ -158,9 +158,9 @@ def main():
     #####################################################
 
     if closed_loop:
-        ft_manager = ftu.FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT)
+        ft_manager = FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT)
     else:
-        ft_manager = ftu.FtManager(ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG)
+        ft_manager = FtManager(ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG)
     ft_manager.sleep(8) #allow fictrac to gather data
 
     if save_history:
@@ -172,11 +172,11 @@ def main():
 
     fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
     if closed_loop:
-        ft_manager.set_theta_0()
+        ft_manager.set_pos_0()
     fs_manager.start_stim()
     t_start = time()
 
-    ft_manager.update_theta_for(duration) if closed_loop else ft_manager.sleep(duration)
+    ft_manager.update_pos_for(duration) if closed_loop else ft_manager.sleep(duration)
 
     fs_manager.stop_stim()
     t_end = time()
