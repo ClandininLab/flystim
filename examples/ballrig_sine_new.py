@@ -21,6 +21,8 @@ FICTRAC_PORT = 33334         # The port used by the server
 FICTRAC_BIN =    "/home/clandininlab/lib/fictrac211/bin/fictrac"
 FICTRAC_CONFIG = "/home/clandininlab/lib/fictrac211/config_MC.txt"
 FT_FRAME_NUM_IDX = 0
+FT_X_IDX = 14
+FT_Y_IDX = 15
 FT_THETA_IDX = 16
 FT_TIMESTAMP_IDX = 21
 FT_SQURE_IDX = 25
@@ -158,7 +160,7 @@ def main():
     #####################################################
 
     if closed_loop:
-        ft_manager = FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT)
+        ft_manager = FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT, ft_theta_idx=FT_THETA_IDX, ft_frame_num_idx=FT_FRAME_NUM_IDX, ft_timestamp_idx=FT_TIMESTAMP_IDX)
     else:
         ft_manager = FtManager(ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG)
     ft_manager.sleep(8) #allow fictrac to gather data
