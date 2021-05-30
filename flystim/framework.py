@@ -1,4 +1,4 @@
-from PyQt5 import QtOpenGL, QtWidgets
+from PyQt6 import QtOpenGL, QtWidgets, QtOpenGLWidgets, QtGui
 
 import time
 import sys
@@ -22,7 +22,7 @@ from flyrpc.transceiver import MySocketServer
 from flyrpc.util import get_kwargs
 
 
-class StimDisplay(QtOpenGL.QGLWidget):
+class StimDisplay(QtOpenGLWidgets.QOpenGLWidget): #class StimDisplay(QtOpenGL.QGLWidget):
     """
     Class that controls the stimulus display on one screen.  It contains the pyglet window object for that screen,
     and also controls rendering of the stimulus, toggling corner square, and/or debug information.
@@ -35,13 +35,20 @@ class StimDisplay(QtOpenGL.QGLWidget):
         :param screen: Screen object (from flystim.screen) corresponding to the screen on which the stimulus will
         be displayed.
         """
+
         # call super constructor
-        super().__init__(make_qt_format(vsync=screen.vsync))
+        super().__init__()
+
+        # In PyQt6, need to set the format after init.
+        qt_format = make_qt_format(vsync=screen.vsync)
+        QtGui.QSurfaceFormat.setDefaultFormat(qt_format)
+        self.setFormat(qt_format)
+        self.setUpdateBehavior(QtOpenGLWidgets.QOpenGLWidget.UpdateBehavior.PartialUpdate)
 
         # configure window to reside on a specific screen
         # re: https://stackoverflow.com/questions/6854947/how-to-display-a-window-on-a-secondary-display-in-pyqt
         if platform.system() == 'Windows':
-            desktop = QtWidgets.QDesktopWidget()
+            desktop = QtGui.QScreen() #desktop = QtWidgets.QDesktopWidget()
             rectScreen = desktop.screenGeometry(screen.id)
             self.move(rectScreen.left(), rectScreen.top())
             self.resize(rectScreen.width(), rectScreen.height())
@@ -367,11 +374,11 @@ def make_qt_format(vsync):
     """
 
     # create format with default settings
-    format = QtOpenGL.QGLFormat()
+    format = QtGui.QSurfaceFormat() #format = QtOpenGL.QGLFormat()
 
     # use OpenGL 3.3
     format.setVersion(3, 3)
-    format.setProfile(QtOpenGL.QGLFormat.CoreProfile)
+    format.setProfile(QtGui.QSurfaceFormat.OpenGLContextProfile.CoreProfile) #format.setProfile(QtOpenGL.QGLFormat.CoreProfile)
 
     # use VSYNC
     if vsync:
@@ -380,11 +387,15 @@ def make_qt_format(vsync):
         format.setSwapInterval(0)
 
     # TODO: determine what these lines do and whether they are necessary
-    format.setSampleBuffers(True)
+    format.setSamples(8) # format.setSampleBuffers(True)
     format.setDepthBufferSize(24)
 
-    # needed to enable transparency
-    format.setAlpha(True)
+    # needed to enable transparency and each color inidividually??
+    format.setRedBufferSize(8)
+    format.setGreenBufferSize(8)
+    format.setBlueBufferSize(8)
+    format.setRedBufferSize(8)
+    format.setAlphaBufferSize(8) #format.setAlpha(True)
 
     return format
 
@@ -437,7 +448,7 @@ def main():
     # Use Ctrl+C to exit.
     # ref: https://stackoverflow.com/questions/2300401/qapplication-how-to-shutdown-gracefully-on-ctrl-c
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-    sys.exit(app.exec_())
+    sys.exit(app.exec()) #sys.exit(app.exec_())
 
 if __name__ == '__main__':
     main()
