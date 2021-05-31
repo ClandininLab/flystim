@@ -20,9 +20,10 @@ MAX_TOGGLE_FREQ = MAX_SQUARE_FREQ * 2
 
 
 class SquareProgram:
-    def __init__(self, screen):
+    def __init__(self, screen, pattern="random"):
         # save settings
         self.screen = screen
+        self.pattern = pattern # "random" and "frame"
 
         # initialize settings
         self.color = 1.0
@@ -63,8 +64,8 @@ class SquareProgram:
         """
 
         # compute width and height in NDC
-        w = 2.0*self.screen.square_side/self.screen.width
-        h = 2.0*self.screen.square_side/self.screen.height
+        w = 2.0*self.screen.square_side[0]/self.screen.width
+        h = 2.0*self.screen.square_side[1]/self.screen.height
 
         if type(self.screen.square_loc) == list:
             offset_x = self.screen.square_loc[0]
@@ -119,4 +120,7 @@ class SquareProgram:
         #    self.square_history[self.profile_frame_count] = int(self.color)
 
         if self.toggle:
-            self.toggle_square()
+            if self.pattern == "random":
+                self.toggle_square()
+            elif self.pattern == "frame":
+                self.color = 1.0 - self.color

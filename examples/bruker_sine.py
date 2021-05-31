@@ -11,15 +11,16 @@ from time import sleep, time, strftime, localtime
 from flystim.trajectory import RectangleAnyTrajectory, SinusoidalTrajectory
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
-from flystim.ballrig_util import latency_report, make_tri_list
+from flystim.ballrig_util import latency_report
+from flystim.random.bruker import get_bruker_screen
 from ftutil.ft_managers import FtManager, FtSocketManager, FtClosedLoopManager
 
 from ballrig_analysis.utils import fictrac_utils
 
 FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
 FICTRAC_PORT = 33334         # The port used by the server
-FICTRAC_BIN =    "/home/clandinin/lib/fictrac211/bin/fictrac"
-FICTRAC_CONFIG = "/home/clandinin/lib/fictrac211/config_MC.txt"
+FICTRAC_BIN =    "/home/clandininlab/lib/fictrac211/bin/fictrac"
+FICTRAC_CONFIG = "/home/clandininlab/lib/fictrac211/config_MC.txt"
 FT_FRAME_NUM_IDX = 0
 FT_X_IDX = 14
 FT_Y_IDX = 15
@@ -86,7 +87,7 @@ def main():
 
     rgb_power = [0, 0.9, 0.9]
 
-    ft_frame_rate = 308 #Hz, higher
+    ft_frame_rate = 250 #Hz, higher
     fs_frame_rate = 120
 
     current_time = strftime('%Y%m%d_%H%M%S', localtime())
@@ -146,11 +147,16 @@ def main():
     os.system('/home/clandinin/miniconda3/bin/lcr_ctl --fps 120 --red_current ' + str(rgb_power[0]) + ' --blue_current ' + str(rgb_power[2]) + ' --green_current ' + str(rgb_power[1]))
 
     # Create screen object
-    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.01, square_loc=(0.59,0.74))#square_side=0.08,coh_bar_traj_r square_loc='ur')
+    #bruker_left_screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=(0.11, 0.23), square_loc=(0.89, -1.00), name='Left')
+    #bruker_right_screen = Screen(server_number=1, id=2,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=(0.14, 0.22), square_loc=(-0.85, -0.94), name='Right')
+    bruker_left_screen = get_bruker_screen('Left')
+    bruker_right_screen = get_bruker_screen('Right')
+    aux_screen = Screen(server_number=1, id=0, fullscreen=False, vsync=True, square_size=0, square_loc=(-1, -1), name='Aux')
     #print(screen)
+    screens = [bruker_left_screen, bruker_right_screen, aux_screen]
 
     # Start stim server
-    fs_manager = launch_stim_server(screen)
+    fs_manager = launch_stim_server(screens)
     if save_history:
         fs_manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=duration)
     fs_manager.set_idle_background(background_color)

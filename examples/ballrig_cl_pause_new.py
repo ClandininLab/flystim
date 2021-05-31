@@ -12,7 +12,7 @@ from flystim.trajectory import RectangleTrajectory, RectangleAnyTrajectory, Sinu
 from flystim.screen import Screen
 from flystim.stim_server import launch_stim_server
 from flystim.ballrig_util import latency_report, make_tri_list
-from flystim import fictrac_util as ftu
+from ftutil.ft_managers import FtClosedLoopManager
 
 from ballrig_analysis.utils import fictrac_utils
 
@@ -21,6 +21,8 @@ FICTRAC_PORT = 33334         # The port used by the server
 FICTRAC_BIN =    "/home/clandinin/lib/fictrac211/bin/fictrac"
 FICTRAC_CONFIG = "/home/clandinin/lib/fictrac211/config_MC.txt"
 FT_FRAME_NUM_IDX = 0
+FT_X_IDX = 14
+FT_Y_IDX = 15
 FT_THETA_IDX = 16
 FT_TIMESTAMP_IDX = 21
 FT_SQURE_IDX = 25
@@ -252,7 +254,7 @@ def main():
     # part 3: start the loop
     #####################################################
 
-    ft_manager = ftu.FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT)
+    ft_manager = FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT, ft_theta_idx=FT_THETA_IDX, ft_frame_num_idx=FT_FRAME_NUM_IDX, ft_timestamp_idx=FT_TIMESTAMP_IDX)
     ft_manager.sleep(8) #allow fictrac to gather data
 
     if save_history:

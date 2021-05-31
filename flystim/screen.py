@@ -1,4 +1,5 @@
 from math import sin, cos
+import numbers
 
 class ScreenPoint:
     def __init__(self, ndc, cart):
@@ -52,7 +53,7 @@ class Screen:
     """
 
     def __init__(self, width=None, height=None, rotation=None, offset=None, server_number=None, id=None,
-                 fullscreen=None, vsync=None, square_side=None, square_loc=None, name=None, tri_list=None):
+                 fullscreen=None, vsync=None, square_side=None, square_loc=None, square_pattern="random", name=None, tri_list=None):
         """
         :param width: width of the screen (meters)
         :param height: height of the screen (meters)
@@ -64,8 +65,9 @@ class Screen:
         :param fullscreen: Boolean.  If True, display stimulus fullscreen (default).  Otherwise, display stimulus
         in a window.
         :param vsync: Boolean.  If True, lock the framerate to the redraw rate of the screen.
-        :param square_side: Length of photodiode synchronization square (meters).
+        :param square_side: Length of photodiode synchronization square (meters). (x,y) or x
         :param square_loc: Location of photodiode synchronization square (one of 'll', 'lr', 'ul', 'ur' or a tuple of (x,y))
+        :param square_pattern: "random" or "frame". Former generates a random pattern for easy alignment, and "frame" toggles every frame.
         :param name: descriptive name to associate with this screen
         :param tri_list: list of triangular patches defining the screen geometry.  this is a list of ScreenTriangles.
         if the triangle list is not specified, then one is constructed automatically using rotation and offset.
@@ -82,6 +84,8 @@ class Screen:
         fullscreen = fullscreen or True
         vsync = vsync or True
         square_side = square_side or 2e-2
+        if isinstance(square_side, numbers.Number):
+            square_side = (square_side, square_side)
         square_loc = square_loc or 'll'
         name = name or ('Screen' + str(id))
 
@@ -106,6 +110,7 @@ class Screen:
         self.vsync = vsync
         self.square_side = square_side
         self.square_loc = square_loc
+        self.square_pattern = square_pattern
         self.name = name
 
     @classmethod
