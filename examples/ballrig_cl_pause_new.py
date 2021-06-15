@@ -306,7 +306,7 @@ def main():
 
         print("===== Start fixation ======")
 
-        ft_manager.set_theta_0()
+        ft_manager.set_pos_0(theta_0=None, x_0=0, y_0=0)
 
         fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
         fs_manager.start_stim()
@@ -314,7 +314,7 @@ def main():
 
         # Fill the queue of t and theta with initial 2 seconds then continue until iti is up
         while fix_score < fix_score_threshold or time()-t_start_fix < iti: #while the fly is not fixating or witin iti
-            ft_frame_num, _, theta_rad = ft_manager.update_theta()
+            ft_frame_num, _, [theta_rad] = ft_manager.update_pos()
             fix_q_theta_rad.pop(0)
             fix_q_theta_rad.append(theta_rad)
 
@@ -331,7 +331,7 @@ def main():
 
         t_end_fix = time()
         while abs((time()-t_start_fix)%(fix_sine_period/2)) > 0.1: #100 ms within hitting theta 0
-            _ = ft_manager.update_theta()
+            _ = ft_manager.update_pos()
 
         fs_manager.stop_stim()
 
@@ -349,11 +349,11 @@ def main():
 
         fs_manager.start_stim()
         t_start = time()
-        ft_manager.update_theta_for(stim_duration)
+        ft_manager.update_pos_for(stim_duration, update_theta=True)
         fs_manager.stop_stim()
         t_end = time()
 
-        print(f"===== Trial end (FT dur: {(ts-ts_0)/1000:.{5}}s)======")
+        print(f"===== Trial end (FT dur: {(t_end-t_start)/1000:.{5}}s)======")
 
         # Save things
         if save_history:
@@ -374,11 +374,11 @@ def main():
     # Burn off the second half of last ITI
     print("===== Start fixation ======")
 
-    _,theta_rad_0,_ = handle_fictrac_data(fictrac_sock, fs_manager, None)
+    ft_manager.set_pos_0(theta_0=None, x_0=0, y_0=0)
 
     fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
     fs_manager.start_stim()
-    ft_manager.update_theta_for(iti)
+    ft_manager.update_pos_for(iti, update_theta=True)
 
     # close fictrac
     ft_manager.close()

@@ -8,7 +8,7 @@ import logging
 from time import sleep, time, strftime, localtime
 
 #from flystim1.draw import draw_screens
-from flystim.dlpc350 import make_dlpc350_objects
+from flystim1.dlpc350 import make_dlpc350_objects
 from flystim1.trajectory import RectangleAnyTrajectory, SinusoidalTrajectory
 from flystim1.screen import Screen
 from flystim1.stim_server import launch_stim_server
