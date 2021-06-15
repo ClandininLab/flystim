@@ -41,7 +41,7 @@ class SinusoidalTrajectory:
 
 
 class RectangleTrajectory:
-    def __init__(self, x=90, y=90, w=2, h=8, angle=0, color=1):
+    def __init__(self, x=90, y=90, w=2, h=None, angle=0, color=1):
         # set defaults
         if not isinstance(x, Trajectory):
             x = Trajectory(x)
@@ -49,6 +49,8 @@ class RectangleTrajectory:
             y = Trajectory(y)
         if not isinstance(w, Trajectory):
             w = Trajectory(w)
+        if h is None:
+            h = w
         if not isinstance(h, Trajectory):
             h = Trajectory(h)
         if not isinstance(angle, Trajectory):
@@ -84,7 +86,7 @@ class RectangleAnyTrajectory:
     '''
     Same as RectangleTrajectory but more flexible to permit use of Trajectory or SinusoidalTrajectory for each component.
     '''
-    def __init__(self, x=90, y=90, w=2, h=8, angle=0, color=1):
+    def __init__(self, x=90, y=90, w=2, h=None, angle=0, color=1):
         # set defaults
         if not (isinstance(x, Trajectory) or isinstance(x, SinusoidalTrajectory)):
             x = Trajectory(x)
@@ -92,6 +94,8 @@ class RectangleAnyTrajectory:
             y = Trajectory(y)
         if not (isinstance(w, Trajectory) or isinstance(w, SinusoidalTrajectory)):
             w = Trajectory(w)
+        if h is None:
+            h = w
         if not (isinstance(h, Trajectory) or isinstance(h, SinusoidalTrajectory)):
             h = Trajectory(h)
         if not (isinstance(angle, Trajectory) or isinstance(angle, SinusoidalTrajectory)):

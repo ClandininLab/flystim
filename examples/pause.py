@@ -4,11 +4,10 @@
 
 import logging
 
-from flystim.draw import draw_screens
-from flystim.trajectory import RectangleTrajectory, RectangleAnyTrajectory, SinusoidalTrajectory
-from flystim.screen import Screen
-from flystim.stim_server import launch_stim_server
-from flystim.util import latency_report
+from flystim1.draw import draw_screens
+from flystim1.trajectory import RectangleTrajectory, RectangleAnyTrajectory, SinusoidalTrajectory
+from flystim1.screen import Screen
+from flystim1.stim_server import launch_stim_server
 
 import sys
 from time import sleep, time, strftime, localtime
@@ -18,14 +17,12 @@ import math
 from math import degrees
 import itertools
 import os, subprocess
-import h5py
 import socket
 import select
 from collections import deque
 
 import matplotlib.pyplot as plt
 
-from ballrig_analysis.utils import fictrac_utils
 
 def main():
     #####################################################

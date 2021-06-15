@@ -7,14 +7,14 @@ from math import pi, sqrt
 from time import sleep, time
 from datetime import datetime
 
-from flystim.stim_server import launch_stim_server
-from flystim.screen import Screen
-from flystim.trajectory import RectangleAnyTrajectory, Trajectory
+from flystim1.stim_server import launch_stim_server
+from flystim1.screen import Screen
+from flystim1.trajectory import RectangleAnyTrajectory, Trajectory
 import itertools
 
 import numpy as np
 
-from multi_sensory_traj import loomingList, loomingEdge #Note: loomingList is for randomizing the stimulus projection, loomingEdge is for designing looming patch with parameters
+#from multi_sensory_traj import loomingList, loomingEdge #Note: loomingList is for randomizing the stimulus projection, loomingEdge is for designing looming patch with parameters
 
 def pol2cart(amp, angle):
     theta = amp * np.cos(angle)
@@ -23,23 +23,29 @@ def pol2cart(amp, angle):
 
 
 def main():
-    bg =1.0  # background brightness
-    lm=0 # brightness of the looming patch
+    c_bg =1.0  # background brightness
+    c_lm=0 # brightness of the looming patch
 
-    n_trials = 1
+    n_trials = 3
     iti_uniform_lo = 3
     ini_uniform_hi = 6
-    loom_duration = 2
-    loomtraj = loomingEdge(cx=0, cy=90, wStart=10, hStart=10, wEnd=100, hEnd=100, T=loom_duration, c=lm)
+    loom_duration = 0.5
+    loom_diam_start = 10
+    loom_diam_end = 100
+    loom_dt = 0.001
+
+    #loomtraj = loomingEdge(cx=0, cy=90, wStart=loom_diam_start, hStart=loom_diam_start, wEnd=loom_diam_end, hEnd=loom_diam_end, T=loom_duration, c=lm)
     # cx, cy: center of looming patch; wStart, hStart: width and height of the looming patch when starting
     # wEnd, hEnd: width and height of the looming patch at the end
     # T: length of looming presentation, in seconds
     # c: brightness of the patch
 
+    friends_duration = 5
 
-    n_friends_per_zone = 10
-    friends_speed_mean = 8
-    friends_speed_std = 3
+    c_friends = 0.3
+    n_friends_per_zone = 5
+    friends_speed_mean = 3#8
+    friends_speed_std = 1#3
     friends_rad_mean = 1
     friends_rad_std = 0
 
@@ -72,47 +78,51 @@ def main():
     # 3. Figure out how to show friends AND loom concurrently
 
 
-    #targets =
-
     #print(spawn_thetas)
     #print(spawn_phis)
 
-    # 4. Create trajectories
+    # 4. Sample ITIs
+    itis = np.random.uniform(iti_uniform_lo, ini_uniform_hi, n_trials)
+
+    # 5. Create trajectories
+    ## 5.1 Friends
     friends_traj = []
     for f in range(n_friends):
         theta_traj = Trajectory([(0, spawn_thetas[f]), (2, spawn_thetas[f]+velocities[f][0]*2)])
         phi_traj = Trajectory([(0, spawn_phis[f]), (2, spawn_phis[f]+velocities[f][1]*2)])
-        friend_traj = RectangleAnyTrajectory(x=theta_traj, y=phi_traj, w=radii[f]+1, h=radii[f], angle=np.rad2deg(angle[f]), color=lm)
+        friend_traj = RectangleAnyTrajectory(x=theta_traj, y=phi_traj, w=radii[f]+1, h=radii[f], angle=np.rad2deg(angle[f]), color=c_friends)
         friends_traj.append(friend_traj)
 
+    ## 5.2 Looms
+    diam_traj = [(0,0), (friends_duration,0)]
+    last_t = friends_duration
+    for t in range(n_trials):
+        diam_traj.extend([(last_t-loom_dt, 0), (last_t, loom_diam_start)])
+        last_t += loom_duration
+        diam_traj.extend([(last_t, loom_diam_end), (last_t+loom_dt, 0)])
+        last_t += itis[t]
+    diam_traj.append((last_t, 0))
+    loomtraj = RectangleAnyTrajectory(x=0, y=90, angle=0, color=c_lm, w=diam_traj)
 
+    # 6. Compute total experiment duration
+    experiment_duration = friends_duration + loom_duration*n_trials + np.sum(itis)
 
+    # 6. Launch flystim server and load stimuli
     screen = Screen(server_number=1, id=1,fullscreen=True)
-
     manager = launch_stim_server(screen)
-    manager.set_idle_background(bg)
-    sleep(3)
+    manager.set_idle_background(c_bg)
+    sleep(1)
 
     for f in range(n_friends):
-        bg_color = bg if f==0 else None
+        bg_color = c_bg if f==0 else None
         manager.load_stim('MovingEllipseAnyTrajectory', trajectory=friends_traj[f].to_dict(), background=bg_color, hold=True)
 
+    manager.load_stim('MovingEllipseAnyTrajectory', trajectory=loomtraj.to_dict(), background=None, hold=True)
+
+    # 7. Start experiment
     manager.start_stim()
-    sleep(3)
-    #manager.stop_stim()
-    #sleep(5 * 1)
-
-    for t in range(n_trials):
-        print('looping')
-
-        manager.load_stim('MovingPatch', trajectory=loomtraj, background = None, hold=True)
-
-        #manager.start_stim()
-        sleep(loom_duration)
-
-        #manager.stop_stim()
-        iti = np.random.uniform(iti_uniform_lo, ini_uniform_hi)
-        sleep(iti)
+    sleep(experiment_duration)
+    manager.stop_stim()
     
 
 if __name__ == '__main__':
