@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
-from flystim.dlpc350 import make_dlpc350_objects
+from flystim1.dlpc350 import make_dlpc350_objects
 
 def main():
     parser = ArgumentParser()

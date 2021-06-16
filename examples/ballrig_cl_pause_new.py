@@ -83,6 +83,13 @@ def main():
         n_repeats = 35
     print(n_repeats)
 
+    req_fix = input("Require fixation? (default True): ")#26
+    if req_fix.lower() in ["", 'true', 't', '1', 'y', 'yes', 'ya', 'yeah']:
+        req_fix = True
+    else:
+        req_fix = False
+    print(req_fix)
+
     _ = input("Press enter to continue.")#26
 
     parent_path = os.getcwd()
@@ -116,7 +123,7 @@ def main():
     occlusion_duration = 0.5 #seconds
     pause_duration = 1 #seconds
     probe_duration = 1 #seconds
-    iti = 2 #seconds
+    iti = 5 #seconds
 
     con_stim_duration = preprime_duration + prime_duration + occlusion_duration + probe_duration
     inc_stim_duration = con_stim_duration + pause_duration
@@ -135,6 +142,7 @@ def main():
     fix_sine_amplitude = 15
     fix_sine_period = 1
     fix_window = 2 #seconds
+    fix_min_duration = 2
     fix_max_duration = 45
 
     #######################
@@ -199,12 +207,13 @@ def main():
     occluder_l_invisible = RectangleTrajectory(x=occluder_traj_l, y=90, w=occluder_width, h=occluder_height, color=background_color)
 
 
-    # Fix bar trajectory
-    sin_traj = SinusoidalTrajectory(amplitude=fix_sine_amplitude, period=fix_sine_period) # period of 1 second
-    fixbar_traj = RectangleAnyTrajectory(x=sin_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
-    fix_sine_template = sin_traj.eval_at(np.arange(0, fix_window + fix_sine_period, 1/ft_frame_rate))
-    fix_q_len = ft_frame_rate*fix_window
-    fix_q_theta_rad = [0] * fix_q_len
+    if req_fix:
+        # Fix bar trajectory
+        sin_traj = SinusoidalTrajectory(amplitude=fix_sine_amplitude, period=fix_sine_period) # period of 1 second
+        fixbar_traj = RectangleAnyTrajectory(x=sin_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
+        fix_sine_template = sin_traj.eval_at(np.arange(0, fix_window + fix_sine_period, 1/ft_frame_rate))
+        fix_q_len = ft_frame_rate*fix_window
+        fix_q_theta_rad = [0] * fix_q_len
 
     if save_history:
         params = {'genotype':genotype, 'age':age, \
@@ -218,8 +227,12 @@ def main():
             'bar_width':bar_width, 'bar_height':bar_height, 'bar_color':bar_color, \
             'occluder_height':occluder_height, \
             'occluder_color':occluder_color, 'start_theta':start_theta, \
-            'fix_score_threshold':fix_score_threshold, 'fix_sine_amplitude':fix_sine_amplitude, \
-            'fix_sine_period':fix_sine_period, 'fix_window':fix_window, 'fix_max_duration':fix_max_duration}
+            'require_fixation':req_fix}
+        if req_fix:
+            params.update(
+                {'fix_score_threshold':fix_score_threshold, 'fix_sine_amplitude':fix_sine_amplitude, \
+                'fix_sine_period':fix_sine_period, 'fix_window':fix_window, 'fix_min_duration':fix_min_duration, 'fix_max_duration':fix_max_duration}
+            )
         params['con_bar_traj_r'] = con_bar_traj_r
         params['con_bar_traj_l'] = con_bar_traj_l
         params['inc_bar_traj_r'] = inc_bar_traj_r
@@ -262,9 +275,10 @@ def main():
         fix_ft_frames_all = []
         trial_start_times = []
         trial_end_times = []
-    fix_start_times = []
-    fix_end_times = []
-    fix_success_all = []
+    if req_fix:
+        fix_start_times = []
+        fix_end_times = []
+        fix_success_all = []
 
     # Pretend previous trial ended here before trial 0
     t_exp_start = time()
@@ -291,51 +305,57 @@ def main():
             occ_traj = occluder_l_invisible
             stim_duration = con_stim_duration
 
-        # Fixation variables and queues
-        fix_estimated_n_frames = int(np.ceil(ft_frame_rate * fix_max_duration * 1.1))
-        fix_score = 0
-        fix_frame_cnt = 0
-        fix_ft_frames = np.empty(fix_estimated_n_frames)
-        fix_scores = np.empty(fix_estimated_n_frames)
-        fix_success = True
+        if req_fix:
+            # Fixation variables and queues
+            fix_estimated_n_frames = int(np.ceil(ft_frame_rate * fix_max_duration * 1.1))
+            fix_score = 0
+            fix_frame_cnt = 0
+            fix_ft_frames = np.empty(fix_estimated_n_frames)
+            fix_scores = np.empty(fix_estimated_n_frames)
+            fix_success = True
 
         if save_history:
             fs_manager.start_saving_history()
 
         ####################### Confirm Fixation here #########################
 
-        print("===== Start fixation ======")
-
         ft_manager.set_pos_0(theta_0=None, x_0=0, y_0=0)
 
-        fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
-        fs_manager.start_stim()
-        t_start_fix = time()
+        if req_fix:
+            print("===== Start fixation ======")
 
-        # Fill the queue of t and theta with initial 2 seconds then continue until iti is up
-        while fix_score < fix_score_threshold or time()-t_start_fix < iti: #while the fly is not fixating or witin iti
-            ft_frame_num, _, [theta_rad] = ft_manager.update_pos()
-            fix_q_theta_rad.pop(0)
-            fix_q_theta_rad.append(theta_rad)
+            fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
+            fs_manager.start_stim()
+            t_start_fix = time()
 
-            fix_score = fixation_score(fix_q_theta_rad, fix_sine_template)
+            # Fill the queue of t and theta with initial 2 seconds then continue until fix_min_duration is up
+            while fix_score < fix_score_threshold or time()-t_start_fix < fix_min_duration: #while the fly is not fixating or witin fix_min_duration
+                ft_frame_num, _, [theta_rad] = ft_manager.update_pos()
+                fix_q_theta_rad.pop(0)
+                fix_q_theta_rad.append(theta_rad)
 
-            fix_ft_frames[fix_frame_cnt] = ft_frame_num
-            fix_scores[fix_frame_cnt] = fix_score
+                fix_score = fixation_score(fix_q_theta_rad, fix_sine_template)
 
-            fix_frame_cnt += 1
+                fix_ft_frames[fix_frame_cnt] = ft_frame_num
+                fix_scores[fix_frame_cnt] = fix_score
 
-            if time() - t_start_fix > fix_max_duration: #If fixation threshold was not met within max duration, quit and enter
-                fix_success = False
-                break
+                fix_frame_cnt += 1
 
-        t_end_fix = time()
-        while abs((time()-t_start_fix)%(fix_sine_period/2)) > 0.1: #100 ms within hitting theta 0
-            _ = ft_manager.update_pos()
+                if time() - t_start_fix > fix_max_duration: #If fixation threshold was not met within max duration, quit and enter
+                    fix_success = False
+                    break
 
-        fs_manager.stop_stim()
+            t_end_fix = time()
+            while abs((time()-t_start_fix)%(fix_sine_period/2)) > 0.1: #100 ms within hitting theta 0
+                _ = ft_manager.update_pos()
 
-        print(f"===== Fixation {'success' if fix_success else 'fail'} (dur: {(t_end_fix-t_start_fix):.{5}}s)======")
+            fs_manager.stop_stim()
+
+            print(f"===== Fixation {'success' if fix_success else 'fail'} (dur: {(t_end_fix-t_start_fix):.{5}}s)======")
+        else:
+            print("===== Start ITI =====")
+            ft_manager.update_pos_for(iti, update_theta=False)
+            print("===== End ITI =====")
 
         ####################### End Confirm Fixation #########################
 
@@ -364,32 +384,40 @@ def main():
             trial_start_times.append(t_start)
             trial_end_times.append(t_end)
 
-            fix_scores_all.append(fix_scores[:fix_frame_cnt])
-            fix_ft_frames_all.append(fix_ft_frames[:fix_frame_cnt])
-        fix_start_times.append(t_start_fix)
-        fix_end_times.append(t_end_fix)
-        fix_success_all.append(fix_success)
+            if req_fix:
+                fix_scores_all.append(fix_scores[:fix_frame_cnt])
+                fix_ft_frames_all.append(fix_ft_frames[:fix_frame_cnt])
+        if req_fix:
+            fix_start_times.append(t_start_fix)
+            fix_end_times.append(t_end_fix)
+            fix_success_all.append(fix_success)
 
 
-    # Burn off the second half of last ITI
-    print("===== Start fixation ======")
+    if req_fix:
+        # Burn off the second half of last ITI
+        print("===== Start fixation ======")
+        ft_manager.set_pos_0(theta_0=None, x_0=0, y_0=0)
+        fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
+        fs_manager.start_stim()
+        ft_manager.update_pos_for(fix_min_duration, update_theta=True)
+        print("===== End fixation ======")
 
-    ft_manager.set_pos_0(theta_0=None, x_0=0, y_0=0)
-
-    fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
-    fs_manager.start_stim()
-    ft_manager.update_pos_for(iti, update_theta=True)
+    else:
+        print("===== Start ITI =====")
+        ft_manager.update_pos_for(iti, update_theta=False)
+        print("===== End ITI =====")
 
     # close fictrac
     ft_manager.close()
 
     t_exp_end = time()
 
-    fix_mean_duration = np.mean((np.asarray(fix_end_times) - np.asarray(fix_start_times))[fix_success_all])
-    fix_success_rate = np.sum(fix_success_all) / len(fix_success_all)
+    if req_fix:
+        fix_mean_duration = np.mean((np.asarray(fix_end_times) - np.asarray(fix_start_times))[fix_success_all])
+        fix_success_rate = np.sum(fix_success_all) / len(fix_success_all)
+        print(f"===== Fixation success: {np.sum(fix_success_all)}/{len(fix_success_all)} ({fix_success_rate*100:.{5}}%) =====")
+        print(f"===== Fixation mean duration: {fix_mean_duration:.{5}} sec =====")
     print(f"===== Experiment duration: {(t_exp_end-t_exp_start)/60:.{5}} min =====")
-    print(f"===== Fixation success: {np.sum(fix_success_all)}/{len(fix_success_all)} ({fix_success_rate*100:.{5}}%) =====")
-    print(f"===== Fixation mean duration: {fix_mean_duration:.{5}} sec =====")
 
     # Plot fictrac summary and save png
     fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])[-2:]
@@ -415,8 +443,9 @@ def main():
         for (k,v) in params.items():
             h5f.attrs[k] = v
         h5f.attrs['experiment_duration'] = t_exp_end-t_exp_start
-        h5f.attrs['fix_success_rate'] = fix_success_rate
-        h5f.attrs['fix_mean_duration'] = fix_mean_duration
+        if req_fix:
+            h5f.attrs['fix_success_rate'] = fix_success_rate
+            h5f.attrs['fix_mean_duration'] = fix_mean_duration
         # trials group
         trials = h5f.require_group('trials')
 
@@ -482,10 +511,14 @@ def main():
             trial = trials.require_group(f'{t:03}')
 
             # start time for trial
-            trial.attrs['fix_start_time'] = fix_start_times[t]
-            trial.attrs['fix_end_time'] = fix_end_times[t]
-            trial.attrs['fix_duration'] = fix_end_times[t] - fix_start_times[t]
-            trial.attrs['fix_success'] = fix_success_all[t]
+            if req_fix:
+                trial.attrs['fix_start_time'] = fix_start_times[t]
+                trial.attrs['fix_end_time'] = fix_end_times[t]
+                trial.attrs['fix_duration'] = fix_end_times[t] - fix_start_times[t]
+                trial.attrs['fix_success'] = fix_success_all[t]
+                trial.create_dataset("fix_scores", data=fix_scores_all[t])
+                trial.create_dataset("fix_ft_frames", data=fix_ft_frames_all[t])
+
             trial.attrs['start_time'] = trial_start_times[t]
             trial.attrs['end_time'] = trial_end_times[t]
             trial.attrs['trial_type'] = str(trial_structure[t])
@@ -495,8 +528,6 @@ def main():
             trial.create_dataset("ft_square", data=ft_square)
             trial.create_dataset("ft_timestamps", data=np.array(ft_timestamps)/1e3)
             trial.create_dataset("ft_theta", data=ft_theta)
-            trial.create_dataset("fix_scores", data=fix_scores_all[t])
-            trial.create_dataset("fix_ft_frames", data=fix_ft_frames_all[t])
 
         ft_data_handler.close()
         h5f.close()

@@ -220,7 +220,7 @@ def main():
         h5f.attrs['t_start'] = t_start
         h5f.attrs['t_end'] = t_end
         if closed_loop:
-            h5f.attrs['theta_rad_0'] = ft_manager.theta_rad_0
+            h5f.attrs['theta_0'] = ft_manager.theta_0
 
         save_dir_prefix = os.path.join(save_path, save_prefix)
         fs_square = np.loadtxt(save_dir_prefix+'_fs_square.txt')
