@@ -35,32 +35,6 @@ def main():
     # part 2: User defined parameters
     #####################################################
 
-    if len(sys.argv) > 1 and sys.argv[1] == "run":
-        save_history = True
-    else:
-        save_history = False
-
-    if save_history:
-        genotype = input("Enter genotype (e.g. isoD1-F-thirsty): ")#"isoD1-F"
-        if genotype=="":
-            genotype = "isoD1-F-thirsty"
-        print(genotype)
-        age = input("Enter age in dpe (e.g. 4): ") #4
-        if age=="":
-            age = 4
-        print(age)
-        temperature = input("Enter temperature (e.g. 36.0): ") #36.0 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
-        if temperature=="":
-            temperature = 36.0
-        print(temperature)
-        humidity = input("Enter humidity (e.g. 28): ")#26
-        if humidity=="":
-            humidity = 28
-        print(humidity)
-        airflow = input("Enter airflow (e.g. 0.8): ")#26
-        if airflow=="":
-            airflow = 0.8
-        print(airflow)
 
     n_repeats = input("Enter number of repeats (e.g. 35): ")#26
     if n_repeats=="":
@@ -70,16 +44,6 @@ def main():
     _ = input("Press enter to continue.")#26
 
     parent_path = os.getcwd()
-    save_prefix = strftime('%Y%m%d_%H%M%S', localtime())
-    save_path = os.path.join(parent_path, save_prefix)
-    if save_history:
-        os.mkdir(save_path)
-
-    rgb_power = [0, 0.9, 0.9]
-
-    fs_frame_rate = 120
-
-    current_time = strftime('%Y%m%d_%H%M%S', localtime())
 
     #####################################################
     # part 3: stimulus definitions
@@ -176,34 +140,8 @@ def main():
     occluder_l_invisible = RectangleTrajectory(x=occluder_traj_l, y=90, w=occluder_width, h=occluder_height, color=background_color)
 
 
-    if save_history:
-        params = {'genotype':genotype, 'age':age, \
-            'save_path':save_path, 'save_prefix': save_prefix, \
-            'fs_frame_rate':fs_frame_rate, \
-            'rgb_power':rgb_power, 'current_time':current_time, \
-            'temperature':temperature, 'humidity':humidity, 'airflow':airflow, \
-            'trial_labels':trial_labels.tolist(), 'trial_structure':trial_structure.tolist(), \
-            'n_repeats':n_repeats, 'n_trials':n_trials, \
-            'stim_name':stim_name, 'prime_speed':prime_speed, 'probe_speed':probe_speed, 'preprime_duration':preprime_duration, 'prime_duration':prime_duration, 'occlusion_duration':occlusion_duration, 'pause_duration':pause_duration, 'probe_duration':probe_duration, 'iti':iti, 'con_stim_duration':con_stim_duration, 'inc_stim_duration':inc_stim_duration, 'background_color':background_color, \
-            'bar_width':bar_width, 'bar_height':bar_height, 'bar_color':bar_color, \
-            'occluder_height':occluder_height, \
-            'occluder_color':occluder_color, 'start_theta':start_theta}
-        params['con_bar_traj_r'] = con_bar_traj_r
-        params['con_bar_traj_l'] = con_bar_traj_l
-        params['inc_bar_traj_r'] = inc_bar_traj_r
-        params['inc_bar_traj_l'] = inc_bar_traj_l
-        params['occluder_traj_r'] = occluder_traj_r
-        params['occluder_traj_l'] = occluder_traj_l
-
     #####################################################################
 
-    # Set up logging
-    if save_history:
-        logging.basicConfig(
-            format='%(asctime)s %(message)s',
-            filename="{}/{}.log".format(save_path, save_prefix),
-            level=logging.DEBUG
-        )
 
     # Create screen object
     screen = Screen(server_number=1, id=1, fullscreen=True)#square_side=0.08,coh_bar_traj_r square_loc='ur')
@@ -211,34 +149,15 @@ def main():
 
     # Start stim server
     manager = launch_stim_server(screen)
-    if save_history:
-        manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=inc_stim_duration+fix_max_duration)
     manager.set_idle_background(background_color)
 
     #####################################################
     # part 3: start the loop
     #####################################################
 
-    if save_history:
-        fix_scores_all = []
-        fix_ft_frames_all = []
-        trial_start_times = []
-        trial_start_ft_frames = []
-        trial_end_times = []
-        trial_end_ft_frames = []
-    fix_start_times = []
-    fix_end_times = []
-    fix_success_all = []
-
-    # Pretend previous trial ended here before trial 0
-    t_iti_start = time()
-    t_exp_start = t_iti_start
-    trial_end_time_neg1 = t_iti_start #timestamp of ITI before first trial
-
     # Loop through trials
     for t in range(n_trials):
         # begin trial
-
         if trial_structure[t] == "inc_r": # invisible, inconsistent_r. 00, 01, 10, 11
             bar_traj = inc_bar_r
             occ_traj = occluder_r_visible
@@ -255,42 +174,17 @@ def main():
             bar_traj = con_bar_l
             occ_traj = occluder_l_visible
             stim_duration = con_stim_duration
-
-        if save_history:
-            manager.start_saving_history()
-
+ 
         print(f"===== Trial {t}; type {trial_structure[t]} ======")
 
         #manager.set_global_theta_offset(0)
         manager.load_stim('MovingPatch', trajectory=bar_traj.to_dict(), background=background_color, hold=True)
         manager.load_stim('MovingPatch', trajectory=occ_traj.to_dict(), background=None, hold=True)
 
-        first_msg = True
-
-        t_start = time()
         manager.start_stim()
-        while (time() -  t_start) < stim_duration:
-            continue
+        sleep(stim_duration)
         manager.stop_stim()
-        t_end = time()
-        t_iti_start = t_end
-
-        # Save things
-        if save_history:
-            manager.stop_saving_history()
-            manager.set_save_prefix(save_prefix+"_t"+f'{t:03}')
-            manager.save_history()
-
-            trial_start_times.append(t_start)
-            trial_start_ft_frames.append(ft_frame_num_0)
-            trial_end_times.append(t_end)
-            trial_end_ft_frames.append(ft_frame_num_end)
-
-
-    t_exp_end = time()
-
-    print(f"===== Experiment duration: {(t_exp_end-t_exp_start)/60:.{5}} min =====")
-
+        sleep(iti)
 
 
 if __name__ == '__main__':
