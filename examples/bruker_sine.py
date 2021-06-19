@@ -23,7 +23,7 @@ from ballrig_analysis.utils import fictrac_utils
 FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
 FICTRAC_PORT = 33334         # The port used by the server
 FICTRAC_BIN =    "/home/clandininlab/lib/fictrac211/bin/fictrac"
-FICTRAC_CONFIG = "/home/clandininlab/lib/fictrac211/config_MC_AH.txt"
+FICTRAC_CONFIG = "/home/clandininlab/lib/fictrac211/config_210617.txt"
 FT_FRAME_NUM_IDX = 0
 FT_X_IDX = 14
 FT_Y_IDX = 15
@@ -53,31 +53,37 @@ def main():
     else:
         closed_loop = closed_loop.lower() in ['true', '1', 't', 'y', 'yes']
     print(closed_loop)
-    duration_in_min = input("Enter duration in minutes (e.g. 40): ")#26
+    duration_in_min = input("Enter duration in minutes (default: 40): ")#26
     if duration_in_min=="":
         duration_in_min = 40
     duration_in_min = float(duration_in_min)
     print(duration_in_min)
+    sleep_before_stim_min = input("Enter how long to sleep before stim in minutes (default: 0.1): ")#26
+    if sleep_before_stim_min=="":
+        sleep_before_stim_min = 0.1
+    sleep_before_stim = float(sleep_before_stim_min) * 60 # seconds
+    print(sleep_before_stim_min)
+        
     if save_history:
-        genotype = input("Enter genotype (e.g. isoD1-F-thirsty): ")#"isoD1-F"
+        genotype = input("Enter genotype (default: +; UAS-GC6f/UAS-myr-tdT; nsyb-Gal4/+): ")#"isoD1-F"
         if genotype=="":
-            genotype = "isoD1-F-thirsty"
+            genotype = "+; UAS-GC6f/UAS-myr-tdT; nsyb-Gal4/+"
         print(genotype)
-        age = input("Enter age in dpe (e.g. 4): ") #4
+        age = input("Enter age in dpe (default: 5): ") #4
         if age=="":
-            age = 4
+            age = 5
         print(age)
-        temperature = input("Enter temperature (e.g. 36.0): ") #36.0 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
+        temperature = input("Enter temperature (default: 33.7): ") #36.0 #6.30=36.2  6.36=36  6.90=34 6.82=34.3  6.75=34.5(33.7) no hum   #7.10=34  7.00=34.2  6.97=34.5 @ 44%
         if temperature=="":
-            temperature = 36.0
+            temperature = 33.7
         print(temperature)
-        humidity = input("Enter humidity (e.g. 28): ")#26
+        humidity = input("Enter humidity (default: 28): ")#26
         if humidity=="":
             humidity = 28
         print(humidity)
-        airflow = input("Enter airflow (e.g. 0.8): ")#26
+        airflow = input("Enter airflow (default: 1.0): ")#26
         if airflow=="":
-            airflow = 0.8
+            airflow = 1.0
         print(airflow)
 
     _ = input("Press enter to continue.")#26
@@ -178,7 +184,7 @@ def main():
         ft_manager = FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT, ft_theta_idx=FT_THETA_IDX, ft_frame_num_idx=FT_FRAME_NUM_IDX, ft_timestamp_idx=FT_TIMESTAMP_IDX)
     else:
         ft_manager = FtManager(ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG)
-    ft_manager.sleep(8) #allow fictrac to gather data
+    ft_manager.sleep(sleep_before_stim) #allow fictrac to gather data
 
     if save_history:
         fs_manager.start_saving_history()
@@ -235,7 +241,7 @@ def main():
         h5f.attrs['t_start'] = t_start
         h5f.attrs['t_end'] = t_end
         if closed_loop:
-            h5f.attrs['theta_rad_0'] = ft_manager.theta_rad_0
+            h5f.attrs['theta_0'] = ft_manager.theta_0
 
         save_dir_prefix = os.path.join(save_path, save_prefix)
         fs_square = np.loadtxt(save_dir_prefix+'_fs_square.txt')

@@ -148,7 +148,7 @@ class Screen:
 
     def serialize(self):
         # get all variables needed to reconstruct the screen object
-        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_side', 'square_loc', 'name']
+        vars = ['width', 'height', 'id', 'server_number', 'fullscreen', 'vsync', 'square_side', 'square_loc', 'square_pattern', 'name']
         data = {var: getattr(self, var) for var in vars}
 
         # special handling for tri_list since it could contain numpy values

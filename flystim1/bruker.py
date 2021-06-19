@@ -2,7 +2,7 @@ from math import pi, sqrt
 
 from flystim1.screen import Screen
 
-def get_bruker_screen(dir):
+def get_bruker_screen(dir, square_pattern='frame'):
     # display geometry
     z_bottom = -12.13e-2 #m
     z_top = 0
@@ -20,8 +20,8 @@ def get_bruker_screen(dir):
             ((-0.6000, +1), (x_center, y_forward, z_top)),
             ((+0.7100, +1), (x_left,   y_back,    z_top))
         ]
-        square_side=(0.11, 0.23)
-        square_loc = (0.89, -1.00)
+        square_side=(0.14, 0.23)
+        square_loc = (0.93, -1.00)
     elif dir.lower() in ['r', 'right']:
         id=2
         pts = [
@@ -36,4 +36,4 @@ def get_bruker_screen(dir):
         raise ValueError('Invalid direction.')
 
     return Screen(id=id, tri_list=Screen.quad_to_tri_list(*pts), square_loc=square_loc,
-           fullscreen=True, square_side=square_side, name='Bruker {} Screen'.format(dir.title()))
+           fullscreen=True, square_side=square_side, square_pattern=square_pattern, name='Bruker {} Screen'.format(dir.title()))

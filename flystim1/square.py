@@ -20,10 +20,9 @@ MAX_TOGGLE_FREQ = MAX_SQUARE_FREQ * 2
 
 
 class SquareProgram:
-    def __init__(self, screen, pattern="random"):
+    def __init__(self, screen):
         # save settings
         self.screen = screen
-        self.pattern = pattern # "random" and "frame"
 
         # initialize settings
         self.color = 1.0
@@ -122,7 +121,7 @@ class SquareProgram:
         #    self.square_history[self.profile_frame_count] = int(self.color)
 
         if self.toggle:
-            if self.pattern == "random":
+            if self.screen.square_pattern == "random":
                 self.toggle_square()
-            elif self.pattern == "frame":
+            elif self.screen.square_pattern == "frame":
                 self.color = 1.0 - self.color
