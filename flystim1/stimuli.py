@@ -6,7 +6,7 @@ from math import pi, radians, ceil, cos, sin
 
 from flystim1.base import BaseProgram
 from flystim1.glsl import Uniform, Function, Variable, Texture
-from flystim1.trajectory import RectangleTrajectory, RectangleAnyTrajectory
+from flystim1.trajectory import Trajectory, RectangleTrajectory, RectangleAnyTrajectory
 import flystim1.distribution as distribution
 
 class ConstantBackground(BaseProgram):
@@ -482,6 +482,10 @@ class MovingPatch(BaseProgram):
         self.prog['phi_width'].value = radians(self.trajectory.h.eval_at(t))
         self.prog['angle'].value = radians(self.trajectory.angle.eval_at(t))
         self.prog['face_color'].value = self.trajectory.color.eval_at(t)
+
+    # 20210619 MC: I don't think this works...
+    def update_stim(self, trajectory):
+        self.trajectory = trajectory
 
 class RandomBars(BaseProgram):
     # cylindrical mode

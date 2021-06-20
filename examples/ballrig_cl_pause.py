@@ -6,13 +6,14 @@ import matplotlib.pyplot as plt
 import h5py
 import logging
 from time import sleep, time, strftime, localtime
+import math
 
-#from flystim1.draw import draw_screens
+#from flystim.draw import draw_screens
 from flystim1.dlpc350 import make_dlpc350_objects
-from flystim1.trajectory import RectangleTrajectory, RectangleAnyTrajectory, SinusoidalTrajectory
+from flystim1.trajectory import Trajectory, RectangleTrajectory, RectangleAnyTrajectory, SinusoidalTrajectory
 from flystim1.screen import Screen
 from flystim1.stim_server import launch_stim_server
-from flystim1.ballrig_util import latency_report, make_tri_list
+from flystim1.ballrig_util import latency_report, make_tri_list, shortest_deg_to_0
 from ftutil.ft_managers import FtClosedLoopManager
 
 from ballrig_analysis.utils import fictrac_utils
@@ -90,6 +91,16 @@ def main():
     else:
         req_fix = False
     print(req_fix)
+
+    if req_fix:
+        return_to_0 = input("Return to 0 after fixation? (CL/OL/None; default CL): ")#26
+        if return_to_0.lower() in ["", 'cl', 'c', 'closed', 'closed loop', 'closed-loop', 'closed_loop']:
+            return_to_0 = 'CL'
+        elif return_to_0.lower() in ['ol', 'o', 'open', 'open loop', 'open-loop', 'open_loop']:
+            return_to_0 = 'OL'
+        else:
+            return_to_0 = None
+        print(return_to_0)
 
     _ = input("Press enter to continue.")#26
 
@@ -235,7 +246,9 @@ def main():
         if req_fix:
             params.update(
                 {'fix_score_threshold':fix_score_threshold, 'fix_sine_amplitude':fix_sine_amplitude, \
-                'fix_sine_period':fix_sine_period, 'fix_window':fix_window, 'fix_min_duration':fix_min_duration, 'fix_max_duration':fix_max_duration}
+                'fix_sine_period':fix_sine_period, 'fix_window':fix_window, \
+                'fix_min_duration':fix_min_duration, 'fix_max_duration':fix_max_duration, \
+                'return_to_0':return_to_0 if return_to_0 is not None else 'None'}
             )
         params['con_bar_traj_r'] = con_bar_traj_r
         params['con_bar_traj_l'] = con_bar_traj_l
@@ -259,18 +272,19 @@ def main():
     # Put lightcrafter(s) in pattern mode
     dlpc350_objects = make_dlpc350_objects()
     for dlpc350_object in dlpc350_objects:
-         dlpc350_object.set_current(red=0, green = 0, blue = 1.0)
-         dlpc350_object.pattern_mode(fps=120)
-         dlpc350_object.pattern_mode(fps=120)
+         dlpc350_object.set_current(red=rgb_power[0], green = rgb_power[1], blue = rgb_power[2])
+         dlpc350_object.pattern_mode(fps=120, red=True if rgb_power[0]>0 else False, green=True if rgb_power[1]>0 else False, blue=True if rgb_power[2]>0 else False)
+         dlpc350_object.pattern_mode(fps=120, red=True if rgb_power[0]>0 else False, green=True if rgb_power[1]>0 else False, blue=True if rgb_power[2]>0 else False)
 
     # Create screen object
-    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.01, square_loc=(0.59,0.74))#square_side=0.08,coh_bar_traj_r square_loc='ur')
+    screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=0.01, square_loc=(0.59,0.74), square_pattern='random')#square_side=0.08,coh_bar_traj_r square_loc='ur')
     #print(screen)
 
     # Start stim server
     fs_manager = launch_stim_server(screen)
     if save_history:
-        fs_manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=inc_stim_duration+(fix_max_duration if req_fix else iti))
+        RETURN_TO_0_MAX_DUR = 30
+        fs_manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=inc_stim_duration+RETURN_TO_0_MAX_DUR+(fix_max_duration if req_fix else iti))
     fs_manager.set_idle_background(background_color)
 
     #####################################################
@@ -289,6 +303,10 @@ def main():
         fix_start_times = []
         fix_end_times = []
         fix_success_all = []
+
+        if return_to_0 is not None:
+            return_to_0_theta = []
+            return_to_0_duration = []
 
     # Pretend previous trial ended here before trial 0
     t_exp_start = time()
@@ -357,17 +375,54 @@ def main():
 
             t_end_fix = time()
             while abs((time()-t_start_fix)%(fix_sine_period/2)) > 0.1: #100 ms within hitting theta 0
-                _ = ft_manager.update_pos()
+                _,_,[theta_rad] = ft_manager.update_pos(update_theta=True)
 
             fs_manager.stop_stim()
 
             print(f"===== Fixation {'success' if fix_success else 'fail'} (dur: {(t_end_fix-t_start_fix):.{5}}s)======")
+
+            ####################### Bring back bar to center #########################
+
+            if return_to_0 is not None:
+                #theta_return_deg = degrees(fs_manager.global_theta_offset())
+                theta_return_deg = shortest_deg_to_0(math.degrees(theta_rad))
+                theta_return_duration = abs(theta_return_deg)/prime_speed
+                print(f"===== Returning {theta_return_deg:.2f}degs ({return_to_0}) ======")
+                return_theta_traj = Trajectory([(0, 0), (theta_return_duration, -theta_return_deg)])
+                return_bar_traj = RectangleTrajectory(x=return_theta_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
+                fs_manager.load_stim('MovingPatch', trajectory=return_bar_traj.to_dict(), background=background_color, hold=True)
+                fs_manager.start_stim()
+                t_start = time()
+
+                if return_to_0 == "OL":
+                    ft_manager.sleep(theta_return_duration)
+                else: #"CL"
+                    theta_diff = theta_return_deg
+                    while abs(theta_diff) > 1: #within 1 degree of bar facing forward
+                        _,_,[theta_rad] = ft_manager.update_pos(update_theta=True)
+                        ts = time()
+                        curr_bar_theta = float(return_theta_traj.eval_at(ts-t_start))
+                        theta_diff = shortest_deg_to_0(math.degrees(theta_rad)%360 + curr_bar_theta)
+                        # print(theta_diff)
+                        # return_theta_traj = Trajectory([(0,0), (ts-t_start, curr_bar_theta), (ts-t_start+1, curr_bar_theta-0.01*math.copysign(1,theta_diff))])
+                        # return_bar_traj = RectangleTrajectory(x=return_theta_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
+                        # fs_manager.update_stim_moving_patch(return_bar_traj.to_dict()) #Update with rectangle trajectory new
+
+                fs_manager.stop_stim()
+                t_end = time()
+                ft_manager.set_pos_0(theta_0=None, x_0=0, y_0=0)
+                theta_return_duration = t_end-t_start
+                print(f"===== Returned {theta_return_deg:.2f}degs in {theta_return_duration:.{5}}s ======")
+
+            ####################### End Bring back bar to center #########################
         else:
             print("===== Start ITI =====")
-            ft_manager.update_pos_for(iti, update_theta=False)
+            ft_manager.sleep(iti)
             print("===== End ITI =====")
 
         ####################### End Confirm Fixation #########################
+
+
 
         print(f"===== Trial {t}; type {trial_structure[t]} ======")
 
@@ -375,15 +430,14 @@ def main():
         fs_manager.load_stim('MovingPatch', trajectory=bar_traj.to_dict(), background=background_color, hold=True)
         fs_manager.load_stim('MovingPatch', trajectory=occ_traj.to_dict(), background=None, hold=True)
 
-        first_msg = True
-
         fs_manager.start_stim()
         t_start = time()
         ft_manager.update_pos_for(stim_duration, update_theta=True)
         fs_manager.stop_stim()
         t_end = time()
 
-        print(f"===== Trial end (FT dur: {(t_end-t_start)/1000:.{5}}s)======")
+        #print(f"===== Trial end (FT dur: {(t_end-t_start)/1000:.{5}}s)======")
+        print(f"===== Trial end (dur: {(t_end-t_start):.{5}}s)======")
 
         # Save things
         if save_history:
@@ -397,6 +451,11 @@ def main():
             if req_fix:
                 fix_scores_all.append(fix_scores[:fix_frame_cnt])
                 fix_ft_frames_all.append(fix_ft_frames[:fix_frame_cnt])
+
+                if return_to_0 is not None:
+                    return_to_0_theta.append(theta_return_deg)
+                    return_to_0_duration.append(theta_return_duration)
+
         if req_fix:
             fix_start_times.append(t_start_fix)
             fix_end_times.append(t_end_fix)
@@ -529,6 +588,10 @@ def main():
                 trial.create_dataset("fix_scores", data=fix_scores_all[t])
                 trial.create_dataset("fix_ft_frames", data=fix_ft_frames_all[t])
 
+                if return_to_0 is not None:
+                    trial.attrs['return_to_0_theta'] = return_to_0_theta[t]
+                    trial.attrs['return_to_0_duration'] = return_to_0_duration[t]
+
             trial.attrs['start_time'] = trial_start_times[t]
             trial.attrs['end_time'] = trial_end_times[t]
             trial.attrs['trial_type'] = str(trial_structure[t])
@@ -559,7 +622,7 @@ def main():
                 ft_square = trial['ft_square'][()]
                 ft_timestamps = trial['ft_timestamps'][()]
                 print ("===== Trial " + str(t) + " ======")
-                latency_report(fs_timestamps, fs_square, ft_timestamps, ft_square, window_size=1)
+                latency_report(fs_timestamps, fs_square, ft_timestamps, ft_square, window_size=3)
 
         # #Plot sync means
         # fig_square = plt.figure()

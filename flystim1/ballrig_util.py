@@ -46,6 +46,10 @@ def make_tri_list():
 
     return dir_to_tri_list('w') + dir_to_tri_list('n') + dir_to_tri_list('e')
 
+def shortest_deg_to_0(angle):
+    angle = angle % 360
+    return angle if abs(angle) < abs(angle-360) else angle-360
+
 
 def latency_report(flystim_timestamps, flystim_sync, fictrac_timestamps, fictrac_sync,
                    window_size=10, n_windows=32):

@@ -188,6 +188,11 @@ class StimDisplay(QtOpenGL.QGLWidget):
                 if background is not None:
                     config_options.kwargs['background'] = background
 
+    # 20210619 MC: I don't think this works...
+    def update_stim_moving_patch(self, trajectory):
+        for stim, config_options in self.stim_list:
+            if isinstance(stim, MovingPatch):
+                stim.update_stim(trajectory)
 
     def load_stim(self, name, hold=False, *args, **kwargs):
         """
@@ -422,6 +427,7 @@ def main():
     server.register_function(stim_display.stop_stim)
     server.register_function(stim_display.pause_stim)
     server.register_function(stim_display.update_stim)
+    server.register_function(stim_display.update_stim_moving_patch)
     server.register_function(stim_display.start_corner_square)
     server.register_function(stim_display.stop_corner_square)
     server.register_function(stim_display.white_corner_square)
