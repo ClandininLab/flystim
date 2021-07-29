@@ -29,7 +29,6 @@ FT_X_IDX = 14
 FT_Y_IDX = 15
 FT_THETA_IDX = 16
 FT_TIMESTAMP_IDX = 21
-FT_SQURE_IDX = 25
 
 def main():
     #####################################################
@@ -94,7 +93,7 @@ def main():
     if save_history:
         os.mkdir(save_path)
 
-    rgb_power = [0, 0.9, 0.9]
+    rgb_power = [0, 0, 1.0]
 
     ft_frame_rate = 250 #Hz, higher
     fs_frame_rate = 120
@@ -111,12 +110,12 @@ def main():
 
     background_color = 0
 
-    bar_width = 15
+    bar_width = 15#15
     bar_height = 150
     bar_color = 1
     #bar_angle = 0
 
-    fix_sine_amplitude = 15
+    fix_sine_amplitude = 15#15
     fix_sine_period = 2
 
     #######################
@@ -152,20 +151,20 @@ def main():
             level=logging.DEBUG
         )
 
-    # Set lightcrafter and GL environment settings
-    # os.system(LCR_CTL_PATH + ' --fps 120 --red_current ' + str(rgb_power[0]) + ' --blue_current ' + str(rgb_power[2]) + ' --green_current ' + str(rgb_power[1]))
     # Put lightcrafter(s) in pattern mode
     dlpc350_objects = make_dlpc350_objects()
+    dlpc350_objects[0].set_current(red=0, green = 0, blue = 1.2)    
+    dlpc350_objects[1].set_current(red=0, green = 0, blue = 0.5)
     for dlpc350_object in dlpc350_objects:
-         dlpc350_object.set_current(red=0, green = 0, blue = 1.0)
-         dlpc350_object.pattern_mode(fps=120)
-         dlpc350_object.pattern_mode(fps=120)
-
+         #dlpc350_object.set_current(red=0, green = 0, blue = 1.0)
+         dlpc350_object.pattern_mode(fps=120, red=False, green=False, blue=True)
+         dlpc350_object.pattern_mode(fps=120, red=False, green=False, blue=True)
+         
     # Create screen object
     #bruker_left_screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=(0.11, 0.23), square_loc=(0.89, -1.00), name='Left')
     #bruker_right_screen = Screen(server_number=1, id=2,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=(0.14, 0.22), square_loc=(-0.85, -0.94), name='Right')
-    bruker_left_screen = get_bruker_screen('Left')
-    bruker_right_screen = get_bruker_screen('Right')
+    bruker_left_screen = get_bruker_screen('Left', square_pattern='frame')
+    bruker_right_screen = get_bruker_screen('Right', square_pattern='frame')
     #aux_screen = Screen(server_number=0, id=0, fullscreen=False, vsync=True, square_side=0, square_loc=(-1, -1), name='Aux')
     #print(screen)
     screens = [bruker_left_screen, bruker_right_screen]#, aux_screen]
@@ -199,6 +198,10 @@ def main():
     fs_manager.start_stim()
     t_start = time()
 
+    #print("open loop")
+    #ft_manager.sleep(1*60)
+    #print("end open loop; start closed loop")
+
     ft_manager.update_pos_for(duration) if closed_loop else ft_manager.sleep(duration)
 
     fs_manager.stop_stim()
@@ -209,6 +212,7 @@ def main():
         fs_manager.stop_saving_history()
         fs_manager.set_save_prefix(save_prefix)
         fs_manager.save_history()
+        sleep(15)
 
     # close fictrac
     ft_manager.close()
@@ -217,8 +221,8 @@ def main():
 
     # Plot fictrac summary and save png
     fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])[-2:]
-    ft_summary_save_fn = os.path.join(parent_path, save_prefix+".png") if save_history else None
-    fictrac_utils.plot_ft_session_summary(os.path.join(parent_path, fictrac_files[0]), label=save_prefix, show=(not save_history), save=ft_summary_save_fn, window_size=5)
+    #ft_summary_save_fn = os.path.join(parent_path, save_prefix+".png") if save_history else None
+    #fictrac_utils.plot_ft_session_summary(os.path.join(parent_path, fictrac_files[0]), label=save_prefix, show=(not save_history), save=ft_summary_save_fn, window_size=5)
 
     if save_history:
         # Move fictrac files
@@ -227,7 +231,7 @@ def main():
         os.remove(os.path.join(parent_path, fictrac_files[1]))
 
         # Move Fictrac summary
-        os.rename(os.path.join(parent_path, save_prefix+".png"), os.path.join(save_path, save_prefix+".png"))
+        #os.rename(os.path.join(parent_path, save_prefix+".png"), os.path.join(save_path, save_prefix+".png"))
 
         # Open up fictrac file
         fictrac_data_fn = fictrac_files[0]
@@ -257,22 +261,21 @@ def main():
         ft_frame = []
         ft_theta = []
         ft_timestamps = []
-        ft_square = []
 
         ft_line = ft_data_handler.readline()
         while ft_line!="" and curr_time < t_end:
             ft_toks = ft_line.split(", ")
+            if len(ft_toks)!=26:
+                print(f"Wrong number of toks while saving: {len(ft_toks)}")
             curr_time = float(ft_toks[FT_TIMESTAMP_IDX])/1e3
             ft_frame.append(int(ft_toks[FT_FRAME_NUM_IDX]))
             ft_theta.append(float(ft_toks[FT_THETA_IDX]))
             ft_timestamps.append(float(ft_toks[FT_TIMESTAMP_IDX]))
-            ft_square.append(float(ft_toks[FT_SQURE_IDX]))
             ft_line = ft_data_handler.readline()
 
         h5f.create_dataset("fs_square", data=fs_square)
         h5f.create_dataset("fs_timestamps", data=fs_timestamps)
         h5f.create_dataset("ft_frame", data=ft_frame)
-        h5f.create_dataset("ft_square", data=ft_square)
         h5f.create_dataset("ft_timestamps", data=np.array(ft_timestamps)/1e3)
         h5f.create_dataset("ft_theta", data=ft_theta)
 
@@ -287,13 +290,6 @@ def main():
         # Move hdf5 file out to parent path
         os.rename(os.path.join(save_path, save_prefix + '.h5'), os.path.join(parent_path, save_prefix + '.h5'))
 
-        # Latency report
-        with h5py.File(os.path.join(parent_path, save_prefix + '.h5'), 'r') as h5f:
-            fs_square = h5f['fs_square'][()]
-            fs_timestamps = h5f['fs_timestamps'][()]
-            ft_square = h5f['ft_square'][()]
-            ft_timestamps = h5f['ft_timestamps'][()]
-            latency_report(fs_timestamps, fs_square, ft_timestamps, ft_square, window_size=2)
 
     else: #not saving history
         # Delete fictrac files
