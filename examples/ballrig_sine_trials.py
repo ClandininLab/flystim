@@ -5,15 +5,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 import logging
-from time import sleep, time, strftime, localtime
-import math
+from time import time, strftime, localtime
 
 #from flystim.draw import draw_screens
 from flystim1.dlpc350 import make_dlpc350_objects
-from flystim1.trajectory import Trajectory, RectangleTrajectory, RectangleAnyTrajectory, SinusoidalTrajectory
+from flystim1.trajectory import RectangleAnyTrajectory, SinusoidalTrajectory
 from flystim1.screen import Screen
 from flystim1.stim_server import launch_stim_server
-from flystim1.ballrig_util import latency_report, make_tri_list, shortest_deg_to_0
+from flystim1.ballrig_util import latency_report, make_tri_list
 from ftutil.ft_managers import FtClosedLoopManager
 
 from ballrig_analysis.utils import fictrac_utils
