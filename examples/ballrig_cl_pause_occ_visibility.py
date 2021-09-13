@@ -436,6 +436,7 @@ def main():
             print("===== Start ITI =====")
             ft_manager.sleep(iti)
             print("===== End ITI =====")
+            ft_manager.set_pos_0(theta_0=None, x_0=0, y_0=0)
 
         ####################### End Confirm Fixation #########################
 
