@@ -2,9 +2,9 @@
 
 # Example client program that walks through all available stimuli.
 
-from flystim.stim_server import launch_stim_server
-from flystim.screen import Screen
-from flystim.trajectory import RectangleTrajectory, Trajectory
+from flystim1.stim_server import launch_stim_server
+from flystim1.screen import Screen
+from flystim1.trajectory import RectangleTrajectory, Trajectory
 
 from time import sleep
 
