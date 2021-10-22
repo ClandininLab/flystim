@@ -122,7 +122,7 @@ def main():
     n_zones = len(friends_theta_zones)
     n_friends = n_friends_per_zone * n_zones
 
-    friend_traj_dir = '/Users/Ilana/Documents/Grad School/Third Year/stim_scripts/trajectories/chosen'
+    friend_traj_dir = '/Users/Ilana/repos/stim_scripts/trajectories/chosen'
 
     ##### Calculate stuff based on inputs
 
