@@ -22,16 +22,12 @@ import numpy as np
 # c: brightness of the patch
 
 ##### TODO:
-# 1. Reloading from the same trajectory is producing different trajectories (no movement, different angles etc), Minseung
-#   thinks there is a global variable that is being overwritten outside the loop/object that is causing the 'flies' trajectories
-#   to change from what the initial trajectory was
-# 2. Fix initial glitch (flies don't start moving right away)
 # 3. Make usable on the downstairs screens
 # 4. Add initial just loom w/o friends stimulus
 ##########
 
 class Friend:
-    def __init__(self, theta_zone, phi_zone, rad_mean, rad_std, traj_fn, exp_duration, color, dist_window):
+    def __init__(self, theta_zone, phi_zone, rad_mean, rad_std, traj_fn, exp_duration, color, dist_window, c_bg=1, speed_factor=1):
         self.theta_zone = theta_zone # Tuple of theta boundaries. e.g. (-45, 45)
         self.phi_zone = phi_zone # Tuple of phi boundaries.
 
@@ -48,10 +44,11 @@ class Friend:
         n_repeat_traj = int(np.ceil(exp_duration / traj_duration))
 
         n_traj_ts = traj_np.shape[0]
-        friend_t = np.empty(n_traj_ts * n_repeat_traj)
-        friend_x = np.empty(n_traj_ts * n_repeat_traj)
-        friend_y = np.empty(n_traj_ts * n_repeat_traj)
-        friend_a = np.empty(n_traj_ts * n_repeat_traj)
+        friend_t = np.zeros(n_traj_ts * n_repeat_traj)
+        friend_x = np.zeros(n_traj_ts * n_repeat_traj) # using zeros here instead of empty is important bv of 5 lines below.
+        friend_y = np.zeros(n_traj_ts * n_repeat_traj)
+        friend_a = np.zeros(n_traj_ts * n_repeat_traj)
+        friend_c =  np.ones(n_traj_ts * n_repeat_traj) * color
         for i in range(n_repeat_traj):
             friend_t[i * n_traj_ts: (i + 1) * n_traj_ts] = traj_np[:, 0] + traj_np[-1, 0] * i  # in seconds
             friend_x[i * n_traj_ts: (i + 1) * n_traj_ts] = np.rad2deg(np.arctan((traj_np[:, 1] + friend_x[i * n_traj_ts]) / dist_window))
@@ -62,30 +59,37 @@ class Friend:
         friend_y += spawn_phi
 
         ##### Wrap around walls
-        theta_zone_width = np.max(theta_zone) - np.min(theta_zone)
+        theta_zone_width = np.abs(theta_zone[1] - theta_zone[0])
         for i in range(len(friend_x)):
             if friend_x[i] > np.max(theta_zone):
                 friend_x[i:] -= theta_zone_width
+                friend_c[i-1:i+1] = c_bg
             elif friend_x[i] < np.min(theta_zone):
                 friend_x[i:] += theta_zone_width
+                friend_c[i-1:i+1] = c_bg
 
-        phi_zone_height = np.max(phi_zone) - np.min(phi_zone)
+        phi_zone_height = np.abs(phi_zone[1] - phi_zone[0])
         for i in range(len(friend_y)):
             if friend_y[i] > np.max(phi_zone):
                 friend_y[i:] -= phi_zone_height
+                friend_c[i-1:i+1] = c_bg
             elif friend_y[i] < np.min(phi_zone):
                 friend_y[i:] += phi_zone_height
+                friend_c[i-1:i+1] = c_bg
         #####
+
+        friend_t *= speed_factor
 
         theta_traj = list(zip(friend_t, friend_x))
         phi_traj = list(zip(friend_t, friend_y))
         angle_traj = list(zip(friend_t, friend_a))
+        color_traj = list(zip(friend_t, friend_c))
 
         width = np.rad2deg(np.arctan(radius/dist_window))
         height = np.rad2deg(np.arctan(radius*1.5/dist_window))
 
         self.flystim_traj = RectangleAnyTrajectory(x=theta_traj, y=phi_traj, w=width, h=height,
-                                                   angle=angle_traj, color=color)
+                                                   angle=angle_traj, color=color_traj)
 
 
 def pol2cart(amp, angle):
@@ -113,7 +117,7 @@ def main():
     friends_duration = 5   #duration in which only friends are shown
 
     c_friends = 0.3  #brightness of friends
-    n_friends_per_zone = 5
+    n_friends_per_zone = 10
     friends_rad_mean = 0.002
     friends_rad_std = 0
 
@@ -140,14 +144,11 @@ def main():
     # zone assignments
     theta_zone_assignments = friends_theta_zones * n_friends_per_zone
 
-
-    c_friends = [0, 0.2, 0.4, 0.6, 0.8]
-
     friends = []
     for i in range(n_friends):
         friend = Friend(theta_zone=theta_zone_assignments[i], phi_zone=friends_phi_zone, rad_mean=friends_rad_mean,
-                        rad_std=friends_rad_std, traj_fn=friend_traj_paths[i], exp_duration=exp_duration, color=c_friends[i],
-                        dist_window=dist_window)
+                        rad_std=friends_rad_std, traj_fn=friend_traj_paths[i], exp_duration=exp_duration, color=c_friends,
+                        dist_window=dist_window, c_bg=c_bg)
         friends.append(friend)
 
     # 2 Make looms
