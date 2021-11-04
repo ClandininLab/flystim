@@ -3,8 +3,10 @@
 #!/usr/bin/env python3
 
 # Example client program that walks through all available stimuli.
+import os
 from math import pi, sqrt
 from time import sleep
+import random
 
 from flystim1.stim_server import launch_stim_server
 from flystim1.screen import Screen
@@ -20,14 +22,14 @@ import numpy as np
 # c: brightness of the patch
 
 ##### TODO:
-# 1. bounce off walls
-# 2. Different trajectories for flies
+# 3. Make usable on the downstairs screens
+# 4. Add initial just loom w/o friends stimulus
 ##########
 
 class Friend:
-    def __init__(self, theta_zone, phi_zone, rad_mean, rad_std, traj_fn, exp_duration, color):
-        self.theta_zone = theta_zone
-        self.phi_zone = phi_zone
+    def __init__(self, theta_zone, phi_zone, rad_mean, rad_std, traj_fn, exp_duration, color, dist_window, c_bg=1, speed_factor=1):
+        self.theta_zone = theta_zone # Tuple of theta boundaries. e.g. (-45, 45)
+        self.phi_zone = phi_zone # Tuple of phi boundaries.
 
         spawn_theta = np.random.uniform(*theta_zone)
         spawn_phi = np.random.uniform(*phi_zone)
@@ -42,21 +44,52 @@ class Friend:
         n_repeat_traj = int(np.ceil(exp_duration / traj_duration))
 
         n_traj_ts = traj_np.shape[0]
-        friend_t = np.empty(n_traj_ts * n_repeat_traj)
-        friend_x = np.empty(n_traj_ts * n_repeat_traj)
-        friend_y = np.empty(n_traj_ts * n_repeat_traj)
-        friend_a = np.empty(n_traj_ts * n_repeat_traj)
+        friend_t = np.zeros(n_traj_ts * n_repeat_traj)
+        friend_x = np.zeros(n_traj_ts * n_repeat_traj) # using zeros here instead of empty is important bv of 5 lines below.
+        friend_y = np.zeros(n_traj_ts * n_repeat_traj)
+        friend_a = np.zeros(n_traj_ts * n_repeat_traj)
+        friend_c =  np.ones(n_traj_ts * n_repeat_traj) * color
         for i in range(n_repeat_traj):
             friend_t[i * n_traj_ts: (i + 1) * n_traj_ts] = traj_np[:, 0] + traj_np[-1, 0] * i  # in seconds
-            friend_x[i * n_traj_ts: (i + 1) * n_traj_ts] = (traj_np[:, 1] + traj_np[-1, 1] * i) * 100  # this is in cm... for now, treat cm = degree
-            friend_y[i * n_traj_ts: (i + 1) * n_traj_ts] = (traj_np[:, 2] + traj_np[-1, 2] * i) * 100
-            friend_a[i * n_traj_ts: (i + 1) * n_traj_ts] = np.mod(traj_np[:, 3] + traj_np[-1, 3] * i, 360)  # in degrees
+            friend_x[i * n_traj_ts: (i + 1) * n_traj_ts] = np.rad2deg(np.arctan((traj_np[:, 1] + friend_x[i * n_traj_ts]) / dist_window))
+            friend_y[i * n_traj_ts: (i + 1) * n_traj_ts] = np.rad2deg(np.arctan((traj_np[:, 2] + friend_y[i * n_traj_ts]) / dist_window))
+            friend_a[i * n_traj_ts: (i + 1) * n_traj_ts] = np.mod(traj_np[:, 3], 360)  # in degrees
 
-        theta_traj = list(zip(friend_t, friend_x + spawn_theta))
-        phi_traj = list(zip(friend_t, friend_y + spawn_phi))
+        friend_x += spawn_theta
+        friend_y += spawn_phi
+
+        ##### Wrap around walls
+        theta_zone_width = np.abs(theta_zone[1] - theta_zone[0])
+        for i in range(len(friend_x)):
+            if friend_x[i] > np.max(theta_zone):
+                friend_x[i:] -= theta_zone_width
+                friend_c[i-1:i+1] = c_bg
+            elif friend_x[i] < np.min(theta_zone):
+                friend_x[i:] += theta_zone_width
+                friend_c[i-1:i+1] = c_bg
+
+        phi_zone_height = np.abs(phi_zone[1] - phi_zone[0])
+        for i in range(len(friend_y)):
+            if friend_y[i] > np.max(phi_zone):
+                friend_y[i:] -= phi_zone_height
+                friend_c[i-1:i+1] = c_bg
+            elif friend_y[i] < np.min(phi_zone):
+                friend_y[i:] += phi_zone_height
+                friend_c[i-1:i+1] = c_bg
+        #####
+
+        friend_t *= speed_factor
+
+        theta_traj = list(zip(friend_t, friend_x))
+        phi_traj = list(zip(friend_t, friend_y))
         angle_traj = list(zip(friend_t, friend_a))
-        self.flystim_traj = RectangleAnyTrajectory(x=theta_traj, y=phi_traj, w=radius, h=radius * 1.5,
-                                                   angle=angle_traj, color=color)
+        color_traj = list(zip(friend_t, friend_c))
+
+        width = np.rad2deg(np.arctan(radius/dist_window))
+        height = np.rad2deg(np.arctan(radius*1.5/dist_window))
+
+        self.flystim_traj = RectangleAnyTrajectory(x=theta_traj, y=phi_traj, w=width, h=height,
+                                                   angle=angle_traj, color=color_traj)
 
 
 def pol2cart(amp, angle):
@@ -66,12 +99,16 @@ def pol2cart(amp, angle):
 
 
 def main():
+
+    ##### User defined inputs:
+    dist_window = 0.2 # meters # do 0.02 on the rig
+
     c_bg =1.0  # background brightness
     c_lm=0 # brightness of the looming patch
 
-    n_trials = 3
-    iti_uniform_lo = 3
-    ini_uniform_hi = 6
+    n_trials = 20
+    iti_uniform_lo = 13
+    ini_uniform_hi = 16
     loom_duration = 0.5
     loom_diam_start = 10
     loom_diam_end = 100
@@ -80,30 +117,39 @@ def main():
     friends_duration = 5   #duration in which only friends are shown
 
     c_friends = 0.3  #brightness of friends
-    n_friends_per_zone = 5
-    friends_rad_mean = 1
+    n_friends_per_zone = 10
+    friends_rad_mean = 0.002
     friends_rad_std = 0
 
-    friend_traj_fn = '/Users/Ilana/Documents/Grad School/Third Year/stim_scripts/trial-15-20190716-212916_traj.csv'
-
-    #friends_theta_zones = [(45, 135), (-135, -45)]
-    #friends_phi_zone = (45, 135)
-    friends_theta_zones = [(10, 45), (-45, -10)]
+    friends_theta_zones = [(-20, 20)] #[(10, 45), (-45, -10)]
     friends_phi_zone = (75, 105)
     n_zones = len(friends_theta_zones)
     n_friends = n_friends_per_zone * n_zones
+
+    friend_traj_dir = '/Users/Ilana/repos/stim_scripts/trajectories/chosen'
+
+    ##### Calculate stuff based on inputs
 
     # 0. Sample ITIs
     itis = np.random.uniform(iti_uniform_lo, ini_uniform_hi, n_trials)
     exp_duration = friends_duration + np.sum(itis) + loom_duration * n_trials
 
     # 1. Make friends
+    # paths
+    friend_traj_paths = [os.path.join(friend_traj_dir, x) for x in os.listdir(friend_traj_dir) if x.endswith('.csv')]
+    n_paths = len(friend_traj_paths)
+    friend_traj_paths *= int(np.ceil(n_friends / n_paths))
+    #random.shuffle(friend_traj_paths)
+
+    # zone assignments
+    theta_zone_assignments = friends_theta_zones * n_friends_per_zone
+
     friends = []
-    for theta_zone in friends_theta_zones:
-        for i in range(n_friends_per_zone):
-            friend = Friend(theta_zone=theta_zone, phi_zone=friends_phi_zone, rad_mean=friends_rad_mean,
-                            rad_std=friends_rad_std, traj_fn=friend_traj_fn, exp_duration=exp_duration, color=c_friends)
-            friends.append(friend)
+    for i in range(n_friends):
+        friend = Friend(theta_zone=theta_zone_assignments[i], phi_zone=friends_phi_zone, rad_mean=friends_rad_mean,
+                        rad_std=friends_rad_std, traj_fn=friend_traj_paths[i], exp_duration=exp_duration, color=c_friends,
+                        dist_window=dist_window, c_bg=c_bg)
+        friends.append(friend)
 
     # 2 Make looms
     diam_traj = [(0,0), (friends_duration,0)]
@@ -116,7 +162,7 @@ def main():
     diam_traj.append((last_t, 0))
     loomtraj = RectangleAnyTrajectory(x=0, y=90, angle=0, color=c_lm, w=diam_traj)
 
-    # 3. Launch flystim server and load stimuli
+    ##### Launch flystim server and load stimuli
     screen = Screen(server_number=1, id=1,fullscreen=True)
     manager = launch_stim_server(screen)
     manager.set_idle_background(c_bg)
