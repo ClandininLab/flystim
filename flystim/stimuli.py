@@ -11,7 +11,7 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim import GlSphericalRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect
+from flystim import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect
 import time # for debugging and benchmarking
 import copy
 
@@ -136,6 +136,45 @@ class MovingPatch(BaseProgram):
         self.stim_object = GlSphericalRect(width=width,
                                            height=height,
                                            sphere_radius=self.sphere_radius,
+                                           color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+
+
+class MovingPatchOnCylinder(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, width=10, height=10, cylinder_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+        """
+        Stimulus consisting of a rectangular patch on the surface of a cylinder. Patch is rectangular in cylindrical coordinates.
+
+        :param width: Width in degrees (azimuth)
+        :param height: Height in degrees (elevation)
+        :param cylinder_radius: Radius of the cylinder (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.width = make_as_trajectory(width)
+        self.height = make_as_trajectory(height)
+        self.cylinder_radius = cylinder_radius
+        self.color = make_as_trajectory(color)
+        self.theta = make_as_trajectory(theta)
+        self.phi = make_as_trajectory(phi)
+        self.angle = make_as_trajectory(angle)
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        color = return_for_time_t(self.color, t)
+        # TODO: is there a way to make this object once in configure then update with width/height in eval_at?
+        self.stim_object = GlCylindricalWithPhiRect(width=width,
+                                           height=height,
+                                           cylinder_radius=self.cylinder_radius,
                                            color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 

@@ -60,7 +60,7 @@ def main():
     #######################
     # Stimulus construction
 
-    origin_theta = 0
+    center = 0
 
     # consistent bar trajectory
     con_time = [0, preprime_duration]
@@ -100,12 +100,12 @@ def main():
     occluder_time = [0, con_stim_duration]
     occluder_x = [occluder_loc, occluder_loc]
 
-    con_bar_traj_r = list(zip(con_time, (origin_theta - np.array(con_x)).tolist()))
-    con_bar_traj_l = list(zip(con_time, (origin_theta + np.array(con_x)).tolist()))
-    inc_bar_traj_r = list(zip(inc_time, (origin_theta - np.array(inc_x)).tolist()))
-    inc_bar_traj_l = list(zip(inc_time, (origin_theta + np.array(inc_x)).tolist()))
-    occluder_traj_r = list(zip(occluder_time, (origin_theta - np.array(occluder_x)).tolist()))
-    occluder_traj_l = list(zip(occluder_time, (origin_theta + np.array(occluder_x)).tolist()))
+    con_bar_traj_r = list(zip(con_time, (center - np.array(con_x)).tolist()))
+    con_bar_traj_l = list(zip(con_time, (center + np.array(con_x)).tolist()))
+    inc_bar_traj_r = list(zip(inc_time, (center - np.array(inc_x)).tolist()))
+    inc_bar_traj_l = list(zip(inc_time, (center + np.array(inc_x)).tolist()))
+    occluder_traj_r = list(zip(occluder_time, (center - np.array(occluder_x)).tolist()))
+    occluder_traj_l = list(zip(occluder_time, (center + np.array(occluder_x)).tolist()))
 
     # Create flystim trajectory objects
     con_bar_r = {'name': 'tv_pairs', 'tv_pairs': con_bar_traj_r, 'kind': 'linear'}
@@ -173,8 +173,10 @@ def main():
 
         manager.load_stim(name='ConstantBackground', color=[background_color,background_color,background_color,1], side_length=200)
 
-        manager.load_stim(name='MovingPatch', width=bar_width, height=bar_height, sphere_radius=1, color=bar_color, theta=bar_traj, phi=0, hold=True)
-        manager.load_stim(name='MovingPatch', width=occluder_width, height=occluder_height, sphere_radius=1, color=occ_color, theta=occ_traj, phi=0, hold=True)
+        # manager.load_stim(name='MovingPatch', width=bar_width, height=bar_height, sphere_radius=2, color=bar_color, theta=bar_traj, phi=0, hold=True)
+        # manager.load_stim(name='MovingPatch', width=occluder_width, height=occluder_height, sphere_radius=1, color=occ_color, theta=occ_traj, phi=0, hold=True)
+        manager.load_stim(name='MovingPatchOnCylinder', width=bar_width, height=bar_height, cylinder_radius=2, color=bar_color, theta=bar_traj, phi=0, hold=True)
+        manager.load_stim(name='MovingPatchOnCylinder', width=occluder_width, height=occluder_height, cylinder_radius=1, color=occ_color, theta=occ_traj, phi=0, hold=True)
 
         manager.start_stim()
         sleep(stim_duration)
