@@ -21,9 +21,10 @@ class BaseProgram:
         self.screen = screen
         self.num_tri = num_tri
         self.use_texture = False
+        self.rgb_texture = False
         self.texture = None
-        self.draw_mode = 'TRIANGLES' # TRIANGLES, POINTS
-        self.point_size = 2 # pixels on screen, only for POINTS draw_mode
+        self.draw_mode = 'TRIANGLES'  # TRIANGLES, POINTS
+        self.point_size = 2  # pixels on screen, only for POINTS draw_mode
 
     def initialize(self, ctx):
         """
@@ -35,10 +36,9 @@ class BaseProgram:
 
         self.update_vertex_objects()
 
-        if self.use_texture:
-            self.prog['use_texture'].value = True
-        else:
-            self.prog['use_texture'].value = False
+        # Default texture booleans for the shader program
+        self.prog['use_texture'].value = False
+        self.prog['rgb_texture'].value = False
 
     def configure(self, *args, **kwargs):
         pass
@@ -56,8 +56,10 @@ class BaseProgram:
         self.update_vertex_objects()
 
         if self.use_texture:
+            # x, y, z, r, g, b, a, texture x, texture y
             vertices = len(data) // 9
         else:
+            # x, y, z, r, g, b, a
             vertices = len(data) // 7
 
         # write data to VBO
@@ -88,8 +90,19 @@ class BaseProgram:
             self.vao = self.ctx.simple_vertex_array(self.prog, self.vbo, 'in_vert', 'in_color')
 
     def add_texture_gl(self, texture_image, texture_interpolation='LINEAR'):
+        # Update the texture booleans for the shader program
+        self.prog['rgb_texture'].value = self.rgb_texture
+        self.prog['use_texture'].value = self.use_texture
+
+        if self.rgb_texture:
+            # RGB texture, shape = x, y, 3 (rgb)
+            components = 3
+        else:
+            # Monochromatic texture, shape = x, y
+            components = 1
+
         self.texture = self.ctx.texture(size=(texture_image.shape[1], texture_image.shape[0]),
-                                        components=1,
+                                        components=components,
                                         data=texture_image.tobytes())  # size = (width, height)
 
         if texture_interpolation == 'NEAREST':
@@ -144,6 +157,7 @@ class BaseProgram:
             in vec2 v_tex_coord;
 
             uniform bool use_texture;
+            uniform bool rgb_texture;
             uniform sampler2D texture_matrix;
 
             out vec4 f_color;
@@ -151,7 +165,12 @@ class BaseProgram:
             void main() {
                 if (use_texture) {
                     vec4 texFrag = texture(texture_matrix, v_tex_coord);
-                    f_color.rgb = texFrag.r * v_color.rgb;
+                    if (rgb_texture) {
+                        f_color.rgb = texFrag.rgb * v_color.rgb;
+                    } else {
+                        f_color.rgb = texFrag.r * v_color.rgb;
+                    }
+
                     f_color.a = v_color.a;
                 } else {
                     f_color.rgb = v_color.rgb;

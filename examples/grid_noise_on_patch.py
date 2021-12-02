@@ -11,22 +11,22 @@ def main():
 
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
-    distribution_data = {'name': 'Gaussian',
-                         'args': [0.5, 0.3],
+    distribution_data = {'name': 'Ternary',
+                         'args': [0.0, 1.0],
                          'kwargs': {}}
+    #
+    # theta_trajectory = {'name': 'tv_pairs',
+    #                     'tv_pairs': [(0, -45), (4, 45)],
+    #                     'kind': 'linear'}
 
-    theta_trajectory = {'name': 'tv_pairs',
-                        'tv_pairs': [(0, -45), (4, 45)],
-                        'kind': 'linear'}
-
-    manager.load_stim(name='RandomGridOnSphericalPatch', patch_width=5, patch_height=5, distribution_data=distribution_data, update_rate=30.0, start_seed=0,
-                      width=60, height=60, sphere_radius=1.1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0, hold=True)
+    manager.load_stim(name='RandomGridOnSphericalPatch', patch_width=5, patch_height=5, distribution_data=distribution_data, update_rate=0.0, start_seed=0,
+                      width=60, height=60, sphere_radius=1.1, color=[1, 0, 1, 1], theta=0, phi=0, angle=0, hold=True, rgb_texture=True)
 
     # manager.set_global_fly_pos(0, -2, 0)
 
     # manager.load_stim(name='RandomGrid', patch_width=5, patch_height=5, cylinder_vertical_extent=80, cylinder_angular_extent=120,
     #                   distribution_data=distribution_data, update_rate=0, start_seed=0,
-    #                   color=[1, 1, 1, 1], cylinder_radius=1.1, theta=90, phi=0, angle=0.0, hold=True)
+    #                   color=[1, 1, 1, 1], cylinder_radius=1.1, theta=90, phi=0, angle=0.0, hold=True, rgb_texture=False)
 
     # manager.load_stim(name='MovingSpot', radius=2.5, sphere_radius=1, color=[1, 0, 0, 1], theta=5, phi=-21.5, hold=True)
     #

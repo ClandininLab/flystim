@@ -223,7 +223,7 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         super().__init__(screen=screen)
 
     def configure(self, patch_width=5, patch_height=5, distribution_data=None, update_rate=60.0, start_seed=0,
-                  width=30, height=30, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+                  width=30, height=30, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0, rgb_texture=False):
         """
         Random square grid pattern painted on a spherical patch.
 
@@ -235,6 +235,8 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
 
         :other params: see TexturedSphericalPatch
         """
+        self.rgb_texture = rgb_texture
+
         super().configure(width=width, height=height, sphere_radius=sphere_radius, color=color, theta=theta, phi=phi, angle=angle)
 
         # get the noise distribution
@@ -252,17 +254,24 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         self.n_patches_width = int(np.floor(width/self.patch_width))
         self.n_patches_height = int(np.floor(height/self.patch_height))
 
-        img = np.zeros((self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        if self.rgb_texture:
+            img = np.zeros((self.n_patches_height, self.n_patches_width, 3)).astype(np.uint8)
+        else:
+            img = np.zeros((self.n_patches_height, self.n_patches_width)).astype(np.uint8)
         self.add_texture_gl(img, texture_interpolation='NEAREST')
 
     def updateTexture(self, t):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
+
         # get the random values
-        face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
-        # make the texture
-        img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        if self.rgb_texture:  # shape = (x, y, 3)
+            face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width, 3))
+            img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width, 3)).astype(np.uint8)
+        else:  # shape = (x, y) monochromatic
+            face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
+            img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
 
         # TEST CHECKERBOARD
         # x = np.zeros((self.n_patches_height, self.n_patches_width), dtype=int)
@@ -507,20 +516,22 @@ class RandomGrid(TexturedCylinder):
 
     def configure(self, patch_width=10, patch_height=10, cylinder_vertical_extent=160, cylinder_angular_extent=360,
                   distribution_data=None, update_rate=60.0, start_seed=0,
-                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0):
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0, rgb_texture=False):
         """
         Random square grid pattern painted on the inside of a cylinder.
 
         :param patch width: Azimuth extent (degrees) of each patch
         :param patch height: Elevation extent (degrees) of each patch
         :param cylinder_vertical_extent: Elevation extent of the entire cylinder (degrees)
-        :param cylinder_angular_extent: Azimuth extent of the cylinder texture (degrees)
+        :param cylinder_angular_extent: Azimuth extent of the cylinder `texture` (degrees)
         :param distribution_data: dict. containing name and args/kwargs for random distribution (see flystim.distribution)
         :param update_rate: Hz, update rate of bar intensity
         :param start_seed: seed with which to start rng at the beginning of the stimulus presentation
 
         :other params: see TexturedCylinder
         """
+        self.rgb_texture = rgb_texture
+
         # Only renders part of the cylinder if the period is not a divisor of cylinder_angular_extent
         self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
         self.cylinder_angular_extent = self.n_patches_width * patch_width
@@ -546,7 +557,11 @@ class RandomGrid(TexturedCylinder):
         self.start_seed = start_seed
         self.update_rate = update_rate
 
-        img = np.zeros((self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        if self.rgb_texture:
+            img = np.zeros((self.n_patches_height, self.n_patches_width, 3)).astype(np.uint8)
+        else:
+            img = np.zeros((self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+
         self.add_texture_gl(img, texture_interpolation='NEAREST')
 
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
@@ -559,10 +574,15 @@ class RandomGrid(TexturedCylinder):
         # set the seed
         seed = int(round(self.start_seed + t*self.update_rate))
         np.random.seed(seed)
+
         # get the random values
-        face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
+        if self.rgb_texture:  # shape = (x, y, 3)
+            face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width, 3))
+            img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width, 3)).astype(np.uint8)
+        else:  # shape = (x, y) monochromatic
+            face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
+            img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
         # make the texture
-        img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
         self.update_texture_gl(img)
 
 
