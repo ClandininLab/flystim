@@ -47,9 +47,9 @@ def get_subscreen(dir):
         viewport_ll=(-1,-1)
         viewport_width=2
         viewport_height=2
-        pa=(x_left, y_back, z_bottom)
-        pb=(0, y_forward, z_bottom)
-        pc=(x_left, y_back, 0)
+        pa=(x_left, y_forward, z_bottom)
+        pb=(x_right, y_forward, z_bottom)
+        pc=(x_left, y_forward, z_top)
 
     else:
         raise ValueError('Invalid direction.')
