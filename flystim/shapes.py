@@ -339,3 +339,43 @@ class GlCylinder(GlVertices):
                             r * np.sin(theta),
                             z)
         return cartesian_coords
+
+class GlCylindricalWithPhiRect(GlVertices):
+    def __init__(self,
+                 width=20,  # degrees, theta
+                 height=20,  # degrees, phi
+                 cylinder_radius=1,  # meters
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 n_steps_x=6,
+                 n_steps_y=6):
+        super().__init__()
+        if type(color) is not list:
+            if type(color) is tuple:
+                color = list(color)
+            else:
+                color = [color, color, color, 1]
+
+        d_theta = (1/n_steps_x) * radians(width)
+        d_phi = (1/n_steps_y) * radians(height)
+        for rr in range(n_steps_y):
+            for cc in range(n_steps_x):
+                # render patch at the equator (phi=pi/2) so it's not near the poles
+                # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
+                theta = np.pi/2 + radians(width) * (-1/2 + (cc/n_steps_x))
+                phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
+                v1 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta, phi))
+                v2 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta, phi + d_phi))
+                v3 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta + d_theta, phi))
+                v4 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta + d_theta, phi + d_phi))
+                self.add(GlTri(v1, v2, v4, color))
+                self.add(GlTri(v1, v3, v4, color))
+
+    def cylindricalWithPhiToCartesian(self, cyl_phi_coords):
+        '''
+        Converts cylindrical coordinates with phi instead of z (r, theta, phi) to cartesian coordinates
+        '''
+        r, theta, phi = cyl_phi_coords
+        cartesian_coords = (r * np.cos(theta),
+                            r * np.sin(theta),
+                            r * np.tan(phi))
+        return cartesian_coords

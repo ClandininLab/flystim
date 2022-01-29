@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='flystim',
-    version='0.0.1',
+    version='2.0.0',
     description='Visual stimulus generator for fruit fly experiments.',
     long_description='Multi-monitor perspective-corrected visual stimulus generator for fruit fly experiments.',
     url='https://github.com/ClandininLab/flystim',
@@ -19,7 +19,8 @@ setup(
         'pandas',
         'json-rpc',
         'matplotlib',
-        'qimage2ndarray'
+        'qimage2ndarray',
+        'scikit-image',
     ],
     entry_points={
         'console_scripts': [
