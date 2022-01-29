@@ -8,40 +8,53 @@ from flystim.draw import draw_screens
 
 from time import sleep
 
-
 def get_subscreen(dir):
-    w = 3.0e-2 #meters
-    h = 3.0e-2
-    viewport_width = 0.6 #ndc
-    viewport_height = 0.6
+    '''
+    Tuned for ballrig with "rotate left" in /etc/X11/xorg.conf
+    Because screens are flipped l<->r, viewport_ll is actually lower right corner.
+    '''
+    north_w = 2.956e-2
+    side_w = 2.96e-2
+
+    # set coordinates as a function of direction
     if dir == 'w':
-        viewport_ll = (-0.8, -0.6)
-        pa = (-w/2, -w/2, -h/2)
-        pb = (-w/2, +w/2, -h/2)
-        pc = (-w/2, -w/2, +h/2)
-
+       # set screen width and height
+       h = 3.10e-2
+       pa = (-north_w/2, -side_w/2, -h/2)
+       pb = (-north_w/2, +side_w/2, -h/2)
+       pc = (-north_w/2, -side_w/2, +h/2)
+       viewport_ll = (-0.636, -0.5)
+       viewport_width = -0.636 - (-0.345)
+       viewport_height = -0.289 - (-0.5)
     elif dir == 'n':
-        viewport_ll = (-0.3, 0.0)
-        pa = (-w/2, +w/2, -h/2)
-        pb = (+w/2, +w/2, -h/2)
-        pc = (-w/2, +w/2, +h/2)
-
+       # set screen width and height
+       h = 3.29e-2
+       pa = (-north_w/2, +side_w/2, -h/2)
+       pb = (+north_w/2, +side_w/2, -h/2)
+       pc = (-north_w/2, +side_w/2, +h/2)
+       viewport_ll = (+0.2956, -0.1853)
+       viewport_width = +0.2956 - 0.5875
+       viewport_height = +0.015 - (-0.1853)
     elif dir == 'e':
-        viewport_ll = (+0.2, -0.6)
-        pa = (+w/2, +w/2, -h/2)
-        pb = (+w/2, -w/2, -h/2)
-        pc = (+w/2, +w/2, +h/2)
-
+        # set screen width and height
+        h = 3.40e-2
+        pa = (+north_w/2, +side_w/2, -h/2)
+        pb = (+north_w/2, -side_w/2, -h/2)
+        pc = (+north_w/2, +side_w/2, +h/2)
+        viewport_ll = (-0.631, +0.135)
+        viewport_width = -0.631 - (-0.355)
+        viewport_height = +0.3397- (+0.135)
     else:
         raise ValueError('Invalid direction.')
 
-    return SubScreen(pa=pa, pb=pb, pc=pc, viewport_ll=viewport_ll, viewport_width=viewport_width, viewport_height=viewport_height)
+    return SubScreen(pa=pa, pb=pb, pc=pc, viewport_ll=viewport_ll, viewport_width=abs(viewport_width), viewport_height=abs(viewport_height))
+
 
 def main():
     subscreens = [get_subscreen('w'), get_subscreen('n'), get_subscreen('e')]
-    screen = Screen(subscreens=subscreens, server_number=0, id=0, fullscreen=False, square_loc=(0.75, -1.0), square_size=(0.25, 0.25), vsync=True)
+    screen = Screen(subscreens=subscreens, server_number=1, id=1, fullscreen=True, square_loc=(0.75, -1.0), square_size=(0.25, 0.25), vsync=True, horizontal_flip=True)
 
-    draw_screens(screen)
+    #draw_screens(screen)
 
     manager = launch_stim_server(screen)
 
