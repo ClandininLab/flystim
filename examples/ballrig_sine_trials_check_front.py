@@ -82,6 +82,7 @@ def main():
     n_trials = input("Enter number of trials (default 160): ")#26
     if n_trials=="":
         n_trials = 160
+    n_trials = int(n_trials)
     print(n_trials)
 
     _ = input("Press enter to continue.")#26
@@ -180,7 +181,7 @@ def main():
     # Start stim server
     fs_manager = launch_stim_server(screen)
     if save_history:
-        fs_manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=fix_max_duration)
+        fs_manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=fix_max_duration+iti)
     fs_manager.set_idle_background(background_color)
 
     #####################################################
@@ -190,13 +191,13 @@ def main():
     ft_manager = FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT, ft_theta_idx=FT_THETA_IDX, ft_frame_num_idx=FT_FRAME_NUM_IDX, ft_timestamp_idx=FT_TIMESTAMP_IDX)
     ft_manager.sleep(8) #allow fictrac to gather data
 
-    if save_history:
-        fix_scores_all = []
-        fix_front_passes_all = []
-        fix_ft_frames_all = []
-        fix_start_times = []
-        fix_end_times = []
-        fix_success_all = []
+
+    fix_scores_all = []
+    fix_front_passes_all = []
+    fix_ft_frames_all = []
+    fix_start_times = []
+    fix_end_times = []
+    fix_success_all = []
 
     # Pretend previous trial ended here before trial 0
     t_exp_start = time()
@@ -263,17 +264,19 @@ def main():
         ft_manager.sleep(iti)
         print("===== End ITI =====")
 
+        fix_start_times.append(t_start_fix)
+        fix_end_times.append(t_end_fix)
+        fix_success_all.append(fix_success)
+        fix_scores_all.append(fix_scores[:fix_frame_cnt])
+        fix_front_passes_all.append(fix_front_passes[:fix_frame_cnt])
+
         # Save things
         if save_history:
             fs_manager.stop_saving_history()
             fs_manager.set_save_prefix(save_prefix+"_t"+f'{t:03}')
             fs_manager.save_history()
 
-            fix_start_times.append(t_start_fix)
-            fix_end_times.append(t_end_fix)
-            fix_success_all.append(fix_success)
-            fix_scores_all.append(fix_scores[:fix_frame_cnt])
-            fix_front_passes_all.append(fix_front_passes[:fix_frame_cnt])
+
             fix_ft_frames_all.append(fix_ft_frames[:fix_frame_cnt])
 
     # close fictrac
