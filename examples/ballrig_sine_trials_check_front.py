@@ -120,7 +120,7 @@ def main():
     fix_window = 2 #seconds
     fix_min_duration = 2
     fix_max_duration = 45
-    
+
     fix_front_region = [-45, 45]
     fix_front_threshold = .9
 
@@ -235,14 +235,14 @@ def main():
         while time()-t_start_fix < fix_min_duration or fix_score < fix_score_threshold or not fix_front_pass: #while the fly is not fixating or witin fix_min_duration or wasn't facing forward
             ft_frame_num, _, [theta_rad] = ft_manager.update_pos()
             fix_ft_frames[fix_frame_cnt] = ft_frame_num
-            
+
             fix_q_theta_rad.pop(0)
             fix_q_theta_rad.append(theta_rad)
             fix_score = fixation_score(fix_q_theta_rad, fix_sine_template)
             fix_scores[fix_frame_cnt] = fix_score
 
             fix_q_front.pop(0)
-            fix_q_front.append(theta_rad > fix_front_region[0] and theta_rad < fix_front_region[0])
+            fix_q_front.append(theta_rad > fix_front_region[0] and theta_rad < fix_front_region[1])
             fix_front_pass = np.mean(fix_q_front) > fix_front_threshold
             fix_front_passes[fix_frame_cnt] = fix_front_pass
 
