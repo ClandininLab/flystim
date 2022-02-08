@@ -290,7 +290,7 @@ class TexturedCylinder(BaseProgram):
         super().__init__(screen=screen)
         self.use_texture = True
 
-    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0.0):
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_location=(0,0,0), cylinder_height=10, theta=0, phi=0, angle=0.0):
         """
         Parent class for a Cylinder with a texture painted on it. Fly is at (0, 0, 0).
 
@@ -303,6 +303,7 @@ class TexturedCylinder(BaseProgram):
         """
         self.color = color
         self.cylinder_radius = cylinder_radius
+        self.cylinder_location = cylinder_location
         self.cylinder_height = cylinder_height
         self.theta = make_as_trajectory(theta)
         self.phi = make_as_trajectory(phi)
@@ -322,7 +323,7 @@ class CylindricalGrating(TexturedCylinder):
         super().__init__(screen=screen)
 
     def configure(self, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='sine',
-                  color=[1, 1, 1, 1], cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0.0):
+                  color=[1, 1, 1, 1], cylinder_radius=1, cylinder_location=(0,0,0), cylinder_height=10, theta=0, phi=0, angle=0.0):
         """
         Grating texture painted on a cylinder.
 
@@ -335,7 +336,7 @@ class CylindricalGrating(TexturedCylinder):
         :params color, cylinder_radius, cylinder_height, theta, phi, angle: see parent class
         *Any of these params except cylinder_radius, cylinder_height and profile can be passed as a trajectory dict to vary as a function of time
         """
-        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_location=cylinder_location, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
 
         self.period = period
         self.mean = mean
@@ -395,7 +396,7 @@ class RotatingGrating(CylindricalGrating):
         super().__init__(screen=screen)
 
     def configure(self, rate=10, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
-                  color=[1, 1, 1, 1], alpha_by_face=None, cylinder_radius=1, cylinder_height=10, theta=0, phi=0, angle=0):
+                  color=[1, 1, 1, 1], alpha_by_face=None, cylinder_radius=1, cylinder_location=(0,0,0), cylinder_height=10, theta=0, phi=0, angle=0):
         """
         Subclass of CylindricalGrating that rotates the grating along the varying axis of the grating.
 
@@ -406,7 +407,7 @@ class RotatingGrating(CylindricalGrating):
         :other params: see CylindricalGrating, TexturedCylinder
         """
         super().configure(period=period, mean=mean, contrast=contrast, offset=offset, profile=profile,
-                          color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
+                          color=color, cylinder_radius=cylinder_radius, cylinder_location=cylinder_location, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
         self.rate = rate
         self.alpha_by_face = alpha_by_face
         if self.alpha_by_face is None:
@@ -417,6 +418,7 @@ class RotatingGrating(CylindricalGrating):
 
         self.stim_object_template = GlCylinder(cylinder_height=self.cylinder_height,
                                                cylinder_radius=self.cylinder_radius,
+                                               cylinder_location=self.cylinder_location,
                                                cylinder_angular_extent=self.cylinder_angular_extent,
                                                color=self.color,
                                                alpha_by_face=self.alpha_by_face,
