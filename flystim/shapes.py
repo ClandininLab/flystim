@@ -274,7 +274,7 @@ class GlSphericalPoints(GlVertices):
 
         cartesian_coords = []
         for pt in range(len(theta)):
-            cartesian_coords.append(self.sphericalToCartesian((sphere_radius, radians(theta[pt]), np.pi/2 + radians(phi[pt]))))
+            cartesian_coords.append(self.sphericalToCartesian((sphere_radius, np.pi/2 + radians(theta[pt]), np.pi/2 + radians(phi[pt]))))
 
         vertices = np.vstack(cartesian_coords).T # 3 x n_points
         colors = matlib.repmat(color, len(theta), 1).T # 4 x n_points
