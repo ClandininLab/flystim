@@ -786,34 +786,60 @@ class Forest(BaseProgram):
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
-
-class CoherentMotionDotField(BaseProgram):
+class MovingDotField(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen, num_tri=10000)
         self.draw_mode = 'POINTS'
 
-    def configure(self, point_size=20, sphere_radius=1, color=[1, 1, 1, 1], theta_locations=[0], phi_locations=[0], theta_trajectory=0, phi_trajectory=0):
+    def configure(self, n_points=20, point_size=20, sphere_radius=1, color=[1, 1, 1, 1],
+                  speed=40, signal_direction=0, coherence=1.0, random_seed=0):
         """
         Collection of moving points created with a single shader.
 
-        Each point can have a distinct offset (center), and all move with a single coherent motion trajectory along a sphere
         Note that points are all the same size, so no area correction is made for perspective
         """
+        self.n_points = n_points
         self.point_size = point_size
         self.sphere_radius = sphere_radius
         self.color = color
-        self.theta_locations = theta_locations
-        self.phi_locations = phi_locations
-        self.theta_trajectory = make_as_trajectory(theta_trajectory)
-        self.phi_trajectory = make_as_trajectory(phi_trajectory)
+        self.speed = speed  # Deg/sec
+        self.signal_direction = signal_direction  # In theta/phi plane. [0, 2*PI]
+        self.coherence = coherence
+        self.random_seed = random_seed
+
+        self.stim_object = GlVertices()
 
         self.stim_object_template = GlSphericalPoints(sphere_radius=self.sphere_radius,
                                                       color=self.color,
-                                                      theta=self.theta_locations,
-                                                      phi=self.phi_locations)
+                                                      theta=[0],
+                                                      phi=[0])
+
+        # Set random seed
+        np.random.seed(self.random_seed)
+
+        self.starting_theta = np.random.uniform(0, 2*np.pi, self.n_points)
+        self.starting_phi = np.random.uniform(-np.pi/2, +np.pi/2, self.n_points)
+
+        # Make velocity vectors for each point
+        self.velocity_vectors = []
+        is_signal = np.random.choice([False, True], self.n_points, p=[1-self.coherence, self.coherence])
+        for pt in range(self.n_points):
+            if is_signal[pt]:
+                dir = self.signal_direction
+            else:
+                dir = np.random.uniform(0, 2*np.pi)
+
+            vec = self.speed*np.array([np.cos(dir), np.sin(dir)])
+            self.velocity_vectors.append(vec)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
-        theta = return_for_time_t(self.theta_trajectory, t)
-        phi = return_for_time_t(self.phi_trajectory, t)
 
-        self.stim_object = copy.copy(self.stim_object_template).rotate(np.radians(theta), np.radians(phi), 0)
+        self.stim_object = GlVertices()
+        for pt in range(self.n_points):
+            d_xy = self.velocity_vectors[pt] * t  # Change in (theta, phi) position, in degrees
+            new_theta = self.starting_theta[pt] + np.radians(d_xy[0])
+            # Bounce phi back from pi to 0. Shift by pi/2 because of offset in where point is rendered in flystim.shapes
+            new_phi = (self.starting_phi[pt] + np.radians(d_xy[1])) % np.pi - np.pi/2
+            self.stim_object.add(copy.copy(self.stim_object_template).rotate(new_theta,  # yaw
+                                                                             new_phi,  # pitch
+                                                                             0))  # roll
