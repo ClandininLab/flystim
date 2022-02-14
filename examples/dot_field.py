@@ -13,7 +13,7 @@ def main():
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
     manager.load_stim(name='MovingDotField', n_points=200, point_size=80, sphere_radius=1, color=[0, 0, 0, 1],
-                      speed=60, signal_direction=np.pi/4, coherence=0.0, random_seed=0, hold=True)
+                      speed=60, signal_direction=90, coherence=0.0, random_seed=0, hold=True)
 
     sleep(1)
 

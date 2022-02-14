@@ -6,6 +6,7 @@ Each class is is derived from flystim.base.BaseProgram, which handles the GL con
 """
 
 import numpy as np
+from numpy.random import default_rng
 import os
 import array
 from flystim.base import BaseProgram
@@ -794,7 +795,7 @@ class MovingDotField(BaseProgram):
     def configure(self, n_points=20, point_size=20, sphere_radius=1, color=[1, 1, 1, 1],
                   speed=40, signal_direction=0, coherence=1.0, random_seed=0):
         """
-        Collection of moving points created with a single shader.
+        Collection of moving points. Tunable coherence.
 
         Note that points are all the same size, so no area correction is made for perspective
         """
@@ -803,8 +804,8 @@ class MovingDotField(BaseProgram):
         self.sphere_radius = sphere_radius
         self.color = color
         self.speed = speed  # Deg/sec
-        self.signal_direction = signal_direction  # In theta/phi plane. [0, 2*PI]
-        self.coherence = coherence
+        self.signal_direction = signal_direction  # In theta/phi plane. [0, 360] degrees
+        self.coherence = coherence  # [0-1]
         self.random_seed = random_seed
 
         self.stim_object = GlVertices()
@@ -815,21 +816,21 @@ class MovingDotField(BaseProgram):
                                                       phi=[0])
 
         # Set random seed
-        np.random.seed(self.random_seed)
+        rng = default_rng(self.random_seed)
 
-        self.starting_theta = np.random.uniform(0, 2*np.pi, self.n_points)
-        self.starting_phi = np.random.uniform(-np.pi/2, +np.pi/2, self.n_points)
+        self.starting_theta = rng.uniform(0, 2*np.pi, self.n_points)
+        self.starting_phi = rng.uniform(-np.pi/2, +np.pi/2, self.n_points)
 
         # Make velocity vectors for each point
         self.velocity_vectors = []
-        is_signal = np.random.choice([False, True], self.n_points, p=[1-self.coherence, self.coherence])
+        is_signal = rng.choice([False, True], self.n_points, p=[1-self.coherence, self.coherence])
         for pt in range(self.n_points):
             if is_signal[pt]:
                 dir = self.signal_direction
             else:
-                dir = np.random.uniform(0, 2*np.pi)
+                dir = rng.uniform(0, 360)
 
-            vec = self.speed*np.array([np.cos(dir), np.sin(dir)])
+            vec = self.speed*np.array([np.cos(np.deg2rad(dir)), np.sin(np.deg2rad(dir))])
             self.velocity_vectors.append(vec)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
