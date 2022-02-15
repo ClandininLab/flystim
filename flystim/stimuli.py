@@ -12,8 +12,9 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect
-import time # for debugging and benchmarking
+from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect
+from flystim import util, image
+import time  # for debugging and benchmarking
 import copy
 
 
@@ -718,32 +719,27 @@ class HorizonCylinder(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5, image_path=None):
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5,
+                  image_name=None, filter_name=None, filter_kwargs={}):
         super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=0, phi=0, angle=0.0)
+        if image_name is not None:
+            image_object = image.Image(image_name)
+            if filter_name is not None:  # use filtered image
+                texture_img = image_object.filter_image(filter_name, filter_kwargs)
+            else:  # use original image
+                texture_img = image_object.load_image()
 
-        if image_path is None:
-            load_image = False
-        elif os.path.isfile(image_path):
-            load_image = True
-        else:
-            load_image = False
-
-        if load_image:
-            with open(image_path, 'rb') as handle:
-                s = handle.read()
-            arr = array.array('H', s)
-            arr.byteswap()
-            img = np.array(arr, dtype='uint16').reshape(1024, 1536)
-            img = np.uint8(255*(img / np.max(img)))
-            img = img[:, :1024]
+            print('LOADED TEXTURE IMAGE FROM {}. SHAPE = {}'.format(image_object.image_path, texture_img.shape))
 
         else:
             # use a dummy texture
             np.random.seed(0)
             face_colors = np.random.uniform(size=(128, 128))
-            img = (255*face_colors).astype(np.uint8)
+            texture_img = (255*face_colors).astype(np.uint8)
 
-        self.add_texture_gl(img, texture_interpolation='LINEAR')
+            print('USING DUMMY TEXTURE. SHAPE = {}'.format(texture_img.shape))
+
+        self.add_texture_gl(texture_img, texture_interpolation='LINEAR')
 
         self.stim_template = GlCylinder(cylinder_height=self.cylinder_height,
                                         cylinder_radius=self.cylinder_radius,
@@ -752,7 +748,7 @@ class HorizonCylinder(TexturedCylinder):
                                         texture=True).rotz(np.radians(180))
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
-        cyl_position = fly_position.copy()
+        cyl_position = fly_position.copy()  # cylinder moves with the fly, so fly is always in the center
         self.stim_object = copy.copy(self.stim_template).translate(cyl_position)
 
 

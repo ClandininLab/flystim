@@ -1,6 +1,21 @@
 from math import sin, cos
 from numbers import Number
 import numpy as np
+import os
+import inspect
+import flystim
+
+
+def get_resource_path(resource_name):
+    path_to_resource = os.path.join(inspect.getfile(flystim).split('flystim')[0],
+                                    'flystim',
+                                    'resources',
+                                    resource_name)
+
+    assert os.path.exists(path_to_resource), 'Resource not found at {}'.format(path_to_resource)
+
+    return path_to_resource
+
 
 def listify(x, type_):
     if isinstance(x, (list, tuple)):
