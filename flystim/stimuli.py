@@ -6,13 +6,15 @@ Each class is is derived from flystim.base.BaseProgram, which handles the GL con
 """
 
 import numpy as np
+from numpy.random import default_rng
 import os
 import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect
-import time # for debugging and benchmarking
+from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect
+from flystim import util, image
+import time  # for debugging and benchmarking
 import copy
 
 
@@ -717,32 +719,27 @@ class HorizonCylinder(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5, image_path=None):
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5,
+                  image_name=None, filter_name=None, filter_kwargs={}):
         super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=0, phi=0, angle=0.0)
+        if image_name is not None:
+            image_object = image.Image(image_name)
+            if filter_name is not None:  # use filtered image
+                texture_img = image_object.filter_image(filter_name, filter_kwargs)
+            else:  # use original image
+                texture_img = image_object.load_image()
 
-        if image_path is None:
-            load_image = False
-        elif os.path.isfile(image_path):
-            load_image = True
-        else:
-            load_image = False
-
-        if load_image:
-            with open(image_path, 'rb') as handle:
-                s = handle.read()
-            arr = array.array('H', s)
-            arr.byteswap()
-            img = np.array(arr, dtype='uint16').reshape(1024, 1536)
-            img = np.uint8(255*(img / np.max(img)))
-            img = img[:, :1024]
+            print('LOADED TEXTURE IMAGE FROM {}. SHAPE = {}'.format(image_object.image_path, texture_img.shape))
 
         else:
             # use a dummy texture
             np.random.seed(0)
             face_colors = np.random.uniform(size=(128, 128))
-            img = (255*face_colors).astype(np.uint8)
+            texture_img = (255*face_colors).astype(np.uint8)
 
-        self.add_texture_gl(img, texture_interpolation='LINEAR')
+            print('USING DUMMY TEXTURE. SHAPE = {}'.format(texture_img.shape))
+
+        self.add_texture_gl(texture_img, texture_interpolation='LINEAR')
 
         self.stim_template = GlCylinder(cylinder_height=self.cylinder_height,
                                         cylinder_radius=self.cylinder_radius,
@@ -751,7 +748,7 @@ class HorizonCylinder(TexturedCylinder):
                                         texture=True).rotz(np.radians(180))
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
-        cyl_position = fly_position.copy()
+        cyl_position = fly_position.copy()  # cylinder moves with the fly, so fly is always in the center
         self.stim_object = copy.copy(self.stim_template).translate(cyl_position)
 
 
@@ -786,34 +783,60 @@ class Forest(BaseProgram):
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
-
-class CoherentMotionDotField(BaseProgram):
+class MovingDotField(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen, num_tri=10000)
         self.draw_mode = 'POINTS'
 
-    def configure(self, point_size=20, sphere_radius=1, color=[1, 1, 1, 1], theta_locations=[0], phi_locations=[0], theta_trajectory=0, phi_trajectory=0):
+    def configure(self, n_points=20, point_size=20, sphere_radius=1, color=[1, 1, 1, 1],
+                  speed=40, signal_direction=0, coherence=1.0, random_seed=0):
         """
-        Collection of moving points created with a single shader.
+        Collection of moving points. Tunable coherence.
 
-        Each point can have a distinct offset (center), and all move with a single coherent motion trajectory along a sphere
         Note that points are all the same size, so no area correction is made for perspective
         """
+        self.n_points = n_points
         self.point_size = point_size
         self.sphere_radius = sphere_radius
         self.color = color
-        self.theta_locations = theta_locations
-        self.phi_locations = phi_locations
-        self.theta_trajectory = make_as_trajectory(theta_trajectory)
-        self.phi_trajectory = make_as_trajectory(phi_trajectory)
+        self.speed = speed  # Deg/sec
+        self.signal_direction = signal_direction  # In theta/phi plane. [0, 360] degrees
+        self.coherence = coherence  # [0-1]
+        self.random_seed = random_seed
+
+        self.stim_object = GlVertices()
 
         self.stim_object_template = GlSphericalPoints(sphere_radius=self.sphere_radius,
                                                       color=self.color,
-                                                      theta=self.theta_locations,
-                                                      phi=self.phi_locations)
+                                                      theta=[0],
+                                                      phi=[0])
+
+        # Set random seed
+        rng = default_rng(self.random_seed)
+
+        self.starting_theta = rng.uniform(0, 2*np.pi, self.n_points)
+        self.starting_phi = rng.uniform(-np.pi/2, +np.pi/2, self.n_points)
+
+        # Make velocity vectors for each point
+        self.velocity_vectors = []
+        is_signal = rng.choice([False, True], self.n_points, p=[1-self.coherence, self.coherence])
+        for pt in range(self.n_points):
+            if is_signal[pt]:
+                dir = self.signal_direction
+            else:
+                dir = rng.uniform(0, 360)
+
+            vec = self.speed*np.array([np.cos(np.deg2rad(dir)), np.sin(np.deg2rad(dir))])
+            self.velocity_vectors.append(vec)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
-        theta = return_for_time_t(self.theta_trajectory, t)
-        phi = return_for_time_t(self.phi_trajectory, t)
 
-        self.stim_object = copy.copy(self.stim_object_template).rotate(np.radians(theta), np.radians(phi), 0)
+        self.stim_object = GlVertices()
+        for pt in range(self.n_points):
+            d_xy = self.velocity_vectors[pt] * t  # Change in (theta, phi) position, in degrees
+            new_theta = self.starting_theta[pt] + np.radians(d_xy[0])
+            # Bounce phi back from pi to 0. Shift by pi/2 because of offset in where point is rendered in flystim.shapes
+            new_phi = (self.starting_phi[pt] + np.radians(d_xy[1])) % np.pi - np.pi/2
+            self.stim_object.add(copy.copy(self.stim_object_template).rotate(new_theta,  # yaw
+                                                                             new_phi,  # pitch
+                                                                             0))  # roll

@@ -16,12 +16,18 @@ def main():
                         'tv_pairs': [(0, -45), (4, 45)],
                         'kind': 'linear'}
 
-    color_trajectory = {'name': 'Sinusoid',
-                        'temporal_frequency': 2,
-                        'amplitude': 1,
-                        'offset': 1}
+    # color_trajectory = {'name': 'Sinusoid',
+    #                     'temporal_frequency': 2,
+    #                     'amplitude': 1,
+    #                     'offset': 1}
+
+    color_trajectory = {'name': 'tv_pairs',
+                        'tv_pairs': [(0, (0, 0, 0, 1)), (1, (0, 0, 0, 0)), (2, (0, 0, 0, 1))],
+                        'kind': 'linear'}
+
 
     manager.load_stim(name='MovingSpot', radius=5, sphere_radius=1, color=color_trajectory, theta=theta_trajectory, phi=0, hold=True)
+
 
     sleep(1)
 

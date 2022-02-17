@@ -13,7 +13,7 @@ def main():
 
     stims = ['ConstantBackground', 'Floor', 'MovingSpot', 'MovingPatch', 'CylindricalGrating',
              'RotatingGrating', 'RandomBars', 'RandomGrid', 'Checkerboard', 'Tower', 'TexturedGround', 'HorizonCylinder', 'Forest',
-             'CoherentMotionDotField']
+             'MovingDotField']
 
     for stim in stims:
         manager.load_stim(stim)

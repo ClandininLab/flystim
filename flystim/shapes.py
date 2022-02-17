@@ -3,6 +3,7 @@ from numpy import matlib
 from math import radians
 from .util import rotx, roty, rotz, translate, scale, rotate
 
+
 class GlVertices:
     def __init__(self, vertices=None, colors=None, tex_coords=None):
         self.vertices = vertices
@@ -15,7 +16,6 @@ class GlVertices:
             self.vertices = obj.vertices
         else:
             self.vertices = np.concatenate((self.vertices, obj.vertices), axis=1)
-
 
         # add colors
         if self.colors is None:
@@ -59,7 +59,6 @@ class GlVertices:
     def shiftTexture(self, shift):
         new_tex_coords = self.tex_coords + np.tile(shift, (self.tex_coords.shape[1], 1)).T
         return GlVertices(vertices=self.vertices, colors=self.colors, tex_coords=new_tex_coords)
-
 
     @property
     def data(self):
@@ -141,11 +140,7 @@ class GlSphericalRect(GlVertices):
                  n_steps_x=6,
                  n_steps_y=6):
         super().__init__()
-        if type(color) is not list:
-            if type(color) is tuple:
-                color = list(color)
-            else:
-                color = [color, color, color, 1]
+        color = getColorList(color)
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -181,11 +176,7 @@ class GlSphericalTexturedRect(GlVertices):
                  texture=False,
                  texture_shift=(0, 0)):
         super().__init__()
-        if type(color) is not list:
-            if type(color) is tuple:
-                color = list(color)
-            else:
-                color = [color, color, color, 1]
+        color = getColorList(color)
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -232,11 +223,7 @@ class GlSphericalCirc(GlVertices):
                  sphere_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of sphere
                  n_steps=36):
         super().__init__()
-        if type(color) is not list:
-            if type(color) is tuple:
-                color = list(color)
-            else:
-                color = [color, color, color, 1]
+        color = getColorList(color)
 
         v_center = self.sphericalToCartesian((sphere_radius, np.pi/2, np.pi/2))
 
@@ -260,24 +247,22 @@ class GlSphericalCirc(GlVertices):
                             r * np.cos(phi))
         return cartesian_coords
 
+
 class GlSphericalPoints(GlVertices):
     def __init__(self,
                  sphere_radius=1,  # meters
                  color=[1, 1, 1, 1],
                  theta=[0],
                  phi=[0]):
-        if type(color) is not list:
-            if type(color) is tuple:
-                color = list(color)
-            else:
-                color = [color, color, color, 1]
+
+        color = getColorList(color)
 
         cartesian_coords = []
         for pt in range(len(theta)):
-            cartesian_coords.append(self.sphericalToCartesian((sphere_radius, radians(theta[pt]), np.pi/2 + radians(phi[pt]))))
+            cartesian_coords.append(self.sphericalToCartesian((sphere_radius, np.pi/2 + radians(theta[pt]), np.pi/2 + radians(phi[pt]))))
 
-        vertices = np.vstack(cartesian_coords).T # 3 x n_points
-        colors = matlib.repmat(color, len(theta), 1).T # 4 x n_points
+        vertices = np.vstack(cartesian_coords).T  # 3 x n_points
+        colors = matlib.repmat(color, len(theta), 1).T  # 4 x n_points
 
         super().__init__(vertices=vertices, colors=colors)
 
@@ -287,7 +272,6 @@ class GlSphericalPoints(GlVertices):
                             r * np.sin(phi) * np.sin(theta),
                             r * np.cos(phi))
         return cartesian_coords
-
 
 
 class GlCylinder(GlVertices):
@@ -303,11 +287,7 @@ class GlCylinder(GlVertices):
                  texture_shift=(0, 0)):  # (u,v) coordinates to translate texture on shape. + is right, up.
 
         super().__init__()
-        if type(color) is not list:
-            if type(color) is tuple:
-                color = list(color)
-            else:
-                color = [color, color, color, 1]
+        color = getColorList(color)
 
         if alpha_by_face is None:
             alpha_by_face = color[3]*np.ones(n_faces)
@@ -340,6 +320,7 @@ class GlCylinder(GlVertices):
                             z)
         return cartesian_coords
 
+
 class GlCylindricalWithPhiRect(GlVertices):
     def __init__(self,
                  width=20,  # degrees, theta
@@ -349,11 +330,7 @@ class GlCylindricalWithPhiRect(GlVertices):
                  n_steps_x=6,
                  n_steps_y=6):
         super().__init__()
-        if type(color) is not list:
-            if type(color) is tuple:
-                color = list(color)
-            else:
-                color = [color, color, color, 1]
+        color = getColorList(color)
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -379,3 +356,22 @@ class GlCylindricalWithPhiRect(GlVertices):
                             r * np.sin(theta),
                             r * np.tan(phi))
         return cartesian_coords
+
+
+def getColorList(color_input):
+    '''
+    Takes color input and converts to RGBA list.
+    Acceptable inputs are:
+        -RGBA list, tuple, np.array
+        -Scalar - assumed monochromatic and applied to RGB, with Alpha=1
+
+    '''
+    if np.ndim(color_input) == 0:
+        color = [color_input,  # R
+                 color_input,  # G
+                 color_input,  # B
+                 1]            # Alpha
+    else:
+        color = list(color_input)
+
+    return color
