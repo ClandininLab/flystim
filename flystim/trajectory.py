@@ -43,7 +43,7 @@ class Trajectory:
             :tv_pairs: list of time, value tuples. [(t0, v0), (t1, v1), ..., (tn, vn)]
             """
             times, values = zip(*kwargs['tv_pairs'])
-            self.getValue = interp1d(times, values, kind=kwargs['kind'], fill_value='extrapolate')
+            self.getValue = interp1d(times, values, kind=kwargs['kind'], fill_value='extrapolate', axis=0)
         elif kwargs['name'] == 'Sinusoid':
             """
             Temporal sinusoid trajectory.
