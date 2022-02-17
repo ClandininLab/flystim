@@ -54,17 +54,18 @@ class Trajectory:
             """
             self.getValue = lambda t: kwargs['offset'] + kwargs['amplitude'] * np.sin(2*np.pi*kwargs['temporal_frequency']*t)
 
-        elif kwargs['name'] == 'SinusoidWithDelay':
+        elif kwargs['name'] == 'SinusoidInTimeWindow':
             """
-            Temporal sinusoid trajectory, with a specified delay at the beginning. During the beginning, return delay value.
+            Temporal sinusoid trajectory, only shown during a time window, defined by stim_start and stim_end.
+            Alpha is 0 when
 
             :offset: Y offset
             :amplitude:
             :temporal_frequency: Hz
-            :delay: seconds
-            :delay_value:
+            :stim_start:
+            :stim_end:
             """
-            self.getValue = lambda t: kwargs['delay_value'] if t < kwargs['delay'] else kwargs['offset'] + kwargs['amplitude'] * np.sin(2*np.pi*kwargs['temporal_frequency']*t)
+            self.getValue = lambda t: [0,0,0,0] if t < kwargs['stim_start'] or t >= kwargs['stim_end'] else kwargs['offset'] + kwargs['amplitude'] * np.sin(2*np.pi*kwargs['temporal_frequency']*t)
 
         elif kwargs['name'] == 'Loom':
             """
