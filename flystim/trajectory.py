@@ -54,6 +54,18 @@ class Trajectory:
             """
             self.getValue = lambda t: kwargs['offset'] + kwargs['amplitude'] * np.sin(2*np.pi*kwargs['temporal_frequency']*t)
 
+        elif kwargs['name'] == 'SinusoidWithDelay':
+            """
+            Temporal sinusoid trajectory, with a specified delay at the beginning. During the beginning, return delay value.
+
+            :offset: Y offset
+            :amplitude:
+            :temporal_frequency: Hz
+            :delay: seconds
+            :delay_value:
+            """
+            self.getValue = lambda t: kwargs['delay_value'] if t < kwargs['delay'] else kwargs['offset'] + kwargs['amplitude'] * np.sin(2*np.pi*kwargs['temporal_frequency']*t)
+
         elif kwargs['name'] == 'Loom':
             """
             Expanding loom trajectory.
