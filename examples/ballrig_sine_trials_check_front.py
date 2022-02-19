@@ -95,13 +95,13 @@ def main():
     n_trials = int(n_trials)
     print(n_trials)
 
-    n_trials_fp_beginning = input("Enter number of trials (default 10): ")#26
+    n_trials_fp_beginning = input("Enter number of FP beginning trials (default 10): ")#26
     if n_trials_fp_beginning=="":
         n_trials_fp_beginning = 10
     n_trials_fp_beginning = int(n_trials_fp_beginning)
     print(n_trials_fp_beginning)
 
-    n_trials_fp_end = input("Enter number of trials (default 10): ")#26
+    n_trials_fp_end = input("Enter number of FP end trials (default 10): ")#26
     if n_trials_fp_end=="":
         n_trials_fp_end = 10
     n_trials_fp_end = int(n_trials_fp_end)
@@ -317,9 +317,14 @@ def main():
 
     t_exp_end = time()
 
-    fix_mean_duration = np.mean((np.asarray(fix_end_times) - np.asarray(fix_start_times))[fix_success_all])
-    fix_success_rate = np.sum(fix_success_all) / len(fix_success_all)
-    print(f"===== Fixation success: {np.sum(fix_success_all)}/{len(fix_success_all)} ({fix_success_rate*100:.{5}}%) =====")
+    fix_success_rate_fp_beginning = np.sum(fix_success_all[0:n_trials_fp_beginning]) / (n_trials_fp_beginning)    	
+    fix_success_rate_fp_end = np.sum(fix_success_all[-n_trials_fp_end:]) / (n_trials_fp_end)
+    fix_success_rate = np.sum(fix_success_all[n_trials_fp_beginning:-n_trials_fp_end]) / n_trials
+    fix_mean_duration = np.mean((np.asarray(fix_end_times[n_trials_fp_beginning:-n_trials_fp_end]) - np.asarray(fix_start_times[n_trials_fp_beginning:-n_trials_fp_end]))[fix_success_all[n_trials_fp_beginning:-n_trials_fp_end]])
+
+    print(f"===== Fixation success FP beginning: {np.sum(fix_success_all[0:n_trials_fp_beginning])}/{n_trials_fp_beginning} ({fix_success_rate_fp_beginning*100:.{5}}%) =====")
+    print(f"===== Fixation success FP end: {np.sum(fix_success_all[-n_trials_fp_end:])}/{n_trials_fp_end} ({fix_success_rate_fp_end*100:.{5}}%) =====")
+    print(f"===== Fixation success: {np.sum(fix_success_all[n_trials_fp_beginning:-n_trials_fp_end])}/{n_trials} ({fix_success_rate*100:.{5}}%) =====")
     print(f"===== Fixation mean duration: {fix_mean_duration:.{5}} sec =====")
     print(f"===== Experiment duration: {(t_exp_end-t_exp_start)/60:.{5}} min =====")
 
