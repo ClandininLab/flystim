@@ -41,6 +41,16 @@ def fixation_score(q_theta, template_theta):
     score = np.corrcoef(q_theta, template_shifted_trimmed)[0,1]
     return score
 
+def modulo_degrees_between_m180_p180(angle_degrees):
+    '''
+    Convert arbitrary angle in degrees (any real number) to that between -180
+    and +180 degrees.
+    '''
+    angle_new = angle_degrees % 360.0
+    if angle_new > 180.0:
+        angle_new = angle_new - 360.0
+    return angle_new
+
 def main():
     #####################################################
     # part 1: draw the screen configuration
@@ -119,12 +129,12 @@ def main():
     fix_sine_period = 1
     fix_window = 2 #seconds
     fix_min_duration = 2
-    fix_max_duration = 45
+    fix_max_duration = 25
 
-    fix_front_region = [-45, 45]
+    fix_front_region = [-60, 60]
     fix_front_threshold = .9
 
-    iti = 5
+    iti = 2
 
     #######################
     # Stimulus construction
@@ -241,8 +251,12 @@ def main():
             fix_score = fixation_score(fix_q_theta_rad, fix_sine_template)
             fix_scores[fix_frame_cnt] = fix_score
 
+            # Check whether bar is in the front. TODO: wraparound.
+            #np.rad2deg(thera_rad)
+            theta_deg = np.rad2deg(theta_rad)
+            theta_wrapped = modulo_degrees_between_m180_p180(theta_deg)
             fix_q_front.pop(0)
-            fix_q_front.append(theta_rad > fix_front_region[0] and theta_rad < fix_front_region[1])
+            fix_q_front.append(theta_wrapped > fix_front_region[0] and theta_wrapped <= fix_front_region[1])
             fix_front_pass = np.mean(fix_q_front) > fix_front_threshold
             fix_front_passes[fix_frame_cnt] = fix_front_pass
 
