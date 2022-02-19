@@ -95,6 +95,18 @@ def main():
     n_trials = int(n_trials)
     print(n_trials)
 
+    n_trials_fp_beginning = input("Enter number of trials (default 10): ")#26
+    if n_trials_fp_beginning=="":
+        n_trials_fp_beginning = 10
+    n_trials_fp_beginning = int(n_trials_fp_beginning)
+    print(n_trials_fp_beginning)
+
+    n_trials_fp_end = input("Enter number of trials (default 10): ")#26
+    if n_trials_fp_end=="":
+        n_trials_fp_end = 10
+    n_trials_fp_end = int(n_trials_fp_end)
+    print(n_trials_fp_end)
+
     _ = input("Press enter to continue.")#26
 
     parent_path = os.getcwd()
@@ -138,6 +150,8 @@ def main():
 
     #######################
     # Stimulus construction
+    
+    n_trials_total = n_trials + n_trials_fp_beginning + n_trials_fp_end
 
     # Bar start location
     start_theta = 0
@@ -145,6 +159,7 @@ def main():
     # Fix bar trajectory
     sin_traj = SinusoidalTrajectory(amplitude=fix_sine_amplitude, period=fix_sine_period) # period of 1 second
     fixbar_traj = RectangleAnyTrajectory(x=sin_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
+    fixbar_fp_traj = RectangleAnyTrajectory(x=sin_traj, y=90, w=bar_width, h=bar_height, color=background_color)
     fix_sine_template = sin_traj.eval_at(np.arange(0, fix_window + fix_sine_period, 1/ft_frame_rate))
     fix_q_len = ft_frame_rate*fix_window
     fix_q_theta_rad = [0] * fix_q_len
@@ -156,7 +171,8 @@ def main():
             'ft_frame_rate': ft_frame_rate, 'fs_frame_rate':fs_frame_rate, \
             'rgb_power':rgb_power, 'current_time':current_time, \
             'temperature':temperature, 'humidity':humidity, 'airflow':airflow, \
-            'n_trials':n_trials, 'start_theta':start_theta, \
+            'n_trials':n_trials, 'n_trials_fp_beginning':n_trials_fp_beginning, \
+            'n_trials_fp_end':n_trials_fp_end, 'start_theta':start_theta, \
             'stim_name':stim_name, 'background_color':background_color, \
             'bar_width':bar_width, 'bar_height':bar_height, 'bar_color':bar_color, \
             'fix_score_threshold':fix_score_threshold, 'fix_sine_amplitude':fix_sine_amplitude, \
@@ -218,7 +234,7 @@ def main():
     print("===== End ITI =====")
 
     # Loop through trials
-    for t in range(n_trials):
+    for t in range(n_trials_total):
 
         # Fixation variables and queues
         fix_estimated_n_frames = int(np.ceil(ft_frame_rate * fix_max_duration * 1.1))
@@ -237,7 +253,10 @@ def main():
 
         print(f"===== Trial {t} ======")
 
-        fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
+        if t < n_trials_fp_beginning or t >= n_trials_fp_beginning + n_trials:
+            fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_fp_traj.to_dict(), background=background_color)
+        else:
+            fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
         fs_manager.start_stim()
         t_start_fix = time()
 
