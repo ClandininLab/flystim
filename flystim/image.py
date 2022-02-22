@@ -31,7 +31,7 @@ class Image:
         # Rescale back to same max pixel value
         whitened_image = raw_image.max() * (X_ZCA - X_ZCA.min()) / (X_ZCA.max() - X_ZCA.min())
 
-        return whitened_image
+        return whitened_image.astype(np.uint8)
 
     def filter_image(self, filter_name, filter_kwargs={}):
         """
