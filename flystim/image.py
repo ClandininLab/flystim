@@ -15,6 +15,24 @@ class Image:
         """ Return the image as an array """
         return imread(self.image_path).astype(np.uint8)
 
+    def whiten_image(self):
+        """ Return a whitened version of the image."""
+        raw_image = self.load_image()
+
+        X_norm = raw_image / raw_image.max()  # Rescale to [0, 1]
+        X_norm = X_norm - X_norm.mean(axis=0)  # Mean subtract
+        cov = np.cov(X_norm, rowvar=False)
+
+        U, S, V = np.linalg.svd(cov)
+
+        epsilon = 0.1  # Don't blow up tiny noisy modes
+        X_ZCA = U.dot(np.diag(1.0/np.sqrt(S + epsilon))).dot(U.T).dot(X_norm.T).T
+
+        # Rescale back to same max pixel value
+        whitened_image = raw_image.max() * (X_ZCA - X_ZCA.min()) / (X_ZCA.max() - X_ZCA.min())
+
+        return whitened_image
+
     def filter_image(self, filter_name, filter_kwargs={}):
         """
         Return a filtered version of the image.
