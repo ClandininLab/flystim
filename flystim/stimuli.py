@@ -720,16 +720,25 @@ class HorizonCylinder(TexturedCylinder):
         super().__init__(screen=screen)
 
     def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5,
+                  theta=0,
                   image_name=None, filter_name=None, filter_kwargs={}):
-        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=0, phi=0, angle=0.0)
+
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=0, angle=0.0)
         if image_name is not None:
+            t0 = time.time()
             image_object = image.Image(image_name)
             if filter_name is not None:  # use filtered image
-                texture_img = image_object.filter_image(filter_name, filter_kwargs)
+                if filter_name == 'whiten':
+                    texture_img = image_object.whiten_image()
+                else:
+                    texture_img = image_object.filter_image(filter_name, filter_kwargs)
             else:  # use original image
                 texture_img = image_object.load_image()
 
-            print('LOADED TEXTURE IMAGE FROM {}. SHAPE = {}'.format(image_object.image_path, texture_img.shape))
+            print('LOADED TEXTURE IMAGE FROM {}. \n SHAPE={}, FILTER={} ({:.2f} sec)'.format(image_object.image_path,
+                                                                                             texture_img.shape,
+                                                                                             filter_name,
+                                                                                             time.time()-t0))
 
         else:
             # use a dummy texture
@@ -746,10 +755,10 @@ class HorizonCylinder(TexturedCylinder):
                                         cylinder_location=(0, 0, 0),
                                         color=self.color,
                                         texture=True).rotz(np.radians(180))
-
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        theta = return_for_time_t(self.theta, t)
         cyl_position = fly_position.copy()  # cylinder moves with the fly, so fly is always in the center
-        self.stim_object = copy.copy(self.stim_template).translate(cyl_position)
+        self.stim_object = copy.copy(self.stim_template).translate(cyl_position).rotate(np.radians(theta), 0, 0)
 
 
 class Forest(BaseProgram):
