@@ -354,7 +354,7 @@ class GlCylindricalWithPhiRect(GlVertices):
         r, theta, phi = cyl_phi_coords
         cartesian_coords = (r * np.cos(theta),
                             r * np.sin(theta),
-                            r * np.tan(phi))
+                            r / np.tan(phi))
         return cartesian_coords
 
 
