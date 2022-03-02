@@ -397,7 +397,7 @@ class RotatingGrating(CylindricalGrating):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, rate=10, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
+    def configure(self, rate=10, hold_duration=0, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square', 
                   color=[1, 1, 1, 1], alpha_by_face=None, cylinder_radius=1, cylinder_location=(0,0,0), cylinder_height=10, theta=0, phi=0, angle=0):
         """
         Subclass of CylindricalGrating that rotates the grating along the varying axis of the grating.
@@ -406,11 +406,13 @@ class RotatingGrating(CylindricalGrating):
         allows for arbitrary spatial periods to be achieved with no discontinuities in the grating
 
         :param rate: rotation rate, degrees/sec
+        :param hold_duration: duration for which the initial image is held (seconds)
         :other params: see CylindricalGrating, TexturedCylinder
         """
         super().configure(period=period, mean=mean, contrast=contrast, offset=offset, profile=profile,
                           color=color, cylinder_radius=cylinder_radius, cylinder_location=cylinder_location, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
         self.rate = rate
+        self.hold_duration = hold_duration
         self.alpha_by_face = alpha_by_face
         if self.alpha_by_face is None:
             self.n_faces = 32
@@ -428,8 +430,99 @@ class RotatingGrating(CylindricalGrating):
                                                texture=True)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
-        shift_u = t*self.rate/self.cylinder_angular_extent
+        shift_u = max(t - self.hold_duration, 0) * self.rate/self.cylinder_angular_extent
         self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+
+
+class ExpandingEdges(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, rate=60, period=20, width=5, vert_extent=80, theta_offset=0,
+                  expander_color = 0.0, opposite_color = 1.0, background=0.5, width_0=2, n_theta_pixels=360, hold_duration=0.550,
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0, cylinder_location=(0, 0, 0)):
+        """
+        Periodic bars of randomized intensity painted on the inside of a cylinder.
+
+        :param rate: rotation rate of the expanding bars, degrees/sec
+        :param period: spatial period (degrees)
+        :param width_0: width (degrees) of each expanding bar at the beginning
+        :param vert_extent: vertical extent (degrees) of bars
+        :param theta_offset: offset of periodic bar pattern (degrees)
+        :param expander_color: color of the expanding edge [0, 1]
+        :param opposite_color: color of the diminishing edge [0, 1]
+        :param n_theta_pixels: number of pixels in theta for the image painted onto the cylinder
+        :param hold_duration: duration for which the initial image is held (seconds)
+        :other params: see TexturedCylinder
+        """
+        # assuming fly is at (0,0,0), calculate cylinder height required to achieve vert_extent (degrees)
+        # tan(vert_extent/2) = (cylinder_height/2) / cylinder_radius
+        assert vert_extent < 180
+        cylinder_height = 2 * cylinder_radius * np.tan(np.radians(vert_extent/2))
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
+
+        self.rate = rate
+        self.period = period
+        self.width = width
+        self.vert_extent = vert_extent
+        self.theta_offset = theta_offset
+        self.cylinder_location = cylinder_location
+
+        self.expander_color = expander_color
+        self.opposite_color = opposite_color
+        self.background = background
+        self.width_0 = width_0 #degrees
+        self.n_x = n_theta_pixels # number of theta pixels in img (approximate, as the number of pixels in each subimage is floored)
+        self.hold_duration = hold_duration #seconds
+
+        self.n_subimg = int(np.floor(360/self.period)) # number of subimages to be repeated
+        self.n_x_subimg = int(np.floor(self.n_x / self.n_subimg)) # number of theta pixels in each subimg   
+        self.rate_abs = np.abs(rate)
+
+        self.subimg_mask = np.empty(self.n_x_subimg, dtype=bool)
+        self.subimg = np.empty((1,self.n_x_subimg), dtype=np.uint8)
+
+        img = np.zeros((1, self.n_x)).astype(np.uint8)
+        self.add_texture_gl(img, texture_interpolation='NEAREST')
+        
+        # Only renders part of the cylinder if the period is not a divisor of 360
+        self.cylinder_angular_extent = self.n_subimg * self.period  # degrees
+
+        self.stim_object_template = GlCylinder(cylinder_height=self.cylinder_height,
+                                               cylinder_radius=self.cylinder_radius,
+                                               cylinder_angular_extent=self.cylinder_angular_extent,
+                                               color=self.color,
+                                               cylinder_location=self.cylinder_location,
+                                               texture=True)
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+
+        self.stim_object = copy.copy(self.stim_object_template).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+
+        # Construct one subimg
+
+        fill_to_degrees = self.width_0 + self.rate_abs * max(t - self.hold_duration, 0)
+        fill_to_proportion = min(fill_to_degrees/self.period, 1)
+        fill_to_subimg_x = int(np.round(fill_to_proportion * self.n_x_subimg))
+        
+        self.subimg_mask[:fill_to_subimg_x] = True
+        self.subimg_mask[fill_to_subimg_x:] = False
+        if np.sign(self.rate) > 0:
+            self.subimg_mask = np.flip(self.subimg_mask)
+        
+        self.subimg[:,self.subimg_mask] = np.uint8(self.expander_color * 255)
+        self.subimg[:,~self.subimg_mask] = np.uint8(self.opposite_color * 255)
+        img = np.tile(self.subimg, self.n_subimg)
+
+        #img[:, :tiled_img.shape[1]] = tiled_img
+
+        # TODO: theta_offset. rotate img using np.roll
+
+        self.update_texture_gl(img)
+
 
 
 class RandomBars(TexturedCylinder):

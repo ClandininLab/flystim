@@ -21,8 +21,9 @@ def main():
 
 
     for i in range(2):
-        manager.load_stim(name='RotatingGrating', rate=60, hold_duration=1, period=60, mean=0.5, contrast=1.0, offset=0.0, profile='square',
-                        color=[1, 1, 1, 1], cylinder_radius=1.1, cylinder_height=10, theta=0, phi=0, angle=0, hold=True)
+        manager.load_stim(name='ExpandingEdges', rate=-60, period=20, width=5, vert_extent=80, theta_offset=0,
+                  expander_color = 0.0, opposite_color = 1.0, background=0.5, width_0=2, n_theta_pixels=2880*2, hold_duration=0.550,
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0, cylinder_location=(0, 0, 0), hold=True)
 
         sleep(iti)
 
