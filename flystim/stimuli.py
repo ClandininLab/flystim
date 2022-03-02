@@ -438,8 +438,8 @@ class ExpandingEdges(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, rate=60, period=20, width=5, vert_extent=80, theta_offset=0,
-                  expander_color = 0.0, opposite_color = 1.0, background=0.5, width_0=2, n_theta_pixels=360, hold_duration=0.550,
+    def configure(self, rate=60, period=20, vert_extent=80, theta_offset=0,
+                  expander_color = 0.0, opposite_color = 1.0, width_0=2, n_theta_pixels=360, hold_duration=0.550,
                   color=[1, 1, 1, 1], cylinder_radius=1, theta=0, phi=0, angle=0.0, cylinder_location=(0, 0, 0)):
         """
         Periodic bars of randomized intensity painted on the inside of a cylinder.
@@ -463,14 +463,12 @@ class ExpandingEdges(TexturedCylinder):
 
         self.rate = rate
         self.period = period
-        self.width = width
         self.vert_extent = vert_extent
         self.theta_offset = theta_offset
         self.cylinder_location = cylinder_location
 
         self.expander_color = expander_color
         self.opposite_color = opposite_color
-        self.background = background
         self.width_0 = width_0 #degrees
         self.n_x = n_theta_pixels # number of theta pixels in img (approximate, as the number of pixels in each subimage is floored)
         self.hold_duration = hold_duration #seconds
