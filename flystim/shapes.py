@@ -271,7 +271,20 @@ class GlSphericalPoints(GlVertices):
         cartesian_coords = (r * np.sin(phi) * np.cos(theta),
                             r * np.sin(phi) * np.sin(theta),
                             r * np.cos(phi))
+
         return cartesian_coords
+
+
+class GlPointCollection(GlVertices):
+    def __init__(self,
+                 locations=[[0, 0, 0]],
+                 color=[1, 1, 1, 1]):
+        color = getColorList(color)
+
+        vertices = np.vstack(locations)  # 3 x n_points
+        colors = matlib.repmat(color, vertices.shape[1], 1).T  # 4 x n_points
+
+        super().__init__(vertices=vertices, colors=colors)
 
 
 class GlCylinder(GlVertices):
