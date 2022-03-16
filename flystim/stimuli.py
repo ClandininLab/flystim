@@ -12,7 +12,7 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect
+from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection
 from flystim import util, image
 import time  # for debugging and benchmarking
 import copy
@@ -397,7 +397,7 @@ class RotatingGrating(CylindricalGrating):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, rate=10, hold_duration=0, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square', 
+    def configure(self, rate=10, hold_duration=0, period=20, mean=0.5, contrast=1.0, offset=0.0, profile='square',
                   color=[1, 1, 1, 1], alpha_by_face=None, cylinder_radius=1, cylinder_location=(0,0,0), cylinder_height=10, theta=0, phi=0, angle=0):
         """
         Subclass of CylindricalGrating that rotates the grating along the varying axis of the grating.
@@ -474,7 +474,7 @@ class ExpandingEdges(TexturedCylinder):
         self.hold_duration = hold_duration #seconds
 
         self.n_subimg = int(np.floor(360/self.period)) # number of subimages to be repeated
-        self.n_x_subimg = int(np.floor(self.n_x / self.n_subimg)) # number of theta pixels in each subimg   
+        self.n_x_subimg = int(np.floor(self.n_x / self.n_subimg)) # number of theta pixels in each subimg
         self.rate_abs = np.abs(rate)
 
         self.subimg_mask = np.empty(self.n_x_subimg, dtype=bool)
@@ -482,7 +482,7 @@ class ExpandingEdges(TexturedCylinder):
 
         img = np.zeros((1, self.n_x)).astype(np.uint8)
         self.add_texture_gl(img, texture_interpolation='NEAREST')
-        
+
         # Only renders part of the cylinder if the period is not a divisor of 360
         self.cylinder_angular_extent = self.n_subimg * self.period  # degrees
 
@@ -505,12 +505,12 @@ class ExpandingEdges(TexturedCylinder):
         fill_to_degrees = self.width_0 + self.rate_abs * max(t - self.hold_duration, 0)
         fill_to_proportion = min(fill_to_degrees/self.period, 1)
         fill_to_subimg_x = int(np.round(fill_to_proportion * self.n_x_subimg))
-        
+
         self.subimg_mask[:fill_to_subimg_x] = True
         self.subimg_mask[fill_to_subimg_x:] = False
         if np.sign(self.rate) > 0:
             self.subimg_mask = np.flip(self.subimg_mask)
-        
+
         self.subimg[:,self.subimg_mask] = np.uint8(self.expander_color * 255)
         self.subimg[:,~self.subimg_mask] = np.uint8(self.opposite_color * 255)
         img = np.tile(self.subimg, self.n_subimg)
@@ -883,6 +883,7 @@ class Forest(BaseProgram):
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
+
 class MovingDotField(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen, num_tri=10000)
@@ -940,3 +941,35 @@ class MovingDotField(BaseProgram):
             self.stim_object.add(copy.copy(self.stim_object_template).rotate(new_theta,  # yaw
                                                                              new_phi,  # pitch
                                                                              0))  # roll
+
+
+class ProgressiveStarfield(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=10000)
+        self.draw_mode = 'POINTS'
+
+    def configure(self, point_size=20, color=[1, 1, 1, 1],
+                  point_locations=[[+5, 0, 0]],
+                  y_offset=0):
+        """
+
+        Note that points are all the same size, so no area correction is made for perspective
+        """
+        self.point_size = point_size
+        self.color = color
+        self.point_locations = point_locations  # list of (x, y, z) meters for each dot
+        self.y_offset = make_as_trajectory(y_offset)  # Can pass Y offset as trajectory to specify approach
+
+        self.stim_template = GlPointCollection(locations=self.point_locations,
+                                               color=self.color)
+
+        self.stim_object = copy.copy(self.stim_template)
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        y_position = return_for_time_t(self.y_offset, t)
+        self.stim_object = copy.copy(self.stim_template).translate([0, y_position, 0])
+
+
+
+
+# %%
