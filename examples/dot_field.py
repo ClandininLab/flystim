@@ -12,8 +12,25 @@ def main():
 
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
-    manager.load_stim(name='MovingDotField', n_points=200, point_size=80, sphere_radius=1, color=[0, 0, 0, 1],
-                      speed=60, signal_direction=90, coherence=0.0, random_seed=0, hold=True)
+    manager.load_stim(name='MovingDotField', n_points=200, point_size=20, sphere_radius=1, color=[0, 0, 0, 1],
+                      speed=60, signal_direction=0, coherence=0.9, random_seed=0, hold=True)
+
+    n_points = 50
+
+    x_locations = list(np.random.uniform(-2, 2, n_points))
+    y_locations = list(np.random.uniform(0, 8, n_points))
+    z_locations = list(np.random.uniform(-2, 2, n_points))
+
+    point_locations = [x_locations, y_locations, z_locations]
+
+    velocity_y = -0.5  # m/sec
+    y_offset = {'name': 'tv_pairs',
+                'tv_pairs': [(0, 0), (6, 6*velocity_y)],
+                'kind': 'linear'}
+    manager.load_stim(name='ProgressiveStarfield', point_size=20, color=[0, 0, 0, 1],
+                      point_locations=point_locations,
+                      y_offset=y_offset, hold=True)
+
 
     sleep(1)
 
