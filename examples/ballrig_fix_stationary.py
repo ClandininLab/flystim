@@ -16,6 +16,7 @@ from flystim1.ballrig_util import latency_report, make_tri_list
 from ftutil.ft_managers import FtClosedLoopManager
 
 from ballrig_analysis.utils import fictrac_utils
+from analyze_fix_stationary import analyze_fix_stationary
 
 FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
 FICTRAC_PORT = 33334         # The port used by the server
@@ -234,7 +235,8 @@ def main():
         ft_data_handler = open(os.path.join(save_path, fictrac_data_fn), 'r')
 
         # Create h5f file
-        h5f = h5py.File(os.path.join(save_path, save_prefix + '.h5'), 'a')
+        h5f_path = os.path.join(save_path, save_prefix + '.h5')
+        h5f = h5py.File(h5f_path, 'a')
         # params
         for (k,v) in params.items():
             h5f.attrs[k] = v
@@ -342,6 +344,9 @@ def main():
         # fig_square = plt.figure()
         # plt.plot(ft_square)
         # fig_square.show()
+
+        # Run quick analysis post experiment
+        _=analyze_fix_stationary(h5f_path, front_region=[-15,15])
 
     else: #not saving history
         # Delete fictrac files
