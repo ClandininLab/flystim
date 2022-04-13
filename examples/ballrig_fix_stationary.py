@@ -119,7 +119,7 @@ def main():
             'n_trials':n_trials, 'start_theta':start_theta, \
             'stim_name':stim_name, 'background_color':background_color, \
             'bar_width':bar_width, 'bar_height':bar_height, 'bar_color':bar_color, \
-            'fix_duration':fix_duration, 'fix_start_window':fix_start_window,
+            'fix_duration':fix_duration, 'iti':iti, 'fix_start_window':fix_start_window,
             }
 
     #####################################################################
