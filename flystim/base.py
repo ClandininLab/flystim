@@ -21,7 +21,7 @@ class BaseProgram:
         self.screen = screen
         self.num_tri = num_tri
         self.use_texture = False
-        self.rgb_texture = False
+        self.texture_components = 1
         self.texture = None
         self.draw_mode = 'TRIANGLES'  # TRIANGLES, POINTS
         self.point_size = 2  # pixels on screen, only for POINTS draw_mode
@@ -38,7 +38,7 @@ class BaseProgram:
 
         # Default texture booleans for the shader program
         self.prog['use_texture'].value = False
-        self.prog['rgb_texture'].value = False
+        self.prog['monochrome_texture'].value = True
 
     def configure(self, *args, **kwargs):
         pass
@@ -91,18 +91,11 @@ class BaseProgram:
 
     def add_texture_gl(self, texture_image, texture_interpolation='LINEAR'):
         # Update the texture booleans for the shader program
-        self.prog['rgb_texture'].value = self.rgb_texture
         self.prog['use_texture'].value = self.use_texture
-
-        if self.rgb_texture:
-            # RGB texture, shape = x, y, 3 (rgb)
-            components = 3
-        else:
-            # Monochromatic texture, shape = x, y
-            components = 1
+        self.prog['monochrome_texture'].value = (self.texture_components == 1)
 
         self.texture = self.ctx.texture(size=(texture_image.shape[1], texture_image.shape[0]),
-                                        components=components,
+                                        components=self.texture_components,
                                         data=texture_image.tobytes())  # size = (width, height)
 
         if texture_interpolation == 'NEAREST':
@@ -152,26 +145,22 @@ class BaseProgram:
     def get_fragment_shader(self):
         fragment_shader = '''
             #version 330
-
             in vec4 v_color;
             in vec2 v_tex_coord;
-
             uniform bool use_texture;
-            uniform bool rgb_texture;
+            uniform bool monochrome_texture;
             uniform sampler2D texture_matrix;
-
             out vec4 f_color;
-
             void main() {
                 if (use_texture) {
                     vec4 texFrag = texture(texture_matrix, v_tex_coord);
-                    if (rgb_texture) {
-                        f_color.rgb = texFrag.rgb * v_color.rgb;
-                    } else {
+                    if (monochrome_texture) {
                         f_color.rgb = texFrag.r * v_color.rgb;
+                        f_color.a = v_color.a;
+                    } else {
+                        f_color.rgba = texFrag.rgba * v_color.rgba;
                     }
 
-                    f_color.a = v_color.a;
                 } else {
                     f_color.rgb = v_color.rgb;
                     f_color.a = v_color.a;

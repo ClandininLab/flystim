@@ -237,7 +237,10 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
 
         :other params: see TexturedSphericalPatch
         """
-        self.rgb_texture = rgb_texture
+        if rgb_texture:
+            self.texture_components = 3
+        else:
+            self.texture_components = 1
 
         super().configure(width=width, height=height, sphere_radius=sphere_radius, color=color, theta=theta, phi=phi, angle=angle)
 
@@ -256,10 +259,7 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         self.n_patches_width = int(np.floor(width/self.patch_width))
         self.n_patches_height = int(np.floor(height/self.patch_height))
 
-        if self.rgb_texture:
-            img = np.zeros((self.n_patches_height, self.n_patches_width, 3)).astype(np.uint8)
-        else:
-            img = np.zeros((self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        img = np.zeros((self.n_patches_height, self.n_patches_width, self.texture_components)).astype(np.uint8)
         self.add_texture_gl(img, texture_interpolation='NEAREST')
 
     def updateTexture(self, t):
@@ -268,12 +268,8 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         np.random.seed(seed)
 
         # get the random values
-        if self.rgb_texture:  # shape = (x, y, 3)
-            face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width, 3))
-            img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width, 3)).astype(np.uint8)
-        else:  # shape = (x, y) monochromatic
-            face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
-            img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width, self.texture_components))
+        img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width, self.texture_components)).astype(np.uint8)
 
         # TEST CHECKERBOARD
         # x = np.zeros((self.n_patches_height, self.n_patches_width), dtype=int)
@@ -625,7 +621,10 @@ class RandomGrid(TexturedCylinder):
 
         :other params: see TexturedCylinder
         """
-        self.rgb_texture = rgb_texture
+        if rgb_texture:
+            self.texture_components = 3
+        else:
+            self.texture_components = 1
 
         # Only renders part of the cylinder if the period is not a divisor of cylinder_angular_extent
         self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
@@ -652,10 +651,7 @@ class RandomGrid(TexturedCylinder):
         self.start_seed = start_seed
         self.update_rate = update_rate
 
-        if self.rgb_texture:
-            img = np.zeros((self.n_patches_height, self.n_patches_width, 3)).astype(np.uint8)
-        else:
-            img = np.zeros((self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        img = np.zeros((self.n_patches_height, self.n_patches_width, self.texture_components)).astype(np.uint8)
 
         self.add_texture_gl(img, texture_interpolation='NEAREST')
 
@@ -671,12 +667,9 @@ class RandomGrid(TexturedCylinder):
         np.random.seed(seed)
 
         # get the random values
-        if self.rgb_texture:  # shape = (x, y, 3)
-            face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width, 3))
-            img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width, 3)).astype(np.uint8)
-        else:  # shape = (x, y) monochromatic
-            face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
-            img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width, self.texture_components))
+        img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width, self.texture_components)).astype(np.uint8)
+
         # make the texture
         self.update_texture_gl(img)
 
@@ -970,6 +963,44 @@ class ProgressiveStarfield(BaseProgram):
         self.stim_object = copy.copy(self.stim_template).translate([0, y_position, 0])
 
 
+class MaskOnCylinder(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, mask_location=(0, 0), mask_radius=20.0, mask_type='mask',
+                  color=[1, 1, 1, 1], cylinder_radius=1, cylinder_location=(0,0,0), cylinder_height=10, theta=0, phi=0, angle=0.0):
+        """
+        Mask or aperture texture painted on a cylinder
+
+        :param mask_location:
+        :param mask_radius:
+        :param mask_type: 'mask' or 'aperture'
+
+        :params color, cylinder_radius, cylinder_height, theta, phi, angle: see parent class
+        *Any of these params except cylinder_radius, cylinder_height and profile can be passed as a trajectory dict to vary as a function of time
+        """
+        super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_location=cylinder_location,
+                          cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
+
+        self.rgb_texture = True
+        img = np.zeros((50, 50, 4)).astype(np.uint8)
+        self.add_texture_gl(img, texture_interpolation='NEAREST')
+
+    def updateTexture(self):
+        # make the texture image
+        sf = 1/np.radians(self.period)  # spatial frequency
+        xx = np.linspace(0, np.radians(self.cylinder_angular_extent), 512)
+
+        if self.profile == 'sine':
+            yy = np.sin(np.radians(offset) + sf*2*np.pi*xx)  # [-1, 1]
+        elif self.profile == 'square':
+            yy = np.sin(np.radians(offset) + sf*2*np.pi*xx)
+            yy[yy >= 0] = 1
+            yy[yy < 0] = -1
+
+        yy = 255*(mean + contrast*mean*yy)  # shift/scale from [-1,1] to mean and contrast and scale to [0,255] for uint8
+        img = np.expand_dims(yy, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
+        self.update_texture_gl(img)
 
 
 # %%
