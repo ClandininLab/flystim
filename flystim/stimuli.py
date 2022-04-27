@@ -890,7 +890,7 @@ class MovingDotField(BaseProgram):
         self.draw_mode = 'POINTS'
 
     def configure(self, n_points=20, point_size=20, sphere_radius=1, color=[1, 1, 1, 1],
-                  speed=40, signal_direction=0, coherence=1.0, random_seed=0):
+                  speed=40, signal_direction=0, coherence=1.0, random_seed=0, sphere_pitch=0):
         """
         Collection of moving points. Tunable coherence.
 
@@ -904,6 +904,7 @@ class MovingDotField(BaseProgram):
         self.signal_direction = signal_direction  # In theta/phi plane. [0, 360] degrees
         self.coherence = coherence  # [0-1]
         self.random_seed = random_seed
+        self.sphere_pitch = sphere_pitch  # Degrees. Pitch to the entire sphere on which dots move. Shifts signal direction axes
 
         self.stim_object = GlVertices()
 
@@ -931,6 +932,7 @@ class MovingDotField(BaseProgram):
             self.velocity_vectors.append(vec)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        sphere_pitch_rad = np.radians(self.sphere_pitch)
 
         self.stim_object = GlVertices()
         for pt in range(self.n_points):
@@ -940,8 +942,7 @@ class MovingDotField(BaseProgram):
             new_phi = (self.starting_phi[pt] + np.radians(d_xy[1])) % np.pi - np.pi/2
             self.stim_object.add(copy.copy(self.stim_object_template).rotate(new_theta,  # yaw
                                                                              new_phi,  # pitch
-                                                                             0))  # roll
-
+                                                                             0).rotate(0, sphere_pitch_rad, 0))
 
 class ProgressiveStarfield(BaseProgram):
     def __init__(self, screen):
