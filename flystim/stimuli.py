@@ -966,6 +966,7 @@ class ProgressiveStarfield(BaseProgram):
 class MaskOnCylinder(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
+        self.use_texture = False
 
     def configure(self, mask_location=(0, 0), mask_radius=20.0, mask_type='mask',
                   color=[1, 1, 1, 1], cylinder_radius=1, cylinder_location=(0,0,0), cylinder_height=10, theta=0, phi=0, angle=0.0):
@@ -982,25 +983,20 @@ class MaskOnCylinder(TexturedCylinder):
         super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_location=cylinder_location,
                           cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
 
-        self.rgb_texture = True
-        img = np.zeros((50, 50, 4)).astype(np.uint8)
-        self.add_texture_gl(img, texture_interpolation='NEAREST')
+        self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
+                                      cylinder_radius=self.cylinder_radius,
+                                      color=[1, 1, 1, 1],
+                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
-    def updateTexture(self):
-        # make the texture image
-        sf = 1/np.radians(self.period)  # spatial frequency
-        xx = np.linspace(0, np.radians(self.cylinder_angular_extent), 512)
-
-        if self.profile == 'sine':
-            yy = np.sin(np.radians(offset) + sf*2*np.pi*xx)  # [-1, 1]
-        elif self.profile == 'square':
-            yy = np.sin(np.radians(offset) + sf*2*np.pi*xx)
-            yy[yy >= 0] = 1
-            yy[yy < 0] = -1
-
-        yy = 255*(mean + contrast*mean*yy)  # shift/scale from [-1,1] to mean and contrast and scale to [0,255] for uint8
-        img = np.expand_dims(yy, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
-        self.update_texture_gl(img)
+        # self.texture_components = 4
+        # TEST CHECKERBOARD
+        # x = np.zeros((40, 40, 4), dtype=int)
+        #
+        # x[:, :, 1] = 255
+        #
+        # img = x.astype(np.uint8)
+        # img = np.ones((50, 50, 4)).astype(np.uint8)
+        # self.add_texture_gl(img, texture_interpolation='NEAREST')
 
 
 # %%
