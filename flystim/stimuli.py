@@ -12,7 +12,7 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection
+from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints
 from flystim import util, image
 import time  # for debugging and benchmarking
 import copy
@@ -943,6 +943,61 @@ class MovingDotField(BaseProgram):
             self.stim_object.add(copy.copy(self.stim_object_template).rotate(new_theta,  # yaw
                                                                              new_phi,  # pitch
                                                                              0).rotate(0, sphere_pitch_rad, 0))
+
+
+class MovingDotField_Cylindrical(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=10000)
+        self.draw_mode = 'POINTS'
+
+    def configure(self, n_points=20, point_size=20, cylinder_radius=1, color=[1, 1, 1, 1],
+                  speed=40, signal_direction=0, coherence=1.0, random_seed=0, cylinder_pitch=0, phi_limits=[0, 180]):
+        """
+        Collection of moving points that move on a rotating cylinder. Tunable coherence.
+
+        Note that points are all the same size, so no area correction is made for perspective
+        """
+        self.n_points = n_points
+        self.point_size = point_size
+        self.cylinder_radius = cylinder_radius
+        self.color = color
+        self.speed = speed  # Deg/sec
+        self.signal_direction = signal_direction  # In theta/phi plane. [0, 360] degrees
+        self.coherence = coherence  # [0-1]
+        self.random_seed = random_seed
+        # Pitch to the entire cylinder on which dots move. Shifts signal direction axes
+        # Note this pitch happens after the phi limits, so ultimate phi limits are changed by pitch
+        self.cylinder_pitch = cylinder_pitch  # Degrees.
+        self.phi_limits = phi_limits  # [lower, upper], degrees. Default = entire elevation range (0, 180)
+
+        self.stim_object = GlVertices()
+
+        # Set random seed
+        rng = default_rng(self.random_seed)
+        self.starting_theta = rng.uniform(0, 360, self.n_points)  # degrees
+        self.starting_phi = rng.uniform(self.phi_limits[0], self.phi_limits[1], self.n_points)  # degrees
+
+        self.stim_object_list = []
+        self.dir_list = []
+        is_signal = rng.choice([False, True], self.n_points, p=[1-self.coherence, self.coherence])
+        for pt in range(self.n_points):
+            if is_signal[pt]:
+                self.dir_list.append(np.radians(self.signal_direction))
+            else:
+                self.dir_list.append(np.radians(rng.uniform(0, 360)))
+
+            self.stim_object_list.append(GlCylindricalPoints(cylinder_radius=self.cylinder_radius,
+                                                             color=self.color,
+                                                             theta=[self.starting_theta[pt]],
+                                                             phi=[self.starting_phi[pt]]))
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        cyl_pitch = np.radians(self.cylinder_pitch)
+        dtheta = np.radians(self.speed * t)
+        self.stim_object = GlVertices()
+        for pt in range(self.n_points):
+            self.stim_object.add(self.stim_object_list[pt].rotz(dtheta).roty(self.dir_list[pt]).rotx(cyl_pitch))
+
 
 class ProgressiveStarfield(BaseProgram):
     def __init__(self, screen):

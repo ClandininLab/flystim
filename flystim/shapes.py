@@ -248,6 +248,36 @@ class GlSphericalCirc(GlVertices):
         return cartesian_coords
 
 
+class GlCylindricalPoints(GlVertices):
+    def __init__(self,
+                 cylinder_radius=1,  # meters
+                 cylinder_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of cylinder (r = 0 and z = height/2)
+                 color=[1, 1, 1, 1],
+                 theta=[0],
+                 phi=[0]):
+
+        color = getColorList(color)
+
+        cartesian_coords = []
+        for pt in range(len(theta)):
+            cartesian_coords.append(self.cylindricalWithPhiToCartesian((cylinder_radius, radians(theta[pt]), radians(phi[pt]))))
+
+        vertices = np.vstack(cartesian_coords).T  # 3 x n_points
+        colors = matlib.repmat(color, len(theta), 1).T  # 4 x n_points
+
+        super().__init__(vertices=vertices, colors=colors)
+
+    def cylindricalWithPhiToCartesian(self, cyl_phi_coords):
+        '''
+        Converts cylindrical coordinates with phi instead of z (r, theta, phi) to cartesian coordinates
+        '''
+        r, theta, phi = cyl_phi_coords
+        cartesian_coords = (r * np.cos(theta),
+                            r * np.sin(theta),
+                            r / np.tan(phi))
+        return cartesian_coords
+
+
 class GlSphericalPoints(GlVertices):
     def __init__(self,
                  sphere_radius=1,  # meters

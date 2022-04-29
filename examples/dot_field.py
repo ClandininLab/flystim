@@ -10,10 +10,13 @@ from time import sleep
 def main():
     manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=True))
 
-    manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
+    # manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
-    manager.load_stim(name='MovingDotField', n_points=200, point_size=20, sphere_radius=1, color=[0, 0, 0, 1],
-                      speed=60, signal_direction=0, coherence=1.0, random_seed=0, sphere_pitch=45, hold=True)
+    # manager.load_stim(name='MovingDotField', n_points=200, point_size=20, sphere_radius=1, color=[0, 1, 0, 1],
+    #                   speed=60, signal_direction=0, coherence=1.0, random_seed=0, sphere_pitch=45, hold=True)
+
+    manager.load_stim(name='MovingDotField_Cylindrical', n_points=200, point_size=80, cylinder_radius=1, color=[1, 0, 0, 1],
+                      speed=60, signal_direction=45, coherence=1.0, random_seed=0, cylinder_pitch=45, phi_limits=[45, 135], hold=True)
 
     # n_points = 50
 
