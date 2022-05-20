@@ -810,11 +810,13 @@ class HorizonCylinder(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5,
+    def configure(self, color=[1, 1, 1, 1], cylinder_radius=5, cylinder_height=5, cylinder_pitch=0, cylinder_yaw=0,
                   theta=0,
                   image_name=None, filter_name=None, filter_kwargs={}):
 
         super().configure(color=color, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=0, angle=0.0)
+        self.cylinder_pitch = cylinder_pitch
+        self.cylinder_yaw = cylinder_yaw
         if image_name is not None:
             t0 = time.time()
             image_object = image.Image(image_name)
@@ -849,7 +851,7 @@ class HorizonCylinder(TexturedCylinder):
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         theta = return_for_time_t(self.theta, t)
         cyl_position = fly_position.copy()  # cylinder moves with the fly, so fly is always in the center
-        self.stim_object = copy.copy(self.stim_template).translate(cyl_position).rotate(np.radians(theta), 0, 0)
+        self.stim_object = copy.copy(self.stim_template).translate(cyl_position).rotz(np.radians(theta)).roty(np.radians(self.cylinder_yaw)).rotx(np.radians(self.cylinder_pitch))
 
 
 class Forest(BaseProgram):
