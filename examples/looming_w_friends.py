@@ -114,7 +114,7 @@ def main():
     loom_diam_end = 100
     loom_dt = 0.00001
 
-    friends_duration = 5   #duration in which only friends are shown
+    friends_duration = 10   #duration in which only friends are shown
 
     c_friends = 0.3  #brightness of friends
     n_friends_per_zone = 10
@@ -124,7 +124,10 @@ def main():
     friends_theta_zones = [(-20, 20)] #[(10, 45), (-45, -10)]
     friends_phi_zone = (75, 105)
     n_zones = len(friends_theta_zones)
-    n_friends = n_friends_per_zone * n_zones
+    if n_friends_per_zone > 0: #if there are no friends HACK SHOULD BE FIXED
+        n_friends = n_friends_per_zone * n_zones
+    else:
+        n_friends = n_zones
 
     friend_traj_dir = '/Users/Ilana/repos/stim_scripts/trajectories/chosen'
 
@@ -142,7 +145,13 @@ def main():
     #random.shuffle(friend_traj_paths)
 
     # zone assignments
-    theta_zone_assignments = friends_theta_zones * n_friends_per_zone
+
+    if n_friends_per_zone > 0:
+        theta_zone_assignments = friends_theta_zones * n_friends_per_zone
+    else:
+        theta_zone_assignments = friends_theta_zones
+        c_friends = c_bg  # this is super fucking hacky (changed the n_friends = 1 and theat_zone_assignments = friends_theta_zones
+        # so that the background will still come up during pre-stim). TODO: FIX THIS SHIT
 
     friends = []
     for i in range(n_friends):
