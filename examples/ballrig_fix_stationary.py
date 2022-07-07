@@ -223,9 +223,9 @@ def main():
 
     if save_history:
         # Move fictrac files
-        print ("Moving " + str(len(fictrac_files)) + " fictrac files.")
-        for i in range(len(fictrac_files)):
-            os.rename(os.path.join(parent_path, fictrac_files[i]), os.path.join(save_path, fictrac_files[i]))
+        print ("Moving/removing fictrac files.")
+        os.rename(os.path.join(parent_path, fictrac_files[0]), os.path.join(save_path, fictrac_files[0]))
+        os.remove(os.path.join(parent_path, fictrac_files[1]))
 
         # Move Fictrac summary
         os.rename(os.path.join(parent_path, save_prefix+".png"), os.path.join(save_path, save_prefix+".png"))
