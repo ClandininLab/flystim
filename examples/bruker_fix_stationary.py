@@ -7,6 +7,8 @@ import h5py
 import logging
 from time import sleep, time, strftime, localtime
 
+from flyrpc import multicall
+
 #from flystim1.draw import draw_screens
 from flystim1.dlpc350 import make_dlpc350_objects
 from flystim1.trajectory import RectangleAnyTrajectory, SinusoidalTrajectory
@@ -14,7 +16,7 @@ from flystim1.stim_server import launch_stim_server
 from flystim1.bruker import get_bruker_screen
 from ftutil.ft_managers import FtManager, FtSocketManager, FtClosedLoopManager
 
-from ballrig_analysis.utils import fictrac_utils
+#from ballrig_analysis.utils import fictrac_utils
 from analyze_fix_stationary import analyze_fix_stationary
 
 #LCR_CTL_PATH = '/home/clandininlab/.local/bin/lcr_ctl'
@@ -115,11 +117,11 @@ def main():
     bar_color = 1
     #bar_angle = 0
 
-    fix_sine_amplitude = 15#15
+    fix_sine_amplitude = 0#15
     fix_sine_period = 2
 
     fix_start_thetas = [-45, -30, -15, 0, 15, 30, 45]
-    fix_duration = 20
+    fix_duration = 10
     iti = 2
     
     max_duration = (fix_duration + iti) * n_trials
@@ -162,7 +164,9 @@ def main():
          #dlpc350_object.set_current(red=0, green = 0, blue = 1.0)
          dlpc350_object.pattern_mode(fps=120, red=False, green=False, blue=True)
          dlpc350_object.pattern_mode(fps=120, red=False, green=False, blue=True)
-         
+    
+    sleep(1) # to let lightcrafters think
+
     # Create screen object
     #bruker_left_screen = Screen(server_number=1, id=1,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=(0.11, 0.23), square_loc=(0.89, -1.00), name='Left')
     #bruker_right_screen = Screen(server_number=1, id=2,fullscreen=True, tri_list=make_tri_list(), vsync=False, square_side=(0.14, 0.22), square_loc=(-0.85, -0.94), name='Right')
@@ -174,6 +178,7 @@ def main():
 
     # Start stim server
     fs_manager = launch_stim_server(screens)
+    fs_manager.black_corner_square()
     if save_history:
         fs_manager.set_save_history_params(save_history_flag=save_history, save_path=save_path, fs_frame_rate_estimate=fs_frame_rate, save_duration=max_duration)
     fs_manager.set_idle_background(background_color)
@@ -203,7 +208,7 @@ def main():
     for t in range(n_trials):
 
         # Fix bar trajectory
-        sin_traj = SinusoidalTrajectory(v_0=start_theta[t], amplitude=fix_sine_amplitude, period=fix_sine_period) # period of 1 second
+        sin_traj = SinusoidalTrajectory(v_0=int(start_theta[t]), amplitude=fix_sine_amplitude, period=fix_sine_period) # period of 1 second
         fixbar_traj = RectangleAnyTrajectory(x=sin_traj, y=90, w=bar_width, h=bar_height, color=bar_color)
 
         if save_history:
@@ -212,9 +217,10 @@ def main():
 
         ft_manager.set_pos_0(theta_0=None, x_0=0, y_0=0)
 
-        print(f"===== Trial {t} ======")
+        print(f"===== Trial {t}: start_theta={start_theta[t]} ======")
 
         fs_manager.load_stim('MovingPatchAnyTrajectory', trajectory=fixbar_traj.to_dict(), background=background_color)
+        fs_manager.start_corner_square()
         fs_manager.start_stim()
         t_start_fix = time()
 
@@ -224,6 +230,7 @@ def main():
         t_end_fix = time()
 
         fs_manager.stop_stim()
+        fs_manager.black_corner_square()
 
         print("===== Start ITI =====")
         ft_manager.sleep(iti)
@@ -246,18 +253,18 @@ def main():
 
 
     # Plot fictrac summary and save png
-    fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])[-2:]
-    ft_summary_save_fn = os.path.join(parent_path, save_prefix+".png") if save_history else None
-    fictrac_utils.plot_ft_session_summary(os.path.join(parent_path, fictrac_files[0]), label=save_prefix, show=(not save_history), save=ft_summary_save_fn, window_size=5)
+    fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])
+    # ft_summary_save_fn = os.path.join(parent_path, save_prefix+".png") if save_history else None
+    # fictrac_utils.plot_ft_session_summary(os.path.join(parent_path, fictrac_files[0]), label=save_prefix, show=(not save_history), save=ft_summary_save_fn, window_size=5)
 
     if save_history:
         # Move fictrac files
         print ("Moving/removing fictrac files.")
-        os.rename(os.path.join(parent_path, fictrac_files[0]), os.path.join(save_path, fictrac_files[0]))
-        os.remove(os.path.join(parent_path, fictrac_files[1]))
+        for x in fictrac_files:
+            os.rename(os.path.join(parent_path, x), os.path.join(save_path, x))
 
         # Move Fictrac summary
-        os.rename(os.path.join(parent_path, save_prefix+".png"), os.path.join(save_path, save_prefix+".png"))
+        # os.rename(os.path.join(parent_path, save_prefix+".png"), os.path.join(save_path, save_prefix+".png"))
 
         # Open up fictrac file
         fictrac_data_fn = fictrac_files[0]
@@ -348,11 +355,11 @@ def main():
         for txt_fn in fs_txt_files:
             os.remove(os.path.join(save_path, txt_fn))
 
-        # Move hdf5 file out to parent path
-        os.rename(os.path.join(save_path, save_prefix + '.h5'), os.path.join(parent_path, save_prefix + '.h5'))
-
         # Run quick analysis post experiment
         _=analyze_fix_stationary(h5f_path, front_region=[-15,15])
+
+        # Move hdf5 file out to parent path
+        os.rename(os.path.join(save_path, save_prefix + '.h5'), os.path.join(parent_path, save_prefix + '.h5'))
 
     else: #not saving history
         # Delete fictrac files

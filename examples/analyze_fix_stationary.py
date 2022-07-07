@@ -34,7 +34,7 @@ def analyze_fix_stationary(hdf_path, front_region=[-15,15]):
     #h5f_path = "/Users/yandanwang/Desktop/fix_stationary/20220410_201217.h5"
 
     ## Import data from h5 file
-    h5f = h5py.File(h5f_path, 'r')
+    h5f = h5py.File(hdf_path, 'r')
 
     trials = h5f['trials']
     iti = h5f.attrs['iti'] if 'iti' in h5f.attrs.keys() else 2 # if iti was not saved, assume 2 seconds
