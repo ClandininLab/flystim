@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, os
+from cv2 import dft
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
@@ -16,7 +17,7 @@ from flystim1.stim_server import launch_stim_server
 from flystim1.bruker import get_bruker_screen
 from ftutil.ft_managers import FtManager, FtSocketManager, FtClosedLoopManager
 
-#from ballrig_analysis.utils import fictrac_utils
+from ballrig_analysis.utils import fictrac_utils
 from analyze_fix_stationary import analyze_fix_stationary
 
 #LCR_CTL_PATH = '/home/clandininlab/.local/bin/lcr_ctl'
@@ -25,11 +26,8 @@ FICTRAC_HOST = '127.0.0.1'  # The server's hostname or IP address
 FICTRAC_PORT = 33334         # The port used by the server
 FICTRAC_BIN =    "/home/clandininlab/lib/fictrac211/bin/fictrac"
 FICTRAC_CONFIG = "/home/clandininlab/lib/fictrac211/config_210617.txt"
-FT_FRAME_NUM_IDX = 0
-FT_X_IDX = 14
-FT_Y_IDX = 15
-FT_THETA_IDX = 16
-FT_TIMESTAMP_IDX = 21
+FT_DATA_IDXES = {'ft_frame':0, 'ft_x':14, 'ft_y':15, 'ft_theta':16, 'ft_movement_speed':18, 'ft_fwd':19, 'ft_side':20, 'ft_timestamps':21}
+# do not change ft_timestamps
 
 def main():
     #####################################################
@@ -60,9 +58,9 @@ def main():
     sleep_before_stim = float(sleep_before_stim_min) * 60 # seconds
     print(sleep_before_stim_min)
         
-    n_trials = input("Enter number of trials (default 160): ")
+    n_trials = input("Enter number of trials (default 81): ")
     if n_trials=="":
-        n_trials = 160
+        n_trials = 81
     n_trials = int(n_trials)
     print(n_trials)
 
@@ -120,8 +118,8 @@ def main():
     fix_sine_amplitude = 0#15
     fix_sine_period = 2
 
-    fix_start_thetas = [-45, -30, -15, 0, 15, 30, 45]
-    fix_duration = 10
+    fix_start_thetas = [-50, -25, 0, 25, 50]
+    fix_duration = 20
     iti = 2
     
     max_duration = (fix_duration + iti) * n_trials
@@ -140,11 +138,21 @@ def main():
             'temperature':temperature, 'humidity':humidity, 'airflow':airflow, \
             'stim_name':stim_name, 'background_color':background_color, \
             'bar_width':bar_width, 'bar_height':bar_height, 'bar_color':bar_color, \
-            'start_theta':start_theta, \
+            'start_theta':start_theta, 'n_trials':n_trials, \
             'fix_sine_amplitude':fix_sine_amplitude, \
             'fix_sine_period':fix_sine_period, \
             'fix_duration':fix_duration, 'iti':iti, 'fix_start_thetas':fix_start_thetas,
             }
+
+
+        # Create h5f file
+        h5f_path = os.path.join(save_path, save_prefix + '.h5')
+        h5f = h5py.File(h5f_path, 'a')
+        # params
+        for (k,v) in params.items():
+            h5f.attrs[k] = v
+        # trials group
+        trials = h5f.require_group('trials')
 
     #####################################################################
 
@@ -188,13 +196,13 @@ def main():
     #####################################################
 
     if closed_loop:
-        ft_manager = FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT, ft_theta_idx=FT_THETA_IDX, ft_frame_num_idx=FT_FRAME_NUM_IDX, ft_timestamp_idx=FT_TIMESTAMP_IDX)
+        ft_manager = FtClosedLoopManager(fs_manager=fs_manager, ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG, ft_host=FICTRAC_HOST, ft_port=FICTRAC_PORT, ft_theta_idx=FT_DATA_IDXES['ft_theta'], ft_frame_num_idx=FT_DATA_IDXES['ft_frame'], ft_timestamp_idx=FT_DATA_IDXES['ft_timestamps'])
     else:
         ft_manager = FtManager(ft_bin=FICTRAC_BIN, ft_config=FICTRAC_CONFIG)
     ft_manager.sleep(sleep_before_stim) #allow fictrac to gather data
 
-    fix_start_times = []
-    fix_end_times = []
+    start_times = []
+    end_times = []
 
     # Pretend previous trial ended here before trial 0
     t_exp_start = time()
@@ -236,14 +244,20 @@ def main():
         ft_manager.sleep(iti)
         print("===== End ITI =====")
 
-        fix_start_times.append(t_start_fix)
-        fix_end_times.append(t_end_fix)
+        start_times.append(t_start_fix)
+        end_times.append(t_end_fix)
 
         # Save things
         if save_history:
             fs_manager.stop_saving_history()
             fs_manager.set_save_prefix(save_prefix+"_t"+f'{t:03}')
             fs_manager.save_history()
+            
+            # Save start and end times for trial in HDF file
+            trial = trials.require_group(f'{t:03}')
+            trial.attrs['start_time'] = start_times[t]
+            trial.attrs['end_time'] = end_times[t]
+            trial.attrs['start_theta'] = start_theta[t]
 
     # close fictrac
     ft_manager.close()
@@ -254,53 +268,42 @@ def main():
 
     # Plot fictrac summary and save png
     fictrac_files = sorted([x for x in os.listdir(parent_path) if x[0:7]=='fictrac'])
-    # ft_summary_save_fn = os.path.join(parent_path, save_prefix+".png") if save_history else None
-    # fictrac_utils.plot_ft_session_summary(os.path.join(parent_path, fictrac_files[0]), label=save_prefix, show=(not save_history), save=ft_summary_save_fn, window_size=5)
+    fictrac_data_fn = sorted([x for x in fictrac_files if x.endswith('.dat')])[-1]
+    
+    ft_summary_save_fn = os.path.join(parent_path, save_prefix+".png") if save_history else None
+    fictrac_utils.plot_ft_session_summary(os.path.join(parent_path, fictrac_data_fn), label=save_prefix, show=(not save_history), save=ft_summary_save_fn, window_size=5)
 
     if save_history:
+        # Write experiment duration to the HDF file
+        h5f.attrs['experiment_duration'] = t_exp_end-t_exp_start
+
         # Move fictrac files
         print ("Moving/removing fictrac files.")
         for x in fictrac_files:
             os.rename(os.path.join(parent_path, x), os.path.join(save_path, x))
 
         # Move Fictrac summary
-        # os.rename(os.path.join(parent_path, save_prefix+".png"), os.path.join(save_path, save_prefix+".png"))
+        os.rename(os.path.join(parent_path, save_prefix+".png"), os.path.join(save_path, save_prefix+".png"))
 
         # Open up fictrac file
-        fictrac_data_fn = fictrac_files[0]
         ft_data_handler = open(os.path.join(save_path, fictrac_data_fn), 'r')
-
-        # Create h5f file
-        h5f_path = os.path.join(save_path, save_prefix + '.h5')
-        h5f = h5py.File(h5f_path, 'a')
-        # params
-        for (k,v) in params.items():
-            h5f.attrs[k] = v
-        h5f.attrs['experiment_duration'] = t_exp_end-t_exp_start
-        # trials group
-        trials = h5f.require_group('trials')
-
+        
         # Process through ft_data_handler until it gets to the frame iti before first trial
-        start_time_next_trial = fix_start_times[0]
-        ft_frame_next = []
-        ft_theta_next = []
-        ft_timestamps_next = []
-        ft_square_next = []
+        start_time_next_trial = start_times[0]
+        ft_data_next = dict.fromkeys(FT_DATA_IDXES.keys(), [])
 
         curr_time = 0
         while curr_time < trial_end_time_neg1:
             ft_line = ft_data_handler.readline()
             ft_toks = ft_line.split(", ")
-            #print(trial_end_time_neg1 - curr_time)
-            curr_time = float(ft_toks[FT_TIMESTAMP_IDX])/1e3
+            curr_time = float(ft_toks[FT_DATA_IDXES['ft_timestamps']])/1e3
 
         while curr_time < start_time_next_trial:
             ft_line = ft_data_handler.readline()
             ft_toks = ft_line.split(", ")
-            curr_time = float(ft_toks[FT_TIMESTAMP_IDX])/1e3
-            ft_frame_next.append(int(ft_toks[FT_FRAME_NUM_IDX]))
-            ft_theta_next.append(float(ft_toks[FT_THETA_IDX]))
-            ft_timestamps_next.append(float(ft_toks[FT_TIMESTAMP_IDX]))
+            curr_time = float(ft_toks[FT_DATA_IDXES['ft_timestamps']])/1e3
+            for k in FT_DATA_IDXES.keys():
+                ft_data_next[k].append(float(ft_toks[FT_DATA_IDXES[k]]))
 
         # Loop through trials and create trial groups and datasets
         ft_line = ft_data_handler.readline()
@@ -309,43 +312,32 @@ def main():
 
             fs_timestamps = np.loadtxt(save_dir_prefix+'_fs_timestamps.txt')
 
-            ft_frame = ft_frame_next
-            ft_theta = ft_theta_next
-            ft_timestamps = ft_timestamps_next
-            ft_frame_next = []
-            ft_theta_next = []
-            ft_timestamps_next = []
+            ft_data = ft_data_next
+            ft_data_next = dict.fromkeys(FT_DATA_IDXES.keys(), [])
 
             if t < n_trials-1:
-                start_time_next_trial = fix_start_times[t+1]
+                start_time_next_trial = start_times[t+1]
             else: #t == n_trials-1
                 start_time_next_trial = np.infty
 
             while ft_line!="" and curr_time < start_time_next_trial:
                 ft_toks = ft_line.split(", ")
-                curr_time = float(ft_toks[FT_TIMESTAMP_IDX])/1e3
-                ft_frame.append(int(ft_toks[FT_FRAME_NUM_IDX]))
-                ft_theta.append(float(ft_toks[FT_THETA_IDX]))
-                ft_timestamps.append(float(ft_toks[FT_TIMESTAMP_IDX]))
-                if curr_time >= fix_end_times[t]:
-                    ft_frame_next.append(int(ft_toks[FT_FRAME_NUM_IDX]))
-                    ft_theta_next.append(float(ft_toks[FT_THETA_IDX]))
-                    ft_timestamps_next.append(float(ft_toks[FT_TIMESTAMP_IDX]))
+                curr_time = float(ft_toks[FT_DATA_IDXES['ft_timestamps']])/1e3
+                for k in FT_DATA_IDXES.keys():
+                    ft_data[k].append(float(ft_toks[FT_DATA_IDXES[k]]))
+                if curr_time >= end_times[t]:
+                    for k in FT_DATA_IDXES.keys():
+                        ft_data_next[k].append(float(ft_toks[FT_DATA_IDXES[k]]))
                 ft_line = ft_data_handler.readline()
 
             # trial
             trial = trials.require_group(f'{t:03}')
-
-            # start time for trial
-            trial.attrs['fix_start_time'] = fix_start_times[t]
-            trial.attrs['fix_end_time'] = fix_end_times[t]
-            trial.attrs['start_theta'] = start_theta[t]
-
             trial.create_dataset("fs_timestamps", data=fs_timestamps)
-            trial.create_dataset("ft_frame", data=ft_frame)
-            trial.create_dataset("ft_timestamps", data=np.array(ft_timestamps)/1e3)
-            trial.create_dataset("ft_theta", data=ft_theta)
-
+            for k in FT_DATA_IDXES.keys():
+                if k == 'ft_timestamps':
+                    trial.create_dataset(k, data=np.array(ft_data[k])/1e3)
+                else:
+                    trial.create_dataset(k, data=ft_data[k])
 
         ft_data_handler.close()
         h5f.close()
@@ -366,6 +358,9 @@ def main():
         print ("Deleting " + str(len(fictrac_files)) + " fictrac files.")
         for i in range(len(fictrac_files)):
             os.remove(os.path.join(parent_path, fictrac_files[i]))
+        
+        # Delete fictrac summary
+        os.remove(os.path.join(parent_path, save_prefix+".png"))
 
 if __name__ == '__main__':
     main()
