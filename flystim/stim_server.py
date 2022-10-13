@@ -33,13 +33,41 @@ class StimServer(MySocketServer):
         # call super constructor
         super().__init__(host=host, port=port, threaded=False, auto_stop=auto_stop)
 
+        self.functions_on_root = {}
+
         # launch screens
         self.clients = [launch_screen(screen=screen) for screen in screens]
+
+    def register_function_on_root(self, function, name=None):
+        '''
+        Register function to be executed on the server's root node only, and not on the clients (i.e. screens).
+        '''
+        if name is None:
+            name = function.__name__
+
+        assert name not in self.functions_on_root, 'Function "{}" already defined.'.format(name)
+        self.functions_on_root[name] = function
 
     def handle_request_list(self, request_list):
         # make sure that request list is actually a list...
         if not isinstance(request_list, list):
+            print("Request list is not a list and thus cannot be handled.")
             return
+
+        # pull out requests that are meant for server root node and not the screen clients
+        root_request_list = [req for req in request_list if isinstance(req, dict) and 'name' in req and req['name'] in self.functions_on_root]
+        request_list[:] = [req for req in request_list if not (isinstance(req, dict) and 'name' in req and req['name'] in self.functions_on_root)]
+
+        # handle requests for the root server without sending to client screens
+        for request in root_request_list:
+            # get function call parameters
+            function = self.functions_on_root[request['name']]
+            args = request.get('args', [])
+            kwargs = request.get('kwargs', {})
+
+            # call function
+            print(f"Root server node executing function: {request['name']}")
+            function(*args, **kwargs)
 
         # pre-process the request list as necessary
         for request in request_list:
