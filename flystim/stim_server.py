@@ -66,7 +66,7 @@ class StimServer(MySocketServer):
             kwargs = request.get('kwargs', {})
 
             # call function
-            print(f"Root server node executing function: {request['name']}")
+            print(f"Server root node executing: {str(request)}")
             function(*args, **kwargs)
 
         # pre-process the request list as necessary
