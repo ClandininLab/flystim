@@ -34,7 +34,8 @@ class StimServer(MySocketServer):
         super().__init__(host=host, port=port, threaded=False, auto_stop=auto_stop)
 
         self.functions_on_root = {}
-
+        self.register_function_on_root(lambda x: print(x), "print_on_server")
+        
         # launch screens
         self.clients = [launch_screen(screen=screen) for screen in screens]
 
@@ -66,7 +67,7 @@ class StimServer(MySocketServer):
             kwargs = request.get('kwargs', {})
 
             # call function
-            print(f"Server root node executing: {str(request)}")
+            # print(f"Server root node executing: {str(request)}")
             function(*args, **kwargs)
 
         # pre-process the request list as necessary
