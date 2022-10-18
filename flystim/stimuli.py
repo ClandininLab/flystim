@@ -141,6 +141,55 @@ class MovingPatch(BaseProgram):
                                            color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 
+class UniformWhiteNoise(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, width=10, height=10, sphere_radius=1, distribution_data=None,
+                  theta=0, phi=0, angle=0, update_rate=60.0, start_seed=0):
+        """
+        Stimulus consisting of a rectangular patch on the surface of a sphere. Patch is rectangular in spherical coordinates.
+
+        :param width: Width in degrees (azimuth)
+        :param height: Height in degrees (elevation)
+        :param sphere_radius: Radius of the sphere (meters)
+        :param distribution_data: dict. containing name and args/kwargs for random distribution (see flystim.distribution)
+        :param update_rate: Hz, update rate of bar intensity
+        :param start_seed: seed with which to start rng at the beginning of the stimulus presentation
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.width = width
+        self.height = height
+        self.sphere_radius = sphere_radius
+        self.theta = theta
+        self.phi = phi
+        self.angle = angle
+        self.update_rate = update_rate
+        self.start_seed = start_seed
+
+        # get the noise distribution
+        if distribution_data is None:
+            distribution_data = {'name': 'Uniform',
+                                 'args': [0, 1],
+                                 'kwargs': {}}
+        self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args', []), **distribution_data.get('kwargs', {}))
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        # set the seed
+        seed = int(round(self.start_seed + t*self.update_rate))
+        np.random.seed(seed)
+
+        color = self.noise_distribution.get_random_values(1)
+        color = [color, color, color, 1]
+        # TODO: is there a way to make this object once in configure then update with width/height in eval_at?
+        self.stim_object = GlSphericalRect(width=self.width,
+                                           height=self.height,
+                                           sphere_radius=self.sphere_radius,
+                                           color=color).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+
 class MovingPatchOnCylinder(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
