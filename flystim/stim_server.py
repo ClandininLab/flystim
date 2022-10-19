@@ -39,6 +39,20 @@ class StimServer(MySocketServer):
         # launch screens
         self.clients = [launch_screen(screen=screen) for screen in screens]
 
+    def __getattr__(self, name):
+        '''
+        Allow the server to execute function calls as client, assuming server isn't busy looping. 
+        If loop is on a separate thread, it can execute calls.
+        '''
+        if name in dir(self):
+            return self.name
+        
+        # If not a method of the server class, handle it as a request.
+        def f(*args, **kwargs):
+            request = {'name': name, 'args': args, 'kwargs': kwargs}
+            self.handle_request_list([request])
+        return f
+
     def register_function_on_root(self, function, name=None):
         '''
         Register function to be executed on the server's root node only, and not on the clients (i.e. screens).
