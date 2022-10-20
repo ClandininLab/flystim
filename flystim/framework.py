@@ -64,6 +64,8 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # Initialize stuff for rendering & saving stim frames
         self.stim_frames = []
         self.append_stim_frames = False
+        self.pre_render = False
+        self.current_time_index = None
 
         # make program for rendering the corner square
         self.square_program = SquareProgram(screen=screen)
@@ -122,7 +124,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.ctx.clear(0, 0, 0, 1) # clear the previous frame across the whole display
         # draw the stimulus
         if self.stim_list:
-            t = time.time()
+            if self.pre_render:
+                if self.current_time_index < len(self.pre_render_timepoints):
+                    t = self.pre_render_timepoints[self.current_time_index]
+                else:
+                    t = self.pre_render_timepoints[-1]
+                    self.stop_stim()
+            else:  # real-time generation
+                t = time.time()
             if self.use_fly_trajectory:
                 self.set_global_fly_pos(return_for_time_t(self.fly_x_trajectory, self.get_stim_time(t)),
                                         return_for_time_t(self.fly_y_trajectory, self.get_stim_time(t)),
@@ -165,6 +174,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
             if self.append_stim_frames:
                 # grab frame buffer, convert to array, grab blue channel, append to list of stim_frames
                 self.stim_frames.append(qimage2ndarray.rgb_view(self.grabFrameBuffer())[:, :, 2])
+                self.current_time_index += 1
 
     ###########################################
     # control functions
@@ -197,7 +207,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         stim.configure(**stim.kwargs) # Configure stim on load
         self.stim_list.append(stim)
 
-    def start_stim(self, t, append_stim_frames=False):
+    def start_stim(self, t, append_stim_frames=False, pre_render=False, pre_render_timepoints=None):
         """
         Start the stimulus animation, using the given time as t=0.
 
@@ -207,9 +217,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.profile_frame_times = []
         self.stim_frames = []
         self.append_stim_frames = append_stim_frames
+        self.pre_render = pre_render
+        self.current_time_index = 0
+        self.pre_render_timepoints = pre_render_timepoints
 
         self.stim_started = True
-        self.stim_start_time = t
+        if pre_render:
+            self.stim_start_time = 0
+        else:
+            self.stim_start_time = t
 
     def stop_stim(self, print_profile=False):
         """
@@ -241,6 +257,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.stim_started = False
         self.stim_start_time = None
+        self.current_time_index = 0
 
         self.profile_frame_times = []
 
@@ -260,6 +277,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         :param file_path: full file path of saved array
         """
+        print('shape is {}'.format(len(self.stim_frames)))
         pre_size = np.stack(self.stim_frames, axis=2).shape
         mov = downscale_local_mean(np.stack(self.stim_frames, axis=2), factors=(downsample_xy, downsample_xy, 1)).astype('uint8')
         np.save(file_path, mov)
