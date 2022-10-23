@@ -345,6 +345,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
     def set_global_fly_pos(self, x, y, z):
         self.global_fly_pos = np.array([x, y, z], dtype=float)
 
+    def set_global_fly_x(self, x):
+        self.global_fly_pos[0] = float(x)
+
+    def set_global_fly_y(self, y):
+        self.global_fly_pos[1] = float(y)
+
+    def set_global_fly_z(self, z):
+        self.global_fly_pos[2] = float(z)
+
     def set_global_theta_offset(self, value):
         self.global_theta_offset = radians(value)
 
@@ -439,6 +448,9 @@ def main():
     server.register_function(stim_display.hide_corner_square)
     server.register_function(stim_display.set_idle_background)
     server.register_function(stim_display.set_global_fly_pos)
+    server.register_function(stim_display.set_global_fly_x)
+    server.register_function(stim_display.set_global_fly_y)
+    server.register_function(stim_display.set_global_fly_z)
     server.register_function(stim_display.set_global_theta_offset)
     server.register_function(stim_display.set_global_phi_offset)
 
