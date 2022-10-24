@@ -234,7 +234,7 @@ class TexturedSphericalPatch(BaseProgram):
         super().__init__(screen=screen)
         self.use_texture = True
 
-    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0, n_steps_x=12, n_steps_y=12):
         """
         Stimulus consisting of a rectangular patch on the surface of a sphere. Patch is rectangular in spherical coordinates.
 
@@ -258,7 +258,7 @@ class TexturedSphericalPatch(BaseProgram):
         self.stim_object = GlSphericalTexturedRect(width=self.width,
                                                    height=self.height,
                                                    sphere_radius=self.sphere_radius,
-                                                   color=self.color, n_steps_x=12, n_steps_y=12, texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+                                                   color=self.color, n_steps_x=n_steps_x, n_steps_y=n_steps_y, texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
 
     def updateTexture(self):
         # overwrite in subclass
@@ -274,7 +274,7 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         super().__init__(screen=screen)
 
     def configure(self, patch_width=5, patch_height=5, distribution_data=None, update_rate=60.0, start_seed=0,
-                  width=30, height=30, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0, rgb_texture=False):
+                  width=30, height=30, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0, rgb_texture=False, n_steps_x=12, n_steps_y=12):
         """
         Random square grid pattern painted on a spherical patch.
 
@@ -288,7 +288,7 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         """
         self.rgb_texture = rgb_texture
 
-        super().configure(width=width, height=height, sphere_radius=sphere_radius, color=color, theta=theta, phi=phi, angle=angle)
+        super().configure(width=width, height=height, sphere_radius=sphere_radius, color=color, theta=theta, phi=phi, angle=angle, n_steps_x=n_steps_x, n_steps_y=n_steps_y)
 
         # get the noise distribution
         if distribution_data is None:
