@@ -77,7 +77,7 @@ class SquareProgram:
 
         if self.draw:
             # write color
-            self.prog['color'].value = self.color
+            self.prog['color'].value = self.color * self.screen.square_max_color
 
             # Set viewport and render to screen
             self.ctx.viewport = self.viewport

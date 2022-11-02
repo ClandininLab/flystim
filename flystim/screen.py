@@ -64,7 +64,7 @@ class Screen:
     """
 
     def __init__(self, subscreens=None, server_number=None, id=None, fullscreen=None, vsync=None,
-                 square_size=None, square_loc=None, name=None, horizontal_flip=False, pa=(-0.15, 0.30, -0.15), pb=(+0.15, 0.30, -0.15), pc=(-0.15, 0.30, +0.15)):
+                 square_size=None, square_loc=None, square_max_color=1.0, name=None, horizontal_flip=False, pa=(-0.15, 0.30, -0.15), pb=(+0.15, 0.30, -0.15), pc=(-0.15, 0.30, +0.15)):
         """
         :param subscreens: list of SubScreen objects (see above), if none are provided, one full-viewport subscreen will be produced using inputs pa, pb, pc
         :param server_number: ID # of the X server
@@ -74,6 +74,7 @@ class Screen:
         :param vsync: Boolean.  If True, lock the framerate to the redraw rate of the screen.
         :param square_size: (width, height) of photodiode synchronization square (NDC)
         :param square_loc: (x, y) Location of lower left corner of photodiode synchronization square (NDC)
+        :param square_max_color: scales square color such that maximum value is set as indicated (0 - square_max_color)
         :param name: descriptive name to associate with this screen
         :param horizontal_flip: Boolean. Flip horizontal axis of image, for rear-projection devices
 
@@ -103,6 +104,7 @@ class Screen:
         self.vsync = vsync
         self.square_size = square_size
         self.square_loc = square_loc
+        self.square_max_color = square_max_color
         self.name = name
         self.horizontal_flip = horizontal_flip
         self.pa = pa
