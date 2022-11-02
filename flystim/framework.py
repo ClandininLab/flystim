@@ -1,3 +1,4 @@
+import os
 from PyQt5 import QtOpenGL, QtWidgets
 
 import time
@@ -64,6 +65,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
         # Initialize stuff for rendering & saving stim frames
         self.stim_frames = []
         self.append_stim_frames = False
+        self.pre_render = False
+        self.current_time_index = None
+
+        # Initalize stuff for saving position history
+        self.save_pos_history = False
+        self.save_pos_history_dir = None
+        self.pos_history = []
 
         # make program for rendering the corner square
         self.square_program = SquareProgram(screen=screen)
@@ -122,7 +130,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.ctx.clear(0, 0, 0, 1) # clear the previous frame across the whole display
         # draw the stimulus
         if self.stim_list:
-            t = time.time()
+            if self.pre_render:
+                if self.current_time_index < len(self.pre_render_timepoints):
+                    t = self.pre_render_timepoints[self.current_time_index]
+                else:
+                    t = self.pre_render_timepoints[-1]
+                    self.stop_stim()
+            else:  # real-time generation
+                t = time.time()
             if self.use_fly_trajectory:
                 self.set_global_fly_pos(return_for_time_t(self.fly_x_trajectory, self.get_stim_time(t)),
                                         return_for_time_t(self.fly_y_trajectory, self.get_stim_time(t)),
@@ -162,9 +177,13 @@ class StimDisplay(QtOpenGL.QGLWidget):
         if self.stim_started:
             # print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmarking
 
+            if self.save_pos_history:
+                self.pos_history.append(np.append(self.global_fly_pos, [self.global_theta_offset, self.global_phi_offset])) # np.append creates a copy
+
             if self.append_stim_frames:
                 # grab frame buffer, convert to array, grab blue channel, append to list of stim_frames
                 self.stim_frames.append(qimage2ndarray.rgb_view(self.grabFrameBuffer())[:, :, 2])
+                self.current_time_index += 1
 
     ###########################################
     # control functions
@@ -197,7 +216,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         stim.configure(**stim.kwargs) # Configure stim on load
         self.stim_list.append(stim)
 
-    def start_stim(self, t, append_stim_frames=False):
+    def start_stim(self, t, save_pos_history=False, append_stim_frames=False, pre_render=False, pre_render_timepoints=None):
         """
         Start the stimulus animation, using the given time as t=0.
 
@@ -207,9 +226,19 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.profile_frame_times = []
         self.stim_frames = []
         self.append_stim_frames = append_stim_frames
+        self.pre_render = pre_render
+        self.current_time_index = 0
+        self.pre_render_timepoints = pre_render_timepoints
+
+        self.save_pos_history = save_pos_history
+        if save_pos_history:
+            self.pos_history = []
 
         self.stim_started = True
-        self.stim_start_time = t
+        if pre_render:
+            self.stim_start_time = 0
+        else:
+            self.stim_start_time = t
 
     def stop_stim(self, print_profile=False):
         """
@@ -241,6 +270,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         self.stim_started = False
         self.stim_start_time = None
+        self.current_time_index = 0
 
         self.profile_frame_times = []
 
@@ -260,10 +290,23 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         :param file_path: full file path of saved array
         """
+        print('shape is {}'.format(len(self.stim_frames)))
         pre_size = np.stack(self.stim_frames, axis=2).shape
         mov = downscale_local_mean(np.stack(self.stim_frames, axis=2), factors=(downsample_xy, downsample_xy, 1)).astype('uint8')
         np.save(file_path, mov)
         print('Downsampled from {} to {} and saved to {}'.format(pre_size, mov.shape, file_path), flush=True)
+
+    def set_save_pos_history_dir(self, save_dir):
+        self.save_pos_history_dir = os.path.join(save_dir, '_'.join(['screen', self.screen.name]))
+        os.makedirs(self.save_pos_history_dir, exist_ok=True)
+
+    def save_pos_history_to_file(self, epoch_id):
+        '''
+        Save the position history for the stim to a text file.
+        '''
+        if self.save_pos_history_dir is not None:
+            file_path = os.path.join(self.save_pos_history_dir, '_'.join(['epoch', epoch_id])+'.out')
+            np.savetxt(file_path, np.asarray(self.pos_history))
 
     def start_corner_square(self):
         """
@@ -326,6 +369,15 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def set_global_fly_pos(self, x, y, z):
         self.global_fly_pos = np.array([x, y, z], dtype=float)
+
+    def set_global_fly_x(self, x):
+        self.global_fly_pos[0] = float(x)
+
+    def set_global_fly_y(self, y):
+        self.global_fly_pos[1] = float(y)
+
+    def set_global_fly_z(self, z):
+        self.global_fly_pos[2] = float(z)
 
     def set_global_theta_offset(self, value):
         self.global_theta_offset = radians(value)
@@ -421,8 +473,13 @@ def main():
     server.register_function(stim_display.hide_corner_square)
     server.register_function(stim_display.set_idle_background)
     server.register_function(stim_display.set_global_fly_pos)
+    server.register_function(stim_display.set_global_fly_x)
+    server.register_function(stim_display.set_global_fly_y)
+    server.register_function(stim_display.set_global_fly_z)
     server.register_function(stim_display.set_global_theta_offset)
     server.register_function(stim_display.set_global_phi_offset)
+    server.register_function(stim_display.set_save_pos_history_dir)
+    server.register_function(stim_display.save_pos_history_to_file)
 
     # display the stimulus
     if screen.fullscreen:
