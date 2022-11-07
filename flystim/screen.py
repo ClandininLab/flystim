@@ -64,7 +64,8 @@ class Screen:
     """
 
     def __init__(self, subscreens=None, server_number=None, id=None, fullscreen=None, vsync=None,
-                 square_size=None, square_loc=None, square_max_color=None, name=None, horizontal_flip=False, pa=(-0.15, 0.30, -0.15), pb=(+0.15, 0.30, -0.15), pc=(-0.15, 0.30, +0.15)):
+                 square_size=None, square_loc=None, square_max_color=None, name=None, horizontal_flip=False, 
+                 pa=(-0.15, 0.30, -0.15), pb=(+0.15, 0.30, -0.15), pc=(-0.15, 0.30, +0.15)):
         """
         :param subscreens: list of SubScreen objects (see above), if none are provided, one full-viewport subscreen will be produced using inputs pa, pb, pc
         :param server_number: ID # of the X server
@@ -95,6 +96,7 @@ class Screen:
             square_loc = (-1, -1)
         if square_max_color is None:
             square_max_color = 1.0
+        square_max_color = min(square_max_color, 1.0)
         if name is None:
             name = 'Screen' + str(id)
 
@@ -115,7 +117,7 @@ class Screen:
 
     def serialize(self):
         # get all variables needed to reconstruct the screen object
-        vars = ['id', 'server_number', 'fullscreen', 'vsync', 'square_size', 'square_loc', 'name', 'horizontal_flip', 'pa', 'pb', 'pc']
+        vars = ['id', 'server_number', 'fullscreen', 'vsync', 'square_size', 'square_loc', 'square_max_color', 'name', 'horizontal_flip', 'pa', 'pb', 'pc']
         data = {var: getattr(self, var) for var in vars}
 
         # special handling for tri_list since it could contain numpy values
