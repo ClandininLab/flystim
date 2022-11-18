@@ -1,22 +1,58 @@
 """
+
 Stimulus classes.
 
 Each class is is derived from flystim.base.BaseProgram, which handles the GL context and shader programs
 
 """
+from multiprocessing import shared_memory
 
 import numpy as np
 from numpy.random import default_rng
 import os
+import multiprocessing
 import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints
+from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints, GlQuadro
 from flystim import util, image
 import time  # for debugging and benchmarking
 import copy
 
+class Quadro(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.use_texture = True
+
+    def configure(self, color=[0.5, 0.5, 0.5, 1.0], z_level=-0.1, side_length=5, rand_seed=0):
+        """
+        Infinite textured ground.
+
+        :param color: [r,g,b,a]
+        :param z_level: meters, level at which the floor is on the z axis (-z is below the fly)
+        :param side_length: meters
+        """
+        self.rand_seed = rand_seed
+
+        v1 = (-1, 1, -1)
+        v2 = (1, 1, -1)
+        v3 = (1, 1, 1)
+        v4 = (-1, 1, 1)
+
+        self.stim_object = GlQuadro(tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1),
+                                  texture_shift=(0, 0), use_texture=True)
+
+        # create the texture
+        np.random.seed(self.rand_seed)
+        face_colors = np.random.uniform(size=(40,40))
+
+        # make and apply the texture
+        img = (255*face_colors).astype(np.uint8)
+        self.add_texture_gl(img, texture_interpolation='NEAREST')
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        pass
 
 class ConstantBackground(BaseProgram):
     def __init__(self, screen):
@@ -274,7 +310,7 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         super().__init__(screen=screen)
 
     def configure(self, patch_width=5, patch_height=5, distribution_data=None, update_rate=60.0, start_seed=0,
-                  width=30, height=30, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0, rgb_texture=False, n_steps_x=12, n_steps_y=12):
+                  width=30, height=30, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0, rgb_texture=False, n_steps_x=12, n_steps_y=12, contrast=0.5, offset = 10):
         """
         Random square grid pattern painted on a spherical patch.
 
@@ -296,6 +332,9 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
                                  'args': [0, 1],
                                  'kwargs': {}}
         self.noise_distribution = getattr(distribution, distribution_data['name'])(*distribution_data.get('args', []), **distribution_data.get('kwargs', {}))
+
+        self.contrast = 0.5
+        self.offset = 10
 
         self.patch_width = patch_width
         self.patch_height = patch_height
@@ -319,9 +358,13 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         # get the random values
         if self.rgb_texture:  # shape = (x, y, 3)
             face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width, 3))
+
+
             img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width, 3)).astype(np.uint8)
         else:  # shape = (x, y) monochromatic
             face_colors = 255*self.noise_distribution.get_random_values((self.n_patches_height, self.n_patches_width))
+            face_colors *= self.contrast
+            face_colors += self.offset
             img = np.reshape(face_colors, (self.n_patches_height, self.n_patches_width)).astype(np.uint8)
 
         # TEST CHECKERBOARD
@@ -1076,7 +1119,69 @@ class ProgressiveStarfield(BaseProgram):
         y_position = return_for_time_t(self.y_offset, t)
         self.stim_object = copy.copy(self.stim_template).translate([0, y_position, 0])
 
+class PixMap(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, movie_filepath=None,patch_width=10, patch_height=10, cylinder_vertical_extent=1080/10*1.5, cylinder_angular_extent=1920/10*1.5,
+                  distribution_data=None, update_rate=2.0, start_seed=0, memname='test',
+                  color=[1, 1, 1, 1], cylinder_radius=1, theta=90, phi=0, angle=0.0, rgb_texture=True):
+        """
+        Random square grid pattern painted on the inside of a cylinder.
+
+        :param patch width: Azimuth extent (degrees) of each patch
+        :param patch height: Elevation extent (degrees) of each patch
+        :param cylinder_vertical_extent: Elevation extent of the entire cylinder (degrees)
+        :param cylinder_angular_extent: Azimuth extent of the cylinder `texture` (degrees)
+        :param distribution_data: dict. containing name and args/kwargs for random distribution (see flystim.distribution)
+        :param update_rate: Hz, update rate of bar intensity
+        :param start_seed: seed with which to start rng at the beginning of the stimulus presentation
+
+        :other params: see TexturedCylinder
+        """
+
+        # Only renders part of the cylinder if the period is not a divisor of cylinder_angular_extentS
+        self.rgb_texture=True
+        # self.frames = np.load('/home/baccuslab/src/flystim/frames_8bit.npy',allow_pickle=True,mmap_mode='r')
+        # self.cap = cv2.VideoCapture('/home/baccuslab/fast_start.mp4')
+        # self.CG = CamGear(source='/home/baccuslab/test.mp4',colorspace='COLOR_BGR2RGB').start()
+        # self.CG = CamGear(source=movie_filepath).start()
+
+#         self.n_patches_width = int(np.floor(cylinder_angular_extent/patch_width))
+#         self.cylinder_angular_extent = self.n_patches_width * patch_width
+
+        # assuming fly is at (0,0,0), calculate cylinder height required to achieve (approx.) vert_extent (degrees)
+        # actual vert. extent is based on floor-nearest integer number of patch heights
+        assert cylinder_vertical_extent < 180
+        # self.n_patches_height = int(np.floor(cylinder_vertical_extent/patch_height))
+        # patch_height_m = cylinder_radius * np.tan(np.radians(patch_height))  # in meters
+        # cylinder_height = self.n_patches_height * patch_height_m
+
+        # super().configure(color=color, angle=angle, cylinder_radius=cylinder_radius, cylinder_height=cylinder_height, theta=theta, phi=phi)
+
+        # self.patch_width = patch_width
+        # self.patch_height = patch_height
+        # self.start_seed = start_seed
+        # self.update_rate = update_rate
+
+        self.existing_shm = shared_memory.SharedMemory(name=memname)
+        frame = np.ndarray((648,1344,3),dtype=np.uint8, buffer=self.existing_shm.buf)
+        print('Fire')
+        frame[0,0,0] = 1
+        self.add_texture_gl(frame, texture_interpolation='NEAREST')
+
+        self.stim_object = GlCylinder(cylinder_height=3,
+                                      cylinder_radius=1,
+                                      cylinder_angular_extent=270,
+                                      color=(1,1,1,1),
+                                      texture=True)
+        self.last_time = 0
+        
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+
+        frame = np.ndarray((648,1344,3),dtype=np.uint8, buffer=self.existing_shm.buf)
+        self.update_texture_gl(frame)
+        
 
 
-
-# %%

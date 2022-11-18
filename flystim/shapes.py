@@ -94,8 +94,70 @@ class GlQuad(GlVertices):
                            [sum(x) for x in zip(tc3, texture_shift)],
                            [sum(x) for x in zip(tc4, texture_shift)]))
         else:
-            self.add(GlTri(v1, v2, v3, color))
             self.add(GlTri(v1, v3, v4, color))
+            self.add(GlTri(v1, v2, v3, color))
+
+class GlQuadro(GlVertices):
+    def __init__(self, tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1), texture_shift=(0, 0), use_texture=False):
+
+        super().__init__()
+        v1 = (-1, 1, -1)
+        v2 = (1, 1, -1)
+        v3 = (1, 1, 1)
+        v4 = (-1, 1, 1)
+
+        self.use_texture=True
+        # tc1 = (0,0)
+        # tc2 = (0.3,0)
+        # tc3 = (0,0.3)
+        # tc4 = (0.3,0.3)
+
+        self.add(GlTri(v1, v2, v3, (1,1,1,1),
+                       [sum(x) for x in zip(tc1, texture_shift)],
+                       [sum(x) for x in zip(tc2, texture_shift)],
+                       [sum(x) for x in zip(tc3, texture_shift)]))
+        self.add(GlTri(v1, v3, v4, (1,1,1,1),
+                       [sum(x) for x in zip(tc1, texture_shift)],
+                       [sum(x) for x in zip(tc3, texture_shift)],
+                       [sum(x) for x in zip(tc4, texture_shift)]))
+        v1 = (-1, 1, -1)
+        v2 = (-1, -1, -1)
+        v3 = (-1, -1, 1)
+        v4 = (-1, 1, 1)
+
+        self.use_texture=True
+        # tc1 = (0,0)
+        # tc2 = (0.3,0)
+        # tc3 = (0,0.3)
+        # tc4 = (0.3,0.3)
+        self.add(GlTri(v1, v2, v3, (1,1,1,1),
+                       [sum(x) for x in zip(tc1, texture_shift)],
+                       [sum(x) for x in zip(tc2, texture_shift)],
+                       [sum(x) for x in zip(tc3, texture_shift)]))
+        self.add(GlTri(v1, v3, v4, (1,1,1,1),
+                       [sum(x) for x in zip(tc1, texture_shift)],
+                       [sum(x) for x in zip(tc3, texture_shift)],
+                       [sum(x) for x in zip(tc4, texture_shift)]))
+
+        # tc1 = (0.3,0.3)
+        # tc2 = (0.6,0.3)
+        # tc3 = (0.3,0.6)
+        # tc4 = (0.6,0.6)
+
+        v1 = (1, 1, -1)
+        v2 = (1, -1, -1)
+        v3 = (1, -1, 1)
+        v4 = (1, 1, 1)
+        self.use_texture=True
+        self.add(GlTri(v1, v2, v3, (1,1,1,1),
+                       [sum(x) for x in zip(tc1, texture_shift)],
+                       [sum(x) for x in zip(tc2, texture_shift)],
+                       [sum(x) for x in zip(tc3, texture_shift)]))
+        self.add(GlTri(v1, v3, v4, (1,1,1,1),
+                       [sum(x) for x in zip(tc1, texture_shift)],
+                       [sum(x) for x in zip(tc3, texture_shift)],
+                       [sum(x) for x in zip(tc4, texture_shift)]))
+
 
 
 class GlCube(GlVertices):
