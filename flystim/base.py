@@ -13,7 +13,7 @@ import moderngl
 
 
 class BaseProgram:
-    def __init__(self, screen, num_tri=64*64*3):
+    def __init__(self, screen, num_tri=64*64*10):
         """
         :param screen: Object containing screen size information
         """

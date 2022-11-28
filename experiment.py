@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+from flystim.root_stimuli import NaturalMovie, WhiteNoise
+import flyrpc.multicall
+import random_word
+import cv2
+import threading
 import multiprocessing
 from flystim.stim_server import launch_stim_server 
 from flystim.screen import Screen, SubScreen
@@ -9,10 +14,13 @@ from flystim.draw import draw_screens
 
 from time import sleep
 
+def get_dim(fpath):
+    cap = cv2.VideoCapture(fpath)
+    r,f = cap.read()
+    del cap
+    return f.shape
     
 def get_subscreen(dir):
-    # Define screen(s) for the rig. Units in meters
-    # Fly is at (0, 0, 0), fly looking down +y axis.
     width = 1920
     height = 1080
 
@@ -53,7 +61,7 @@ def get_subscreen(dir):
         viewport_height = 2
         pa = (x_left,  y_forward, z_bottom)
         pb = (x_right, y_forward, z_bottom)
-        pc = (x_left,  y_forward, z_top)
+        pc = (x_left,  y_back, z_top)
 
     else:
         raise ValueError('Invalid direction.')
@@ -108,37 +116,132 @@ def main():
     theta_vel = 250 #deg/s
     grating_rate = 50
 
-    left_screen = Screen(subscreens=[get_subscreen('l')], server_number=1, id=2, fullscreen=True, vsync=True, square_size=(0.03, 0.08), square_loc=(-1, -1), name='Left', horizontal_flip=False)
-
-    center_screen = Screen(subscreens=[get_subscreen('c')], server_number=1, id=1, fullscreen=True, vsync=True, square_size=(0.035, 0.08), square_loc=(-1, -1), name='Center', horizontal_flip=False)
-
-    right_screen = Screen(subscreens=[get_subscreen('r')], server_number=1, id=3, fullscreen=True, vsync=True, square_size=(0.04, 0.08), square_loc=(-1, +0.92), name='Right', horizontal_flip=False)
-
-    #aux_screen = Screen(subscreens=[get_subscre n('aux')], server_number=1, id=0, fullscreen=False, vsync=True, square_size=(0, 0), square_loc=(-1, -1), name='Aux', horizontal_flip=False)
+    left_screen = Screen(subscreens=[get_subscreen('l')], server_number=1, id=2, fullscreen=True, vsync=True, square_size=(0.07, 0.07), square_loc=(-1, -1), name='Left', horizontal_flip=False)
+    center_screen = Screen(subscreens=[get_subscreen('c')], server_number=1, id=1, fullscreen=True, vsync=True, square_size=(0.07, 0.07), square_loc=(0.9, -1), name='Center', horizontal_flip=False)
+    right_screen = Screen(subscreens=[get_subscreen('r')], server_number=1, id=3, fullscreen=True, vsync=True, square_size=(0.05, 0.05), square_loc=(0.95, -1), name='Right', horizontal_flip=False)
+    aux_screen = Screen(subscreens=[get_subscreen('aux')], server_number=1, id=0, fullscreen=False, vsync=True, square_size=(0, 0), square_loc=(-1, -1), name='Aux', horizontal_flip=False)
     screens = [left_screen, center_screen, right_screen]
 
     manager = launch_stim_server(screens)
+    manager = flyrpc.multicall.MyMultiCall(manager)
 
-    #manager.black_corner_square()
+    manager.black_corner_square()
     manager.set_idle_background(0)
-
-    from flystim.root_stimuli import natural_movie 
-    memname = 'five'
-    movie_thread  = multiprocessing.Process(target=natural_movie, args=(memname,'/home/baccuslab/stimulus_videos/forest_walk.mp4',))
-    movie_thread.start()
-    # print('what')
-    sleep(5)
-    manager.load_stim(name='PixMap', memname=memname)
-    manager.start_stim()
-    manager.set_global_theta_offset(270)
-    # i = 0
-    sleep(600)    #     manager.set_global_fly_pos(0,0,0)
-    #     sleep(0)
-
-    # manager.stop_stim(print_profile=True)
-    # sleep(0.5)
+    manager()
     
-    # manager.black_corner_square()
+    sleep(10)
+
+    random_word_generator = random_word.RandomWords()
+    MEMNAME = random_word_generator.get_random_word()
+    wn = WhiteNoise(MEMNAME, (70,270), 100)
+    threading.Thread(target=wn.stream).start()
+    sleep(5)
+    manager.start_corner_square()
+    manager.load_stim(name='PixMap', memname=MEMNAME, frame_size=(70,270,3))
+    manager.start_stim()
+    manager()
+
+    sleep(20)
+
+    manager.stop_stim()
+    manager.set_idle_background(0)
+    manager.black_corner_square()
+    manager()
+
+
+        
+
+    fpath = '/home/baccuslab/Videos/stimulus_videos/baker.avi'
+    random_word_generator = random_word.RandomWords()
+    MEMNAME = random_word_generator.get_random_word()
+    dim = get_dim(fpath)
+    nm = NaturalMovie(MEMNAME, fpath, 70)
+    nm.warmup(3000)
+    threading.Thread(target=nm.stream).start()
+    sleep(20)
+
+    manager.start_corner_square()
+    manager.load_stim(name='PixMap', memname=MEMNAME, frame_size=dim)
+    manager.start_stim()
+    manager()
+
+    sleep(20*60)    #     manager.set_global_fly_pos(0,0,0)
+    nm.saveout()
+    nm.close()
+
+    manager.stop_stim()
+    manager.set_idle_background(0)
+    manager.black_corner_square()
+    manager()
+
+    # random_word_generator = random_word.RandomWords()
+    # MEMNAME = random_word_generator.get_random_word()
+    
+    # fpath = '/home/baccuslab/Videos/stimulus_videos/baker.avi'
+    # dim = get_dim(fpath)
+    # nm = NaturalMovie(MEMNAME, fpath, 70)
+    # nm.warmup(2000)
+    # threading.Thread(target=nm.stream).start()
+    # sleep(2)
+    # manager.start_corner_square()
+    # manager.load_stim(name='PixMap', memname=MEMNAME, frame_size=dim)
+    # manager.start_stim()
+
+    # sleep(20)    #     manager.set_global_fly_pos(0,0,0)
+    # # nm.close()
+
+    # nm.saveout()
+
+    # manager.stop_stim()
+    # manager.set_idle_background(0)
+
+    # random_word_generator = random_word.RandomWords()
+    # MEMNAME = random_word_generator.get_random_word()
+    
+    # nm = WhiteNoise(MEMNAME, (70,270), 100)
+    # threading.Thread(target=nm.stream).start()
+    # sleep(5)
+
+    # manager.load_stim(name='PixMap', memname=MEMNAME, frame_size=((70,270,3)))
+    # manager.start_stim()
+
+    # sleep(60*10)    #     manager.set_global_fly_pos(0,0,0)
+    # manager.stop_stim()
+    # manager.set_idle_background(0)
+    
+    # random_word_generator = random_word.RandomWords()
+    # MEMNAME = random_word_generator.get_random_word()
+    
+    # fpath = '/home/baccuslab/Videos/stimulus_videos/baker.avi'
+    # dim = get_dim(fpath)
+    # nm = NaturalMovie(MEMNAME, fpath, 70)
+    # nm.warmup(3000)
+    # threading.Thread(target=nm.stream).start()
+    # sleep(5)
+
+    # manager.load_stim(name='PixMap', memname=MEMNAME, frame_size=dim)
+    # manager.start_stim()
+
+    # sleep(60*10)    #     manager.set_global_fly_pos(0,0,0)
+    # # nm.close()
+
+    # manager.stop_stim()
+    # manager.set_idle_background(0)
+    # random_word_generator = random_word.RandomWords()
+    # MEMNAME = random_word_generator.get_random_word()
+    
+    # nm = WhiteNoise(MEMNAME, (70,270), 100)
+    # threading.Thread(target=nm.stream).start()
+    # sleep(5)
+
+    # manager.load_stim(name='PixMap', memname=MEMNAME, frame_size=((70,270,3)))
+    # manager.start_stim()
+
+    # sleep(60*10)    #     manager.set_global_fly_pos(0,0,0)
+    # manager.stop_stim()
+    # manager.set_idle_background(0)
+    
+    # # manager.black_corner_square()
     # manager.set_idle_background(0)
 if __name__ == '__main__':
     main()

@@ -94,70 +94,8 @@ class GlQuad(GlVertices):
                            [sum(x) for x in zip(tc3, texture_shift)],
                            [sum(x) for x in zip(tc4, texture_shift)]))
         else:
-            self.add(GlTri(v1, v3, v4, color))
             self.add(GlTri(v1, v2, v3, color))
-
-class GlQuadro(GlVertices):
-    def __init__(self, tc1=(0, 0), tc2=(1, 0), tc3=(1, 1), tc4=(0, 1), texture_shift=(0, 0), use_texture=False):
-
-        super().__init__()
-        v1 = (-1, 1, -1)
-        v2 = (1, 1, -1)
-        v3 = (1, 1, 1)
-        v4 = (-1, 1, 1)
-
-        self.use_texture=True
-        # tc1 = (0,0)
-        # tc2 = (0.3,0)
-        # tc3 = (0,0.3)
-        # tc4 = (0.3,0.3)
-
-        self.add(GlTri(v1, v2, v3, (1,1,1,1),
-                       [sum(x) for x in zip(tc1, texture_shift)],
-                       [sum(x) for x in zip(tc2, texture_shift)],
-                       [sum(x) for x in zip(tc3, texture_shift)]))
-        self.add(GlTri(v1, v3, v4, (1,1,1,1),
-                       [sum(x) for x in zip(tc1, texture_shift)],
-                       [sum(x) for x in zip(tc3, texture_shift)],
-                       [sum(x) for x in zip(tc4, texture_shift)]))
-        v1 = (-1, 1, -1)
-        v2 = (-1, -1, -1)
-        v3 = (-1, -1, 1)
-        v4 = (-1, 1, 1)
-
-        self.use_texture=True
-        # tc1 = (0,0)
-        # tc2 = (0.3,0)
-        # tc3 = (0,0.3)
-        # tc4 = (0.3,0.3)
-        self.add(GlTri(v1, v2, v3, (1,1,1,1),
-                       [sum(x) for x in zip(tc1, texture_shift)],
-                       [sum(x) for x in zip(tc2, texture_shift)],
-                       [sum(x) for x in zip(tc3, texture_shift)]))
-        self.add(GlTri(v1, v3, v4, (1,1,1,1),
-                       [sum(x) for x in zip(tc1, texture_shift)],
-                       [sum(x) for x in zip(tc3, texture_shift)],
-                       [sum(x) for x in zip(tc4, texture_shift)]))
-
-        # tc1 = (0.3,0.3)
-        # tc2 = (0.6,0.3)
-        # tc3 = (0.3,0.6)
-        # tc4 = (0.6,0.6)
-
-        v1 = (1, 1, -1)
-        v2 = (1, -1, -1)
-        v3 = (1, -1, 1)
-        v4 = (1, 1, 1)
-        self.use_texture=True
-        self.add(GlTri(v1, v2, v3, (1,1,1,1),
-                       [sum(x) for x in zip(tc1, texture_shift)],
-                       [sum(x) for x in zip(tc2, texture_shift)],
-                       [sum(x) for x in zip(tc3, texture_shift)]))
-        self.add(GlTri(v1, v3, v4, (1,1,1,1),
-                       [sum(x) for x in zip(tc1, texture_shift)],
-                       [sum(x) for x in zip(tc3, texture_shift)],
-                       [sum(x) for x in zip(tc4, texture_shift)]))
-
+            self.add(GlTri(v1, v3, v4, color))
 
 
 class GlCube(GlVertices):
@@ -397,13 +335,13 @@ class GlCylinder(GlVertices):
         if alpha_by_face is None:
             alpha_by_face = color[3]*np.ones(n_faces)
 
-        d_theta = np.radians(cylinder_angular_extent) / n_faces
-        theta_start = -np.radians(cylinder_angular_extent)/2
+        d_theta = -1*np.radians(cylinder_angular_extent) / n_faces
+        theta_start = +np.radians(cylinder_angular_extent)/2
         for face in range(n_faces):
-            v1 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, cylinder_height/2))
-            v2 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, -cylinder_height/2))
-            v3 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, -cylinder_height/2))
-            v4 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, cylinder_height/2))
+            v1 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, -cylinder_height/2))
+            v2 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, cylinder_height/2))
+            v3 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, cylinder_height/2))
+            v4 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, -cylinder_height/2))
 
             new_color = [color[0], color[1], color[2], alpha_by_face[face]]
 
