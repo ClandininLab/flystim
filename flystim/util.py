@@ -1,9 +1,12 @@
 from math import sin, cos
+import cv2
 from numbers import Number
 import numpy as np
 import os
 import inspect
 import flystim
+from flystim.screen import Screen, SubScreen
+
 
 
 def get_resource_path(resource_name):
