@@ -16,15 +16,15 @@ def init_screens():
     return manager
 
 def get_subscreens(dir):
-    width = 1920
-    height = 1080
+    # width = 1920
+    # height = 1080
 
-    z_bottom  = - height/2
-    z_top     = + height/2
-    x_left    = - width/2
-    x_right   = + width/2
-    y_forward = + width/2
-    y_back    = - width/2
+    z_bottom  = - 2
+    z_top     = + 9.75
+    x_left    = - 10.55
+    x_right   = + 10.55
+    y_forward = + 10.1
+    y_back    = - 11
     
     if dir == 'l':
         viewport_ll = (-1.0, -1.0)

@@ -374,6 +374,8 @@ class GlCylindricalWithPhiRect(GlVertices):
                  n_steps_y=6):
         super().__init__()
         color = getColorList(color)
+        self.texture = True
+        self.rgb_texture = True
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -387,8 +389,19 @@ class GlCylindricalWithPhiRect(GlVertices):
                 v2 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta, phi + d_phi))
                 v3 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta + d_theta, phi))
                 v4 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta + d_theta, phi + d_phi))
-                self.add(GlTri(v1, v2, v4, color))
-                self.add(GlTri(v1, v3, v4, color))
+
+                if self.texture:
+                    tc1 = (cc/n_steps_x, rr/n_steps_y)
+                    tc2 = (cc/n_steps_x, (rr+1)/n_steps_y)
+                    tc3 = ((cc+1)/n_steps_x, rr/n_steps_y)
+                    tc4 = ((cc+1)/n_steps_x, (rr+1)/n_steps_y)
+                    # tc1=(face/n_faces, 1)
+                    # tc2=(face/n_faces, 0)
+                    # tc3=((face+1)/n_faces, 0)
+                    # tc4=((face+1)/n_faces, 1)
+
+                    self.add(GlTri(v1, v2, v4, color, tc1, tc2, tc4))
+                    self.add(GlTri(v1, v3, v4, color, tc1, tc3, tc4))
 
     def cylindricalWithPhiToCartesian(self, cyl_phi_coords):
         '''

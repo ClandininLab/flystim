@@ -1090,12 +1090,9 @@ class PixMap(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, movie_filepath=None,patch_width=10, patch_height=10, cylinder_vertical_extent=1080/10*1.5, cylinder_angular_extent=1920/10*1.5,
-                  distribution_data=None, update_rate=2.0, start_seed=0, memname='test', frame_size=None,
-                  color=[1, 1, 1, 1], cylinder_radius=1, theta=90, phi=0, angle=0.0, rgb_texture=True):
+    def configure(self, memname='test', frame_size=None, rgb_texture=True, width=260, height=100, radius=1, nstep=32):
 
         self.rgb_texture=True
-        assert cylinder_vertical_extent < 180
 
         self.existing_shm = shared_memory.SharedMemory(name=memname)
         frame = np.ndarray(frame_size,dtype=np.uint8, buffer=self.existing_shm.buf)
@@ -1104,7 +1101,15 @@ class PixMap(TexturedCylinder):
         frame[0,0,0] = 1
         self.add_texture_gl(frame, texture_interpolation='NEAREST')
         
-        self.stim_object = GlCylinder(cylinder_height=1.5, cylinder_angular_extent=270, n_faces=48, texture=True).rotate(np.radians(90),0,0)
+        self.stim_object = GlCylindricalWithPhiRect(width= width,  # degrees, theta
+                 height=height,  # degrees, phi
+                 cylinder_radius=radius,  # meters
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 n_steps_x=nstep,
+                 n_steps_y=nstep)
+        # self.stim_object = GlCylinder(cylinder_height=2.1, cylinder_angular_extent=280, n_faces=48, texture=True).rotate(np.radians(90),0,0)
+        # self.stim_object = GlSphericalTexturedRect(height=1080/1920*270/2, width=270, n_steps_x=48, n_steps_y=48, texture=True)
+        # self.stim_object = GlSphericalTexturedRect(height=height, width=width, n_steps_x = nstep, n_steps_y = nstep, texture=True)
         self.last_time = 0
         
 
