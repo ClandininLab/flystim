@@ -30,21 +30,31 @@ class RootStimulus:
         self.memblock.unlink()
 
 class WhiteNoise(RootStimulus):
-    def __init__(self, memname, frame_shape, nominal_frame_rate, seed=37):
+    def __init__(self, memname, frame_shape, nominal_frame_rate, dur, seed=37):
         super().__init__(memname = memname)
         self.nominal_frame_rate = nominal_frame_rate
+        self.dur = dur
         self.seed = seed
         dummy = np.zeros((frame_shape[0], frame_shape[1], 3))*255
         dummy = dummy.astype(np.uint8)
         
         self.reserve_memblock(dummy)
 
+        with open('/home/baccuslab/log.txt','a') as f:
+            f.write('whitenoise')
+
         
     def stream(self):
         import sched
         s = sched.scheduler(time.time, time.sleep)
+        begin_time = None
+
+        def writetime(t):
+            with open('/home/baccuslab/log.txt','a') as f:
+                f.write(f'{t} \n')
+
         def genframe():
-            t = time.time()-self.start_time
+            t = time.time()-self.t
             seed = int(round(self.seed + t*self.nominal_frame_rate))
             np.random.seed(seed)
             img = np.random.rand(self.frame_shape[0], self.frame_shape[1])*255
@@ -53,12 +63,22 @@ class WhiteNoise(RootStimulus):
             self.global_frame[:,:,1] = img
             self.global_frame[:,:,2] = img
 
-        while True:
+            writetime(time.time())
+
+        
+        for ti in np.arange(0,self.dur,1/self.nominal_frame_rate):
+            s.enter(ti, 1, genframe)
+
+        run = False
+        while not run:
             if self.global_frame[0,0,0] == 1:
-                self.start_time = time.time()
-                while True:
-                    s.enter(1/self.nominal_frame_rate, 1, genframe)
-                    s.run()
+                run = True
+        self.t = time.time()
+        s.run()
+                # self.start_time = time.time()
+                # while True:
+                #     s.enter(1/self.nominal_frame_rate, 1, genframe)
+                #     s.run()
                  
 
 
@@ -66,48 +86,48 @@ class WhiteNoise(RootStimulus):
 
 
 class NaturalMovie(RootStimulus):
-    def __init__(self, memname, movie_path, nominal_frame_rate):
+    def __init__(self, memname, movie_path, nominal_frame_rate, dur):
         super().__init__(memname = memname)
         self.nominal_frame_rate = nominal_frame_rate
-        self.cap = CamGear(source=movie_path).start()
+        self.movie_path = movie_path
+        self.dur = dur
 
-        frame = self.cap.read()
+        cap = CamGear(source=movie_path).start()
+
+        frame = cap.read().astype(np.uint8)
         self.reserve_memblock(frame)
 
-        self.frs=[]
-        self.ts = []
+        del cap
+        with open('/home/baccuslab/log.txt','a') as f:
+            f.write('naturalmovie')
 
-    def warmup(self, n_frames):
-        for i in range(n_frames):
-            if i % 100 == 0:
-                print('Warmup frame {}'.format(i))
-            self.cap.read()
-        print('Completed warmup')
-        self.global_frame[:] = np.zeros(self.frame_shape)
 
     def stream(self):
         import sched
         s = sched.scheduler(time.time, time.sleep)
+        cap = CamGear(source=self.movie_path).start()
         
-        
-        def grab():
-            fr = self.cap.stream.get(cv2.CAP_PROP_POS_FRAMES)
-            t = time.time()
+        def writetime(t,fr):
+            with open('/home/baccuslab/log.txt','a') as f:
+                f.write(f'{t} {fr} \n')
 
-            self.frs.append(fr)
-            self.ts.append(t)
+        def genframe():
+            img = cap.read()
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.uint8)
+            self.global_frame[:,:,:] =  img
 
+            fr = cap.stream.get(cv2.CAP_PROP_POS_FRAMES)
+            writetime(time.time(), fr)
 
-            img = self.cap.read()
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            self.global_frame[:] =  img
-        
-        tt = time.time()
-        while True:
+            
+        for ti in np.arange(0,self.dur,1/self.nominal_frame_rate):
+            s.enter(ti, 1, genframe)
+        run = False
+        while not run:
             if self.global_frame[0,0,0] == 1:
-                while True:
-                    s.enter(1/self.nominal_frame_rate, 1, grab)
-                    s.run()
+                run = True
+        
+        s.run()
 
     def saveout(self):
         np.save('/home/baccuslab/{}_frs.npy'.format(self.memname), np.array(self.frs))
