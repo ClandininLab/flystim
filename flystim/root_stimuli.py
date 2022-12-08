@@ -58,6 +58,8 @@ class WhiteNoise(RootStimulus):
             seed = int(round(self.seed + t*self.nominal_frame_rate))
             np.random.seed(seed)
             img = np.random.rand(self.frame_shape[0], self.frame_shape[1])*255
+            img /= 1.5
+            img += 20
             img = img.astype(np.uint8)
             self.global_frame[:,:,0] = img
             self.global_frame[:,:,1] = img
