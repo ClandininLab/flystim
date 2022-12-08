@@ -41,7 +41,7 @@ class WhiteNoise(RootStimulus):
         self.reserve_memblock(dummy)
 
         with open('/home/baccuslab/log.txt','a') as f:
-            f.write('whitenoise')
+            f.write('whitenoise - framerate: {} duration: {} seed: {}\n'.format(nominal_frame_rate, dur, seed))
 
         
     def stream(self):
@@ -66,7 +66,9 @@ class WhiteNoise(RootStimulus):
             writetime(time.time())
 
         
-        for ti in np.arange(0,self.dur,1/self.nominal_frame_rate):
+        tis = np.arange(0,self.dur,1/self.nominal_frame_rate)
+        tis = tis[1:]
+        for ti in tis: 
             s.enter(ti, 1, genframe)
 
         run = False
@@ -94,12 +96,14 @@ class NaturalMovie(RootStimulus):
 
         cap = CamGear(source=movie_path).start()
 
-        frame = cap.read().astype(np.uint8)
+        frame = cap.read().astype(np.uint8)[120:,:,:]
+
+
         self.reserve_memblock(frame)
 
         del cap
         with open('/home/baccuslab/log.txt','a') as f:
-            f.write('naturalmovie')
+            f.write('naturalmovie - framerate: {} duration: {} file: {}\n'.format(nominal_frame_rate, dur, movie_path))
 
 
     def stream(self):
@@ -112,16 +116,18 @@ class NaturalMovie(RootStimulus):
                 f.write(f'{t} {fr} \n')
 
         def genframe():
-            img = cap.read()
+            img = cap.read()[120:,:,:]
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.uint8)
             self.global_frame[:,:,:] =  img
 
             fr = cap.stream.get(cv2.CAP_PROP_POS_FRAMES)
             writetime(time.time(), fr)
 
-            
-        for ti in np.arange(0,self.dur,1/self.nominal_frame_rate):
+        tis = np.arange(0,self.dur,1/self.nominal_frame_rate)
+        tis = tis[1:]
+        for ti in tis: 
             s.enter(ti, 1, genframe)
+
         run = False
         while not run:
             if self.global_frame[0,0,0] == 1:
@@ -129,7 +135,4 @@ class NaturalMovie(RootStimulus):
         
         s.run()
 
-    def saveout(self):
-        np.save('/home/baccuslab/{}_frs.npy'.format(self.memname), np.array(self.frs))
-        np.save('/home/baccuslab/{}_ts.npy'.format(self.memname), np.array(self.ts))
 

@@ -4,7 +4,7 @@ from flystim.root_stimuli import NaturalMovie, WhiteNoise
 import random_word
 import cv2
 import threading
-import multiprocessing
+
 from flystim.stim_server import launch_stim_server 
 from flystim.screen import Screen, SubScreen
 from flystim.trajectory import Trajectory
@@ -17,12 +17,17 @@ from flystim.experiments import init_screens, get_video_dim
 from time import sleep
 
 def main():
-    INTERVAL=1
+    if os.path.exists('/home/baccuslab/log.txt'):
+        resp = input('Delete log.txt?')
+        if resp == 'y':
+            os.remove('/home/baccuslab/log.txt')   
 
+    INTERVAL=1
     N_TEST=10
+
     N_TRAIN=1
 
-    TRAIN_DUR= 15*60
+    TRAIN_DUR= 20*60
     TEST_DUR = 20
 
     WN_NPIX = 200
@@ -38,11 +43,128 @@ def main():
     manager.set_idle_background(0)
     manager.start_stim()
     manager()
+    sleep(60*5)
+    #### TEST WHITENOISE
+    for i in range(N_TEST):
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
+
+        sleep(INTERVAL)
+        
+        rwg = random_word.RandomWords()
+        memname = rwg.get_random_word()
+        wn = WhiteNoise(memname, (WN_NPIX,int(800/1920*WN_NPIX)), 20, TEST_DUR, seed=37)
+        p = threading.Thread(target=wn.stream).start()
+        manager.load_stim(name='PixMap', memname=memname, frame_size=(int(800/1920*WN_NPIX),WN_NPIX,3))
+        manager()
+
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        sleep(TEST_DUR)
+        
+        manager()
+
+        try:
+            p.terminate()
+        except:
+            pass
+
+        sleep(INTERVAL)
+
+        del wn,p
+
+    #### TEST BAKER
+    path = test_baker_path
+    for i in range(N_TEST):
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
+
+        sleep(INTERVAL)
+
+        rwg = random_word.RandomWords()
+        memname = rwg.get_random_word()
+        dim = get_video_dim(path)
+        dim2 = [dim[0]-120, dim[1], dim[2]]
+        dim = dim2
+        nm = NaturalMovie(memname, path, 60, TEST_DUR)
+        p = threading.Thread(target=nm.stream)
+        p.start()
+        
+        manager.load_stim(name='PixMap', memname=memname, frame_size=dim)
+        manager()
+
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        sleep(TEST_DUR)
+        
+        manager()
+
+        try:
+            p.terminate()
+        except:
+            pass
+
+        sleep(INTERVAL)
+
+        del nm, p
     
-    manager.set_global_fly_pos(0,0,-0.5)
-    ##### TRAIN
-    os.remove('/home/baccuslab/log.txt')   
-    # WN
+    #### TEST NYC
+    path = test_nyc_path
+    for i in range(N_TEST):
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
+
+        sleep(INTERVAL)
+
+        rwg = random_word.RandomWords()
+        memname = rwg.get_random_word()
+        dim = get_video_dim(path)
+        dim2 = [dim[0]-120, dim[1], dim[2]]
+        dim = dim2
+        nm = NaturalMovie(memname, path, 60, TEST_DUR)
+        p = threading.Thread(target=nm.stream)
+        p.start()
+        
+        manager.load_stim(name='PixMap', memname=memname, frame_size=dim)
+        manager()
+
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        sleep(TEST_DUR)
+        
+        manager()
+
+        try:
+            p.terminate()
+        except:
+            pass
+
+        sleep(INTERVAL)
+
+        del nm, p
+
+    #### TRAIN WN
     for i in range(N_TRAIN):
         manager.black_corner_square()
         manager.set_idle_background(0)
@@ -54,78 +176,233 @@ def main():
         memname = rwg.get_random_word()
         wn = WhiteNoise(memname, (WN_NPIX,int(800/1920*WN_NPIX)), 20, TRAIN_DUR, seed=17)
         p = threading.Thread(target=wn.stream).start()
-        manager.start_corner_square()
         manager.load_stim(name='PixMap', memname=memname, frame_size=(int(800/1920*WN_NPIX),WN_NPIX,3))
-        manager.start_stim()
         manager()
+
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
 
         sleep(TRAIN_DUR)
         
+        manager()
+
         try:
             p.terminate()
         except:
             pass
-        manager.stop_stim()
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-        manager()
 
         sleep(INTERVAL)
 
         del wn,p
-    # BAKER 
+
+    ### TRAIN BAKER
+    path = train_baker_path
     for i in range(N_TRAIN):
-        ### NATURAL SCENE
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
+
+        sleep(INTERVAL)
+
         rwg = random_word.RandomWords()
         memname = rwg.get_random_word()
-        dim = get_video_dim(train_baker_path)
-        nm = NaturalMovie(memname, train_baker_path, 60, TRAIN_DUR)
-        p = threading.Thread(target=nm.stream).start()
-        sleep(INTERVAL)
-        manager.start_corner_square()
+        dim = get_video_dim(path)
+        dim2 = [dim[0]-120, dim[1], dim[2]]
+        dim = dim2
+        nm = NaturalMovie(memname, path, 60, TRAIN_DUR)
+        p = threading.Thread(target=nm.stream)
+        p.start()
+        
         manager.load_stim(name='PixMap', memname=memname, frame_size=dim)
-        manager.start_stim()
         manager()
-        sleep(TRAIN_DUR)    #     manager.set_global_fly_pos(0,0,0)
+
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        sleep(TRAIN_DUR)
+        
+        manager()
+
         try:
             p.terminate()
         except:
             pass
-        manager.stop_stim()
-        manager.set_idle_background(0)
-        manager.black_corner_square()
-        manager()
-        sleep(INTERVAL)
-        del nm,p
 
-    # BAKER 
+        sleep(INTERVAL)
+
+        del nm, p
+    ### TRAIN NYC
+    path = train_nyc_path
     for i in range(N_TRAIN):
-        ### NATURAL SCENE
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
+
+        sleep(INTERVAL)
+
         rwg = random_word.RandomWords()
         memname = rwg.get_random_word()
-        dim = get_video_dim(train_nyc_path)
-        nm = NaturalMovie(memname, train_nyc_path, 60, TRAIN_DUR)
-        p = threading.Thread(target=nm.stream).start()
-        sleep(INTERVAL)
-        manager.start_corner_square()
+        dim = get_video_dim(path)
+        dim2 = [dim[0]-120, dim[1], dim[2]]
+        dim = dim2
+        nm = NaturalMovie(memname, path, 60, TRAIN_DUR)
+        p = threading.Thread(target=nm.stream)
+        p.start()
+        
         manager.load_stim(name='PixMap', memname=memname, frame_size=dim)
-        manager.start_stim()
         manager()
-        sleep(TRAIN_DUR)    #     manager.set_global_fly_pos(0,0,0)
+
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        sleep(TRAIN_DUR)
+        
+        manager()
+
         try:
             p.terminate()
         except:
             pass
-        manager.stop_stim()
-        manager.set_idle_background(0)
-        manager.black_corner_square()
-        manager()
+
         sleep(INTERVAL)
-        del nm,p
 
+        del nm, p
 
+    #### TEST WHITENOISE
+    for i in range(N_TEST):
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
 
-    ##### TEST ####
+        sleep(INTERVAL)
+        
+        rwg = random_word.RandomWords()
+        memname = rwg.get_random_word()
+        wn = WhiteNoise(memname, (WN_NPIX,int(800/1920*WN_NPIX)), 20, TEST_DUR, seed=37)
+        p = threading.Thread(target=wn.stream).start()
+        manager.load_stim(name='PixMap', memname=memname, frame_size=(int(800/1920*WN_NPIX),WN_NPIX,3))
+        manager()
+
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        sleep(TEST_DUR)
+        
+        manager()
+
+        try:
+            p.terminate()
+        except:
+            pass
+
+        sleep(INTERVAL)
+
+        del wn,p
+
+    #### TEST BAKER
+    path = test_baker_path
+    for i in range(N_TEST):
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
+
+        sleep(INTERVAL)
+
+        rwg = random_word.RandomWords()
+        memname = rwg.get_random_word()
+        dim = get_video_dim(path)
+        dim2 = [dim[0]-120, dim[1], dim[2]]
+        dim = dim2
+        nm = NaturalMovie(memname, path, 60, TEST_DUR)
+        p = threading.Thread(target=nm.stream)
+        p.start()
+        
+        manager.load_stim(name='PixMap', memname=memname, frame_size=dim)
+        manager()
+
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        sleep(TEST_DUR)
+        
+        manager()
+
+        try:
+            p.terminate()
+        except:
+            pass
+
+        sleep(INTERVAL)
+
+        del nm, p
+    
+    #### TEST NYC
+    path = test_nyc_path
+    for i in range(N_TEST):
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
+
+        sleep(INTERVAL)
+
+        rwg = random_word.RandomWords()
+        memname = rwg.get_random_word()
+        dim = get_video_dim(path)
+        dim2 = [dim[0]-120, dim[1], dim[2]]
+        dim = dim2
+        nm = NaturalMovie(memname, path, 60, TEST_DUR)
+        p = threading.Thread(target=nm.stream)
+        p.start()
+        
+        manager.load_stim(name='PixMap', memname=memname, frame_size=dim)
+        manager()
+
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        sleep(TEST_DUR)
+        
+        manager()
+
+        try:
+            p.terminate()
+        except:
+            pass
+
+        sleep(INTERVAL)
+        
+        del nm, p
+
 if __name__ == '__main__':
     main()
 

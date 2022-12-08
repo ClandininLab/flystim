@@ -1090,7 +1090,7 @@ class PixMap(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, memname='test', frame_size=None, rgb_texture=True, width=260, height=100, radius=1, nstep=32):
+    def configure(self, memname='test', frame_size=None, rgb_texture=True, width=280, height=90, radius=1, nstep=32):
 
         self.rgb_texture=True
 
