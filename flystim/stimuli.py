@@ -1090,7 +1090,7 @@ class PixMap(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, memname='test', frame_size=None, rgb_texture=True, width=280, height=90, radius=1, nstep=32):
+    def configure(self, memname='test', frame_size=None, rgb_texture=True, width=280, height=(1080/1920)*280, radius=1, nstep=64, surface='spherical'):
 
         self.rgb_texture=True
 
@@ -1101,15 +1101,26 @@ class PixMap(TexturedCylinder):
         frame[0,0,0] = 1
         self.add_texture_gl(frame, texture_interpolation='NEAREST')
         
-        self.stim_object = GlCylindricalWithPhiRect(width= width,  # degrees, theta
-                 height=height,  # degrees, phi
-                 cylinder_radius=radius,  # meters
-                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
-                 n_steps_x=nstep,
-                 n_steps_y=nstep)
-        # self.stim_object = GlCylinder(cylinder_height=2.1, cylinder_angular_extent=280, n_faces=48, texture=True).rotate(np.radians(90),0,0)
+        if surface == 'cylindrical':
+            n_patches_height = frame_size[0]
+            patch_height_m = radius * np.tan(np.radians(height/n_patches_height))  # in meters
+            cylinder_height = n_patches_height * patch_height_m
+            self.stim_object = GlCylinder(cylinder_height=cylinder_height, cylinder_angular_extent=280, n_faces=nstep, texture=True).rotate(np.radians(90),0,0)
+
+        
+        elif surface == 'cylindrical_with_phi':
+            self.stim_object = GlCylindricalWithPhiRect(width= width,  # degrees, theta
+                     height=height,  # degrees, phi
+                     cylinder_radius=radius,  # meters
+                     color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                     n_steps_x=nstep,
+                     n_steps_y=nstep)
         # self.stim_object = GlSphericalTexturedRect(height=1080/1920*270/2, width=270, n_steps_x=48, n_steps_y=48, texture=True)
-        # self.stim_object = GlSphericalTexturedRect(height=height, width=width, n_steps_x = nstep, n_steps_y = nstep, texture=True)
+        
+        elif surface == 'spherical':
+            self.stim_object = GlSphericalTexturedRect(height=height, width=width, n_steps_x = nstep, n_steps_y = nstep, texture=True)
+
+
         self.last_time = 0
         
 

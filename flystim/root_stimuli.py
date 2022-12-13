@@ -30,8 +30,13 @@ class RootStimulus:
         self.memblock.unlink()
 
 class WhiteNoise(RootStimulus):
-    def __init__(self, memname, frame_shape, nominal_frame_rate, dur, seed=37):
+    def __init__(self, memname, frame_shape, nominal_frame_rate, dur, seed=37, logfile=None):
         super().__init__(memname = memname)
+
+        if logfile is None:
+            input('Must provide a log filepath...')
+        else:
+            self.logfile = logfile
         self.nominal_frame_rate = nominal_frame_rate
         self.dur = dur
         self.seed = seed
@@ -40,7 +45,7 @@ class WhiteNoise(RootStimulus):
         
         self.reserve_memblock(dummy)
 
-        with open('/home/baccuslab/log.txt','a') as f:
+        with open(self.logfile,'a') as f:
             f.write('whitenoise - framerate: {} duration: {} seed: {}\n'.format(nominal_frame_rate, dur, seed))
 
         
@@ -49,23 +54,24 @@ class WhiteNoise(RootStimulus):
         s = sched.scheduler(time.time, time.sleep)
         begin_time = None
 
-        def writetime(t):
-            with open('/home/baccuslab/log.txt','a') as f:
-                f.write(f'{t} \n')
+        def writetime(t, current_seed, pix0, pix01, pix10):
+            with open(self.logfile, 'a') as f:
+                f.write(f'{t} {current_seed} {pix0} {pix01} {pix10} \n')
 
         def genframe():
             t = time.time()-self.t
             seed = int(round(self.seed + t*self.nominal_frame_rate))
             np.random.seed(seed)
-            img = np.random.rand(self.frame_shape[0], self.frame_shape[1])*255
-            img /= 1.5
-            img += 20
-            img = img.astype(np.uint8)
-            self.global_frame[:,:,0] = img
-            self.global_frame[:,:,1] = img
-            self.global_frame[:,:,2] = img
+            img = np.random.rand(self.frame_shape[0], self.frame_shape[1])
 
-            writetime(time.time())
+            img_int = img*255/1.3+20
+            img_int = img_int.astype(np.uint8)
+
+            self.global_frame[:,:,0] = img_int
+            self.global_frame[:,:,1] = img_int
+            self.global_frame[:,:,2] = img_int
+
+            writetime(time.time(), seed, img[0,0], img[0,1], img[1,0])
 
         
         tis = np.arange(0,self.dur,1/self.nominal_frame_rate)
