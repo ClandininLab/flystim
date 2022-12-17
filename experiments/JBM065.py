@@ -27,24 +27,23 @@ def main():
         if resp == 'n':
             sys.exit()
 
-
     logfile_path = '/home/baccuslab/logs/{}_log.txt'.format(experiment_name)
 
     INTERVAL=3
-    TRAIN_SEED  = 1992
-    TEST_SEED = 1984
+    TRAIN_SEED  = 2005
+    TEST_SEED = 17865
 
-    UPDATE_RATE = 22
+    UPDATE_RATE = 11
 
     NUM_PIXELS_WIDTH = 240
     NUM_PIXELS_HEIGHT = int((1080/1920) * NUM_PIXELS_WIDTH)
 
     print(NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH)
     N_TRAIN=1
-    N_TEST=3
+    N_TEST=10
 
-    TRAIN_DUR= 30
-    TEST_DUR = 10
+    TRAIN_DUR= 35*60
+    TEST_DUR = 15
 
 
 
@@ -61,7 +60,7 @@ def main():
     manager.black_corner_square()
     manager.set_idle_background(0)
     manager()
-    idle(20)
+    idle(5)
     #### TEST WN
     for i in range(N_TEST):
         manager.black_corner_square()
