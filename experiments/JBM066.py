@@ -33,7 +33,7 @@ def main():
 
     logfile_path = '/home/baccuslab/logs/{}_log.txt'.format(experiment_name)
 
-    INTERVAL=3
+    INTERVAL=2.0
     TRAIN_SEED  = 1992
     TEST_SEED = 1984
 
@@ -44,9 +44,9 @@ def main():
 
     print(NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH)
     N_TRAIN=1
-    N_TEST=10
+    N_TEST=5
 
-    TRAIN_DUR= 35*60
+    TRAIN_DUR= 30*60
     TEST_DUR = 15
 
 
@@ -64,7 +64,46 @@ def main():
     manager.black_corner_square()
     manager.set_idle_background(0)
     manager()
-    idle(5)
+    idle(60)
+    for i in range(N_TEST):
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
+
+        idle(INTERVAL)
+        
+        rwg = random_word.RandomWords()
+        memname = rwg.get_random_word()
+        root_stim = WhiteNoise(memname, (NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH), UPDATE_RATE, TEST_DUR, seed=TEST_SEED, logfile = logfile_path)
+        process = threading.Thread(target=root_stim.stream).start()
+
+        manager.load_stim(name='PixMap', memname=memname, frame_size=(NUM_PIXELS_HEIGHT,NUM_PIXELS_WIDTH,3),surface='spherical')
+        manager()
+        
+        # Start the stimulus
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        # Preload the stop so that extra time isnt taken setting up these calls during the idle period
+        # Meanwhile stimulus is running
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        idle(TEST_DUR)
+        
+        manager()
+        
+
+        try:
+            process.terminate()
+        except:
+            pass
+
+        idle(INTERVAL)
+
+        del root_stim,process
     #### TEST WN
     for i in range(N_TEST):
         manager.black_corner_square()
@@ -116,7 +155,7 @@ def main():
         
         rwg = random_word.RandomWords()
         memname = rwg.get_random_word()
-        root_stim = WhiteNoise(memname, (NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH), UPDATE_RATE, TRAIN_DUR, seed=TRAIN_SEED, logfile = logfile_path)
+        root_stim = WhiteNoise(memname, (NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH), UPDATE_RATE, TRAIN_DUR, seed=TRAIN_SEED, logfile = logfile_path, coverage='left')
         process = threading.Thread(target=root_stim.stream).start()
 
         manager.load_stim(name='PixMap', memname=memname, frame_size=(NUM_PIXELS_HEIGHT,NUM_PIXELS_WIDTH,3),surface='spherical')
@@ -134,6 +173,46 @@ def main():
         manager.set_idle_background(0)
 
         idle(TRAIN_DUR)
+        
+        manager()
+        
+
+        try:
+            process.terminate()
+        except:
+            pass
+
+        idle(INTERVAL)
+
+        del root_stim,process
+
+    for i in range(N_TEST):
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+        manager()
+
+        idle(INTERVAL)
+        
+        rwg = random_word.RandomWords()
+        memname = rwg.get_random_word()
+        root_stim = WhiteNoise(memname, (NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH), UPDATE_RATE, TEST_DUR, seed=TEST_SEED, logfile = logfile_path, coverage='left')
+        process = threading.Thread(target=root_stim.stream).start()
+
+        manager.load_stim(name='PixMap', memname=memname, frame_size=(NUM_PIXELS_HEIGHT,NUM_PIXELS_WIDTH,3),surface='spherical')
+        manager()
+        
+        # Start the stimulus
+        manager.start_stim()
+        manager.start_corner_square()
+        manager()
+
+        # Preload the stop so that extra time isnt taken setting up these calls during the idle period
+        # Meanwhile stimulus is running
+        manager.stop_stim()
+        manager.black_corner_square()
+        manager.set_idle_background(0)
+
+        idle(TEST_DUR)
         
         manager()
         

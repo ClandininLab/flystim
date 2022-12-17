@@ -30,13 +30,14 @@ class RootStimulus:
         self.memblock.unlink()
 
 class WhiteNoise(RootStimulus):
-    def __init__(self, memname, frame_shape, nominal_frame_rate, dur, seed=37, logfile=None):
+    def __init__(self, memname, frame_shape, nominal_frame_rate, dur, seed=37, logfile=None, coverage='full'):
         super().__init__(memname = memname)
 
         if logfile is None:
             input('Must provide a log filepath...')
         else:
             self.logfile = logfile
+        self.coverage=coverage
         self.nominal_frame_rate = nominal_frame_rate
         self.dur = dur
         self.seed = seed
@@ -64,9 +65,11 @@ class WhiteNoise(RootStimulus):
             np.random.seed(seed)
             img = np.random.rand(self.frame_shape[0], self.frame_shape[1])
 
-            img_int = img*255/1.3+20
+            img_int = img*255/3.5+20
             img_int = img_int.astype(np.uint8)
-
+                
+            if self.coverage=='left':
+                img_int[:,:int(img_int.shape[1]/2)] = 0
             self.global_frame[:,:,0] = img_int
             self.global_frame[:,:,1] = img_int
             self.global_frame[:,:,2] = img_int
