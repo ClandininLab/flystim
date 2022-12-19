@@ -47,7 +47,7 @@ def main():
     N_TEST=5
 
     TRAIN_DUR= 30*60
-    TEST_DUR = 5
+    TEST_DUR = 15
 
 
 
@@ -64,10 +64,7 @@ def main():
     manager.black_corner_square()
     manager.set_idle_background(0)
     manager()
-    idle(2)
-
-    movie_path = '/home/baccuslab/Videos/stimulus_videos/TRAIN_BAKER.avi'
-
+    idle(60)
     for i in range(N_TEST):
         manager.black_corner_square()
         manager.set_idle_background(0)
@@ -77,14 +74,10 @@ def main():
         
         rwg = random_word.RandomWords()
         memname = rwg.get_random_word()
-
-
-        root_stim = NaturalMovie(memname, movie_path, 60, 800)#, logfile=logfile_path)
+        root_stim = WhiteNoise(memname, (NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH), UPDATE_RATE, TEST_DUR, seed=TEST_SEED, logfile = logfile_path)
         process = threading.Thread(target=root_stim.stream).start()
-        
-        dim = get_video_dim(movie_path)
 
-        manager.load_stim(name='PixMap', memname=memname, frame_size=dim,surface='spherical')
+        manager.load_stim(name='PixMap', memname=memname, frame_size=(NUM_PIXELS_HEIGHT,NUM_PIXELS_WIDTH,3),surface='spherical')
         manager()
         
         # Start the stimulus

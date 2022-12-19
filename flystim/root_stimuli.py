@@ -107,7 +107,7 @@ class NaturalMovie(RootStimulus):
 
         cap = CamGear(source=movie_path).start()
 
-        frame = cap.read().astype(np.uint8)[120:,:,:]
+        frame = cap.read().astype(np.uint8)[:,:,:]
 
 
         self.reserve_memblock(frame)
@@ -127,7 +127,7 @@ class NaturalMovie(RootStimulus):
                 f.write(f'{t} {fr} \n')
 
         def genframe():
-            img = cap.read()[120:,:,:]
+            img = cap.read()[:,:,:]
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.uint8)
             self.global_frame[:,:,:] =  img
 
