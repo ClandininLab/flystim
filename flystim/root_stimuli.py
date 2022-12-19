@@ -88,18 +88,16 @@ class WhiteNoise(RootStimulus):
                 run = True
         self.t = time.time()
         s.run()
-                # self.start_time = time.time()
-                # while True:
-                #     s.enter(1/self.nominal_frame_rate, 1, genframe)
-                #     s.run()
-                 
-
-
 
 
 
 class NaturalMovie(RootStimulus):
-    def __init__(self, memname, movie_path, nominal_frame_rate, dur):
+    def __init__(self, memname, movie_path, nominal_frame_rate, dur, logfile):
+        if logfile is None:
+            input('Must provide a log filepath...')
+        else:
+            self.logfile = logfile
+
         super().__init__(memname = memname)
         self.nominal_frame_rate = nominal_frame_rate
         self.movie_path = movie_path
@@ -113,7 +111,7 @@ class NaturalMovie(RootStimulus):
         self.reserve_memblock(frame)
 
         del cap
-        with open('/home/baccuslab/log.txt','a') as f:
+        with open(self.logfile, 'a') as f:
             f.write('naturalmovie - framerate: {} duration: {} file: {}\n'.format(nominal_frame_rate, dur, movie_path))
 
 
@@ -123,7 +121,7 @@ class NaturalMovie(RootStimulus):
         cap = CamGear(source=self.movie_path).start()
         
         def writetime(t,fr):
-            with open('/home/baccuslab/log.txt','a') as f:
+            with open(self.logfile,'a') as f:
                 f.write(f'{t} {fr} \n')
 
         def genframe():

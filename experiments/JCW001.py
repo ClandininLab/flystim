@@ -18,12 +18,8 @@ from flystim.experiments import init_screens, get_video_dim
 from time import sleep as idle
 import time
 def main():
-    experiment_name = __file__.split('.')[0]
-    try:
-        experiment_name = experiment_name.split('/')[1]
-    except:
-        pass
-        
+    experiment_name = os.path.splitext(os.path.basename(__file__))[0]
+
     if os.path.exists('/home/baccuslab/logs/{}_log.txt'.format(experiment_name)):
         resp = input('WARNING: {} log already exists. Delete it and continue? (y/n)'.format(experiment_name))
         if resp == 'y':
@@ -32,6 +28,7 @@ def main():
             sys.exit()
 
     logfile_path = '/home/baccuslab/logs/{}_log.txt'.format(experiment_name)
+    print(logfile_path)
 
     INTERVAL=2.0
     TRAIN_SEED  = 1992
@@ -79,7 +76,7 @@ def main():
         memname = rwg.get_random_word()
 
 
-        root_stim = NaturalMovie(memname, movie_path, 60, 800)#, logfile=logfile_path)
+        root_stim = NaturalMovie(memname, movie_path, 60, 800, logfile=logfile_path)#, logfile=logfile_path)
         process = threading.Thread(target=root_stim.stream).start()
         
         dim = get_video_dim(movie_path)
@@ -274,4 +271,3 @@ def main():
         del root_stim,process
 if __name__ == '__main__':
     main()
-
