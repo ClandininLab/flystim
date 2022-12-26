@@ -28,6 +28,8 @@ def main():
             logfile_path = '/home/baccuslab/logs/{}_log.txt'.format(experiment_name)
         if resp == 'n':
             logfile_path = '/home/baccuslab/logs/temp.txt'
+    else:
+        logfile_path = '/home/baccuslab/logs/{}_log.txt'.format(experiment_name)
 
 
     print(logfile_path)
@@ -39,14 +41,14 @@ def main():
     UPDATE_RATE = 20
 
     NUM_PIXELS_WIDTH = 240
-    NUM_PIXELS_HEIGHT = int((1080/1920) * NUM_PIXELS_WIDTH)
+    NUM_PIXELS_HEIGHT = int((2160/3840) * NUM_PIXELS_WIDTH)
 
     print(NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH)
     N_TRAIN=1
     N_TEST=5
 
     TRAIN_DUR= 30*60
-    TEST_DUR = 5
+    TEST_DUR = 60
 
 
 
@@ -65,7 +67,7 @@ def main():
     manager()
     idle(2)
 
-    movie_path = '/home/baccuslab/Videos/stimulus_videos/TEST_DM001.avi'
+    movie_path = '/home/baccuslab/Videos/stimulus_videos/DM001.avi'
 
     for i in range(N_TEST):
         manager.black_corner_square()
@@ -78,10 +80,11 @@ def main():
         memname = rwg.get_random_word()
 
 
-        root_stim = NaturalMovie(memname, movie_path, 60, 800, logfile=logfile_path)#, logfile=logfile_path)
+        root_stim = NaturalMovie(memname, movie_path, 60, TEST_DUR, logfile=logfile_path)#, logfile=logfile_path)
         process = threading.Thread(target=root_stim.stream).start()
         
         dim = get_video_dim(movie_path)
+        print(dim)
 
         manager.load_stim(name='PixMap', memname=memname, frame_size=dim,surface='spherical')
         manager()
