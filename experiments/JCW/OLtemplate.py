@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import os
-from flystim.root_stimuli import NaturalMovie, WhiteNoise
+from flystim.root_stimuli import NaturalMovie, WhiteNoise 
 import random_word
 import cv2
 import threading
@@ -41,14 +41,14 @@ def main():
     UPDATE_RATE = 20
 
     NUM_PIXELS_WIDTH = 240
-    NUM_PIXELS_HEIGHT = int((2160/3840) * NUM_PIXELS_WIDTH)
+    NUM_PIXELS_HEIGHT = int((1080/1920) * NUM_PIXELS_WIDTH)
 
     print(NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH)
     N_TRAIN=1
     N_TEST=5
 
     TRAIN_DUR= 30*60
-    TEST_DUR = 60
+    TEST_DUR = 5
 
 
 
@@ -67,27 +67,27 @@ def main():
     manager()
     idle(2)
 
-    movie_path = '/home/baccuslab/Videos/stimulus_videos/TEST_DM001.avi'
+    movie_path = '/home/baccuslab/Videos/stimulus_videos/DM001.avi'
 
+    #DM Test Repeats
     for i in range(N_TEST):
         manager.black_corner_square()
         manager.set_idle_background(0)
         manager()
-        
-        manager.set_global_fly_pos(0,0,-.2)
+
+        manager.set_global_fly_pos(0,0,-0.2) #midline of the stimulus
         idle(INTERVAL)
         
         rwg = random_word.RandomWords()
         memname = rwg.get_random_word()
 
 
-        root_stim = NaturalMovie(memname, movie_path, 60, TEST_DUR, logfile=logfile_path)#, logfile=logfile_path)
+        root_stim = NaturalMovie(memname, movie_path, 30, TEST_DUR, logfile=logfile_path)#, logfile=logfile_path)
         process = threading.Thread(target=root_stim.stream).start()
         
         dim = get_video_dim(movie_path)
-        print(dim)
 
-        manager.load_stim(name='PixMap', memname=memname, frame_size=dim,surface='cylindrical')
+        manager.load_stim(name='PixMap', memname=memname, frame_size=dim,surface='weddington_recipe')
         manager()
         
         # Start the stimulus
@@ -102,6 +102,7 @@ def main():
         manager.set_idle_background(0)
 
         idle(TEST_DUR)
+        
         
         manager()
         

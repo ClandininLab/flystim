@@ -316,6 +316,52 @@ class GlPointCollection(GlVertices):
 
         super().__init__(vertices=vertices, colors=colors)
 
+class GlCylinderWeddington(GlVertices):
+    def __init__(self,
+                 cylinder_height=10,  # meters
+                 cylinder_radius=1,  # meters
+                 cylinder_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of cylinder (r = 0 and z = height/2)
+                 cylinder_angular_extent=360,  # degrees
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 n_faces=32,
+                 alpha_by_face=None,
+                 texture=False,
+                 texture_shift=(0, 0)):  # (u,v) coordinates to translate texture on shape. + is right, up.
+
+        super().__init__()
+        color = getColorList(color)
+
+        if alpha_by_face is None:
+            alpha_by_face = color[3]*np.ones(n_faces)
+
+        d_theta = -1*np.radians(cylinder_angular_extent) / n_faces
+        theta_start = +np.radians(cylinder_angular_extent)/2 + np.radians(180)
+
+        for face in range(n_faces):
+            v1 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, -cylinder_height/2))
+            v2 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, cylinder_height/2))
+            v3 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, cylinder_height/2))
+            v4 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, -cylinder_height/2))
+
+            new_color = [color[0], color[1], color[2], alpha_by_face[face]]
+
+            if texture:
+                self.add(GlQuad(v1, v2, v3, v4, new_color,
+                                tc1=(face/n_faces, 1),
+                                tc2=(face/n_faces, 0),
+                                tc3=((face+1)/n_faces, 0),
+                                tc4=((face+1)/n_faces, 1),
+                                texture_shift=texture_shift,
+                                use_texture=True).translate(cylinder_location))
+            else:
+                self.add(GlQuad(v1, v2, v3, v4, color).translate(cylinder_location))
+
+    def cylindricalToCartesian(self, cylindrical_coords):
+        r, theta, z = cylindrical_coords
+        cartesian_coords = (r * np.cos(theta),
+                            r * np.sin(theta),
+                            z*-1)
+        return cartesian_coords
 
 class GlCylinder(GlVertices):
     def __init__(self,

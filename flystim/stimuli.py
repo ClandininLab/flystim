@@ -15,7 +15,7 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints
+from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints, GlCylinderWeddington
 from flystim import util, image
 import time  # for debugging and benchmarking
 import copy
@@ -1090,7 +1090,10 @@ class PixMap(TexturedCylinder):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, memname='test', frame_size=None, rgb_texture=True, width=280, height=(1080/1920)*280, radius=1, nstep=64, surface='spherical'):
+    def configure(self, memname='test', frame_size=None, rgb_texture=True, width=280, radius=1, nstep=64, surface='spherical'):
+
+        height = frame_size[0] / frame_size[1]
+        height *= width
 
         self.rgb_texture=True
 
@@ -1106,6 +1109,12 @@ class PixMap(TexturedCylinder):
             patch_height_m = radius * np.tan(np.radians(height/n_patches_height))  # in meters
             cylinder_height = n_patches_height * patch_height_m
             self.stim_object = GlCylinder(cylinder_height=cylinder_height, cylinder_angular_extent=280, n_faces=nstep, texture=True).rotate(np.radians(90),0,0)
+
+        if surface == 'weddington_recipe':
+            n_patches_height = frame_size[0]
+            patch_height_m =  radius * np.tan(np.radians(height/n_patches_height))  # in meters
+            cylinder_height = n_patches_height * patch_height_m
+            self.stim_object = GlCylinderWeddington(cylinder_height=cylinder_height, cylinder_angular_extent=280, n_faces=nstep, texture=True).rotate(np.radians(270),0,0)
 
         
         elif surface == 'cylindrical_with_phi':
