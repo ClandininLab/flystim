@@ -64,7 +64,7 @@ class WhiteNoise(RootStimulus):
             np.random.seed(seed)
             img = np.random.rand(self.frame_shape[0], self.frame_shape[1])
 
-            img_int = img*255/3.5+20
+            img_int = img*255/1.5+15
             img_int = img_int.astype(np.uint8)
                 
             if self.coverage=='left':

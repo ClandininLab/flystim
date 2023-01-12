@@ -29,21 +29,22 @@ def main():
 
     logfile_path = '/home/baccuslab/logs/{}_log.txt'.format(experiment_name)
 
-    INTERVAL=3
-    TRAIN_SEED  = 2005
-    TEST_SEED = 17865
+    INTERVAL=2
 
-    UPDATE_RATE = 11
+    TRAIN_SEED  = 1955
+    TEST_SEED = 1984
 
-    NUM_PIXELS_WIDTH = 240
+    UPDATE_RATE = 15
+
+    NUM_PIXELS_WIDTH = 100
     NUM_PIXELS_HEIGHT = int((1080/1920) * NUM_PIXELS_WIDTH)
 
     print(NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH)
     N_TRAIN=1
     N_TEST=10
 
-    TRAIN_DUR= 35*60
-    TEST_DUR = 15
+    TRAIN_DUR= 20*60
+    TEST_DUR = 10
 
 
 
@@ -61,6 +62,45 @@ def main():
     manager.set_idle_background(0)
     manager()
     idle(5)
+
+    manager.black_corner_square()
+    manager.set_idle_background(0)
+    manager()
+
+    idle(INTERVAL)
+    
+
+    manager.load_stim(name='MovingPatch', width=2, height=180)
+    manager()
+    
+    # Start the stimulus
+    manager.start_stim()
+    manager.start_corner_square()
+    manager()
+   
+    og_time = time.time()
+    theta = 0
+    while time.time()-og_time < 30:
+        theta += 1
+        manager.set_global_theta_offset(theta)
+        manager()
+        idle(0.01)
+
+    # Preload the stop so that extra time isnt taken setting up these calls during the idle period
+    # Meanwhile stimulus is running
+    manager.stop_stim()
+    manager.black_corner_square()
+    manager.set_idle_background(0)
+
+    manager()
+    
+    try:
+        process.terminate()
+    except:
+        pass
+
+    idle(INTERVAL)
+
     #### TEST WN
     for i in range(N_TEST):
         manager.black_corner_square()

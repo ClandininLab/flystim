@@ -82,7 +82,6 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.set_global_fly_pos(0, 0, 0)
         self.set_global_theta_offset(0) # deg -> radians
         self.set_global_phi_offset(0) # deg -> radians
-
         self.use_fly_trajectory = False
         self.fly_x_trajectory = None
         self.fly_y_trajectory = None
@@ -383,6 +382,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def set_global_phi_offset(self, value):
         self.global_phi_offset = radians(value)
+
 
 
 def get_perspective(fly_pos, theta, phi, pa, pb, pc, horizontal_flip):
