@@ -46,7 +46,8 @@ class WhiteNoise(RootStimulus):
         
         self.reserve_memblock(dummy)
 
-        with open(self.logfile,'a') as f: f.write('whitenoise - framerate: {} duration: {} seed: {}\n'.format(nominal_frame_rate, dur, seed))
+        with open(self.logfile,'a') as f: 
+            f.write('whitenoise - framerate: {} duration: {} seed: {}\n'.format(nominal_frame_rate, dur, seed))
 
         
     def stream(self):

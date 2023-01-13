@@ -21,6 +21,21 @@ from flystim.experiments import init_screens, get_video_dim
 from time import sleep as idle
 import time
 
+def redo(manager,ax1,ax2):
+    manager.stop_stim()
+    manager.black_corner_square()
+    manager.set_idle_background(0)
+    manager()
+
+    manager.load_stim(name='MovingPatch', width=ax1, height=ax2 )
+    manager()
+    
+    # Start the stimulus
+    manager.start_stim()
+    manager.start_corner_square()
+    manager()
+    return manager
+
 
 def main():
     experiment_name = os.path.splitext(os.path.basename(__file__))[0]
@@ -45,25 +60,34 @@ def main():
     idle(2)
     
 
-    manager.load_stim(name='MovingPatch', width=3, height= 180)
-    manager()
-    
-    # Start the stimulus
-    manager.start_stim()
-    manager.start_corner_square()
-    manager()
-
     running = True
    
     theta = 0
     speed = 2
     phi = 0
-    width = 10.0
+    pos = 0
+    width = 10.0 
+    h_speed=0.001
+
+    ax1 = 3
+    ax2 = 3
+
+    manager = redo(manager, ax1, ax2)
     while running:
         if keyboard.is_pressed('left'):
             theta -= speed
         elif keyboard.is_pressed('right'):
             theta += speed
+        elif keyboard.is_pressed('r'):
+            theta = 0
+            speed = 2
+            phi = 0
+            pos = 0
+            width = 10.0
+            h_speed=0.1
+            ax1 = 3
+            ax2 = 3
+
         elif keyboard.is_pressed('1'):
             speed = 0.125
         elif keyboard.is_pressed('2'):
@@ -80,25 +104,31 @@ def main():
             speed = 8.0
         elif keyboard.is_pressed('q'):
             break
-        elif keyboard.is_pressed('space'):
-            phi += 1
+        elif keyboard.is_pressed('up'):
+            pos -= h_speed*speed
+        elif keyboard.is_pressed('down'):
+            pos += h_speed*speed
+        elif keyboard.is_pressed('h'):
+            ax1 += 1
+            manager = redo(manager,ax1,ax2)
+        elif keyboard.is_pressed('l'):
+            ax1 -= 1
+            manager = redo(manager,ax1,ax2)
+        elif keyboard.is_pressed('j'):
+            ax2 += 1
+            manager = redo(manager,ax1,ax2)
+        elif keyboard.is_pressed('k'):
+            ax2 -= 1
+            manager = redo(manager,ax1,ax2)
         
         manager.set_global_theta_offset(theta)
+        manager.set_global_fly_pos(0,0,pos)
         manager()
         
         idle(0.01)
 
 
 
-    # Preload the stop so that extra time isnt taken setting up these calls during the idle period
-    # Meanwhile stimulus is running
-    manager.stop_stim()
-    manager.black_corner_square()
-    manager.set_idle_background(0)
-
-    
-    manager()
-    
 
     try:
         process.terminate()
