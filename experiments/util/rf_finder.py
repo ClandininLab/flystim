@@ -67,7 +67,7 @@ def main():
     phi = 0
     pos = 0
     width = 10.0 
-    h_speed=0.001
+    h_speed=0.1
 
     ax1 = 3
     ax2 = 3
@@ -84,7 +84,6 @@ def main():
             phi = 0
             pos = 0
             width = 10.0
-            h_speed=0.1
             ax1 = 3
             ax2 = 3
 
