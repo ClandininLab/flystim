@@ -214,6 +214,38 @@ class GlSphericalTexturedRect(GlVertices):
                             r * np.cos(phi))
         return cartesian_coords
 
+class GlSphericalEllipse(GlVertices):
+    def __init__(self,
+                 width=20,  # degrees in spherical coordinates
+                 height=10,  # degrees in spherical coordinates
+                 sphere_radius=1,  # meters
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 sphere_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of sphere
+                 n_steps=36):
+        super().__init__()
+        color = getColorList(color)
+
+        v_center = self.sphericalToCartesian((sphere_radius, np.pi/2, np.pi/2))
+
+        angles = np.linspace(0, 2*np.pi, n_steps+1)
+        for wedge in range(n_steps):
+            # render circle at the equator (phi=pi/2) so it's not near the poles
+            # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
+            v1 = self.sphericalToCartesian((sphere_radius,
+                                            np.pi/2 + radians(width/2)*np.cos(angles[wedge]),
+                                            np.pi/2 + radians(height/2)*np.sin(angles[wedge])))
+            v2 = self.sphericalToCartesian((sphere_radius,
+                                            np.pi/2 + radians(width/2)*np.cos(angles[wedge+1]),
+                                            np.pi/2 + radians(height/2)*np.sin(angles[wedge+1])))
+
+            self.add(GlTri(v1, v2, v_center, color).translate(sphere_location))
+
+    def sphericalToCartesian(self, spherical_coords):
+        r, theta, phi = spherical_coords
+        cartesian_coords = (r * np.sin(phi) * np.cos(theta),
+                            r * np.sin(phi) * np.sin(theta),
+                            r * np.cos(phi))
+        return cartesian_coords
 
 class GlSphericalCirc(GlVertices):
     def __init__(self,
