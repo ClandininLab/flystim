@@ -71,7 +71,7 @@ class MovingEllipse(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, width=20, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0):
+    def configure(self, width=20, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
         """
         Stimulus consisting of a circular patch on the surface of a sphere. Patch is circular in spherical coordinates.
 
@@ -81,6 +81,7 @@ class MovingEllipse(BaseProgram):
         :param color: [r,g,b,a] or mono. Color of the patch
         :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
         :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
         *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
         self.sphere_radius = sphere_radius
@@ -90,19 +91,20 @@ class MovingEllipse(BaseProgram):
         self.color = make_as_trajectory(color)
         self.theta = make_as_trajectory(theta)
         self.phi = make_as_trajectory(phi)
+        self.angle = make_as_trajectory(angle)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         width = return_for_time_t(self.width, t)
         height = return_for_time_t(self.height, t)
         theta = return_for_time_t(self.theta, t)
         phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
         color = return_for_time_t(self.color, t)
         # TODO: is there a way to make this object once in configure then update with radius in eval_at?
         self.stim_object = GlSphericalEllipse(width=width, height=height,
                                            sphere_radius=self.sphere_radius,
                                            color=color,
-                                           n_steps=36).rotate(np.radians(theta) + fly_heading[0], np.radians(phi) + fly_heading[1], 0).translate(fly_position.copy())
-
+                                           n_steps=36).rotate(np.radians(theta) + fly_heading[0], np.radians(phi) + fly_heading[1], np.radians(angle)).translate(fly_position.copy())
 
 class MovingSpot(BaseProgram):
     def __init__(self, screen):
