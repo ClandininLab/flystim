@@ -101,10 +101,11 @@ class MovingEllipse(BaseProgram):
         angle = return_for_time_t(self.angle, t)
         color = return_for_time_t(self.color, t)
         # TODO: is there a way to make this object once in configure then update with radius in eval_at?
-        self.stim_object = GlSphericalEllipse(width=width, height=height,
-                                           sphere_radius=self.sphere_radius,
-                                           color=color,
-                                           n_steps=36).rotate(np.radians(theta) + fly_heading[0], np.radians(phi) + fly_heading[1], np.radians(angle)).translate(fly_position.copy())
+        self.stim_object = GlSphericalEllipse(width=width, 
+                                              height=height,
+                                              sphere_radius=self.sphere_radius,
+                                              color=color,
+                                              n_steps=36).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 class MovingSpot(BaseProgram):
     def __init__(self, screen):
