@@ -138,7 +138,7 @@ class MovingSpot(BaseProgram):
         self.stim_object = GlSphericalCirc(circle_radius=radius,
                                            sphere_radius=self.sphere_radius,
                                            color=color,
-                                           n_steps=36).rotate(np.radians(theta) + fly_heading[0], np.radians(phi) + fly_heading[1], 0).translate(fly_position.copy())
+                                           n_steps=36).rotate(np.radians(theta), np.radians(phi), 0)
 
 
 class MovingPatch(BaseProgram):
