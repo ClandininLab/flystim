@@ -12,7 +12,7 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints
+from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints
 from flystim import util, image
 import time  # for debugging and benchmarking
 import copy
@@ -104,6 +104,46 @@ class MovingEllipse(BaseProgram):
         self.stim_object = GlSphericalEllipse(width=width, 
                                               height=height,
                                               sphere_radius=self.sphere_radius,
+                                              color=color,
+                                              n_steps=36).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+
+class MovingEllipseOnCylinder(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, width=20, height=10, cylinder_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+        """
+        Stimulus consisting of a circular patch on the surface of a sphere. Patch is circular in spherical coordinates.
+
+        :param width: width of ellipse in degrees
+        :param height: height of ellipse in degrees
+        :param cylinder_radius: Radius of the cylinder (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.cylinder_radius = cylinder_radius
+
+        self.width = make_as_trajectory(width)
+        self.height = make_as_trajectory(height)
+        self.color = make_as_trajectory(color)
+        self.theta = make_as_trajectory(theta)
+        self.phi = make_as_trajectory(phi)
+        self.angle = make_as_trajectory(angle)
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        color = return_for_time_t(self.color, t)
+        # TODO: is there a way to make this object once in configure then update with radius in eval_at?
+        self.stim_object = GlCylindricalWithPhiEllipse(width=width, 
+                                              height=height,
+                                              cylinder_radius=self.cylinder_radius,
                                               color=color,
                                               n_steps=36).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
