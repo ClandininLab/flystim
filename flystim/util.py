@@ -29,6 +29,10 @@ def listify(x, type_):
 def normalize(vec):
     return vec / np.linalg.norm(vec)
 
+def rot1_scale_rot2(pts, yaw1, pitch1, roll1, scale_x, scale_y, scale_z, yaw2, pitch2, roll2):
+    A = rot_mat(yaw2, pitch2, roll2) @ np.diag([scale_x, scale_y, scale_z]) @ rot_mat(yaw1, pitch1, roll1)
+    return A @ pts
+
 # rotation matrix reference:
 # https://en.wikipedia.org/wiki/Rotation_matrix
 
@@ -38,8 +42,16 @@ def rotate(pts, yaw, pitch, roll):
     :param pitch: rotation around x axis, radians
     :param roll: rotation around y axis, radians
     """
-    R = rotz_mat(yaw) @ rotx_mat(pitch) @ roty_mat(roll)
+    R = rot_mat(yaw, pitch, roll)
     return R @ pts
+
+def rot_mat(yaw, pitch, roll):
+    """
+    :param yaw: rotation around z axis, radians
+    :param pitch: rotation around x axis, radians
+    :param roll: rotation around y axis, radians
+    """
+    return rotz_mat(yaw) @ rotx_mat(pitch) @ roty_mat(roll)
 
 def rotx(pts, th):
     return rotx_mat(th).dot(pts)
@@ -67,6 +79,45 @@ def rotz_mat(th):
 
 def scale(pts, amt):
     return np.multiply(amt, pts)
+
+def spherical_to_cartesian(r, theta, phi):
+    x = r * np.sin(phi) * np.cos(theta)
+    y = r * np.sin(phi) * np.sin(theta)
+    z = r * np.cos(phi)
+    return x, y, z
+
+def cartesian_to_spherical(x, y, z):
+    r = np.sqrt(x**2 + y**2 + z**2)
+    theta = np.arctan2(y, z)
+    phi = np.arccos(z/r) # np.arctan2(np.sqrt(x**2 + y**2), z)
+    return r, theta, phi
+
+def cylindrical_to_cartesian(r, theta, z):
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+    z = z
+    return x, y, z
+
+def cartesian_to_cylindrical(x, y, z):
+    r = np.sqrt(x**2 + y**2)
+    theta = np.arctan2(y, x)
+    z = z
+    return r, theta, z
+
+def cylindrical_w_phi_to_cartesian(r, theta, phi):
+    '''
+    Converts cylindrical coordinates with phi instead of z (r, theta, phi) to cartesian coordinates
+    '''
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+    z = r / np.tan(phi)
+    return x, y, z
+
+def cartesian_to_cylindrical_w_phi(x, y, z):
+    r = np.sqrt(x**2 + y**2)
+    theta = np.arctan2(y, x)
+    phi = np.arctan2(z, r)
+    return r, theta, phi
 
 def translate(pts, amt):
     # convert point(s) and translate amount to numpy arrays
