@@ -1,7 +1,9 @@
 import numpy as np
 from numpy import matlib
 from math import radians
-from .util import rotx, roty, rotz, translate, scale, rotate, rot1_scale_rot2, spherical_to_cartesian, cylindrical_to_cartesian, cylindrical_w_phi_to_cartesian
+from .util import rotx, roty, rotz, translate, scale, rotate, rot1_scale_rot2
+from .util import spherical_to_cartesian, cylindrical_to_cartesian, cylindrical_w_phi_to_cartesian
+from .util import cartesian_to_spherical, cartesian_to_cylindrical, cartesian_to_cylindrical_w_phi
 
 
 class GlVertices:
@@ -48,6 +50,21 @@ class GlVertices:
 
     def scale(self, amt):
         return GlVertices(vertices=scale(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
+
+    def scale_in_spherical_coords(self, r_scale=1, theta_scale=1, phi_scale=1):
+        r, theta, phi = cartesian_to_spherical(*self.vertices)
+        return GlVertices(vertices=spherical_to_cartesian(r*r_scale, (theta-np.pi/2)*theta_scale+np.pi/2, (phi-np.pi/2)*phi_scale+np.pi/2), 
+                          colors=self.colors, tex_coords=self.tex_coords)
+
+    def scale_in_cylindrical_coords(self, r_scale=1, theta_scale=1, z_scale=1):
+        r, theta, z = cartesian_to_cylindrical(*self.vertices)
+        return GlVertices(vertices=cylindrical_to_cartesian(r*r_scale, theta*theta_scale, z*z_scale), 
+                          colors=self.colors, tex_coords=self.tex_coords)
+
+    def scale_in_cylindrical_w_phi_coords(self, r_scale=1, theta_scale=1, phi_scale=1):
+        r, theta, phi = cartesian_to_cylindrical_w_phi(*self.vertices)
+        return GlVertices(vertices=cylindrical_w_phi_to_cartesian(r*r_scale, theta*theta_scale, phi*phi_scale), 
+                          colors=self.colors, tex_coords=self.tex_coords)
 
     def rot1_scale_rot2(self, yaw1, pitch1, roll1, scale_x, scale_y, scale_z, yaw2, pitch2, roll2):
         '''

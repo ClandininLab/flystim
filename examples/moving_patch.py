@@ -8,12 +8,25 @@ from time import sleep
 
 
 def main():
-    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number=1, id=0, vsync=False))
 
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
     theta_trajectory = {'name': 'tv_pairs',
-                        'tv_pairs': [(0, -45), (4, 45)],
+                        'tv_pairs': [(0, -25), (4, 25)],
+                        'kind': 'linear'}
+
+    phi_trajectory = {'name': 'tv_pairs',
+                        'tv_pairs': [(0, 0), (4, 20)],
+                        'kind': 'linear'}
+    # phi_trajectory = 0
+
+    width_trajectory = {'name': 'tv_pairs',
+                        'tv_pairs': [(0, 2), (4, 20)],
+                        'kind': 'linear'}
+
+    height_trajectory = {'name': 'tv_pairs',
+                        'tv_pairs': [(0, 30), (4, 3)],
                         'kind': 'linear'}
 
     # color_trajectory = {'name': 'Sinusoid',
@@ -26,7 +39,11 @@ def main():
                         'kind': 'linear'}
 
 
-    manager.load_stim(name='MovingSpot', radius=5, sphere_radius=1, color=color_trajectory, theta=theta_trajectory, phi=0, hold=True)
+    # manager.load_stim(name='MovingPatch', width=width_trajectory, height=height_trajectory, sphere_radius=1, color=color_trajectory, theta=theta_trajectory, phi=phi_trajectory, hold=True)
+    # manager.load_stim(name='MovingPatchOnCylinder', width=width_trajectory, height=height_trajectory, cylinder_radius=1, color=color_trajectory, theta=theta_trajectory, phi=phi_trajectory, hold=True)
+    manager.load_stim(name='MovingSpot', radius=width_trajectory, sphere_radius=1, color=color_trajectory, theta=theta_trajectory, phi=phi_trajectory, hold=True)
+    # manager.load_stim(name='MovingEllipse', width=width_trajectory, height=height_trajectory, sphere_radius=1, color=color_trajectory, theta=theta_trajectory, phi=phi_trajectory, hold=True)
+    # manager.load_stim(name='MovingEllipseOnCylinder', width=width_trajectory, height=height_trajectory, cylinder_radius=1, color=color_trajectory, theta=theta_trajectory, phi=phi_trajectory, hold=True)
 
 
     sleep(1)

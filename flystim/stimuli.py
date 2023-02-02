@@ -93,19 +93,44 @@ class MovingEllipse(BaseProgram):
         self.phi = make_as_trajectory(phi)
         self.angle = make_as_trajectory(angle)
 
-    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        t = 0
         width = return_for_time_t(self.width, t)
         height = return_for_time_t(self.height, t)
-        theta = return_for_time_t(self.theta, t)
-        phi = return_for_time_t(self.phi, t)
-        angle = return_for_time_t(self.angle, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
+        angle = np.radians(return_for_time_t(self.angle, t))
         color = return_for_time_t(self.color, t)
-        # TODO: is there a way to make this object once in configure then update with radius in eval_at?
+
         self.stim_object = GlSphericalEllipse(width=width, 
                                               height=height,
                                               sphere_radius=self.sphere_radius,
                                               color=color,
-                                              n_steps=36).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+                                              n_steps=36).rotate(theta, phi, angle)
+
+        self.width_prev = width
+        self.height_prev = height
+        self.theta_prev = theta
+        self.phi_prev = phi
+        self.angle_prev = angle
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
+        angle = np.radians(return_for_time_t(self.angle, t))
+        color = return_for_time_t(self.color, t)
+
+        # Inverse prev rotation, scale width and height, then do current rotation
+        self.stim_object = self.stim_object.rot1_scale_rot2(-self.theta_prev, -self.phi_prev, -self.angle_prev,
+                                                            width/self.width_prev, 1, height/self.height_prev,
+                                                            theta, phi, angle).setColor(color)
+
+        self.width_prev = width
+        self.height_prev = height
+        self.theta_prev = theta
+        self.phi_prev = phi
+        self.angle_prev = angle
 
 class MovingEllipseOnCylinder(BaseProgram):
     def __init__(self, screen):
@@ -133,19 +158,44 @@ class MovingEllipseOnCylinder(BaseProgram):
         self.phi = make_as_trajectory(phi)
         self.angle = make_as_trajectory(angle)
 
-    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        t = 0
         width = return_for_time_t(self.width, t)
         height = return_for_time_t(self.height, t)
-        theta = return_for_time_t(self.theta, t)
-        phi = return_for_time_t(self.phi, t)
-        angle = return_for_time_t(self.angle, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
+        angle = np.radians(return_for_time_t(self.angle, t))
         color = return_for_time_t(self.color, t)
-        # TODO: is there a way to make this object once in configure then update with radius in eval_at?
+
         self.stim_object = GlCylindricalWithPhiEllipse(width=width, 
                                               height=height,
                                               cylinder_radius=self.cylinder_radius,
                                               color=color,
-                                              n_steps=36).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+                                              n_steps=36).rotate(theta, phi, angle)
+
+        self.width_prev = width
+        self.height_prev = height
+        self.theta_prev = theta
+        self.phi_prev = phi
+        self.angle_prev = angle
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
+        angle = np.radians(return_for_time_t(self.angle, t))
+        color = return_for_time_t(self.color, t)
+
+        # Inverse prev rotation, scale width and height, then do current rotation
+        self.stim_object = self.stim_object.rot1_scale_rot2(-self.theta_prev, -self.phi_prev, -self.angle_prev,
+                                                            width/self.width_prev, 1, height/self.height_prev,
+                                                            theta, phi, angle).setColor(color)
+
+        self.width_prev = width
+        self.height_prev = height
+        self.theta_prev = theta
+        self.phi_prev = phi
+        self.angle_prev = angle
 
 class MovingSpot(BaseProgram):
     def __init__(self, screen):
@@ -169,17 +219,39 @@ class MovingSpot(BaseProgram):
         self.theta = make_as_trajectory(theta)
         self.phi = make_as_trajectory(phi)
 
-    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        t = 0
         radius = return_for_time_t(self.radius, t)
-        theta = return_for_time_t(self.theta, t)
-        phi = return_for_time_t(self.phi, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
         color = return_for_time_t(self.color, t)
-        # TODO: is there a way to make this object once in configure then update with radius in eval_at?
+
         self.stim_object = GlSphericalCirc(circle_radius=radius,
                                            sphere_radius=self.sphere_radius,
                                            color=color,
-                                           n_steps=36).rotate(np.radians(theta), np.radians(phi), 0)
+                                           n_steps=36).rotate(theta, phi, 0)
 
+        self.radius_prev = radius
+        self.theta_prev = theta
+        self.phi_prev = phi
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        radius = return_for_time_t(self.radius, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
+        color = return_for_time_t(self.color, t)
+
+        # Inverse prev rotation, scale width and height, then do current rotation
+        self.stim_object = self.stim_object.rotate(-self.theta_prev, -self.phi_prev, 0
+                                          ).scale_in_spherical_coords(theta_scale = radius/self.radius_prev, phi_scale = radius/self.radius_prev
+                                          ).rotate(theta, phi, 0
+                                          ).setColor(color)
+        # self.stim_object = self.stim_object.rot1_scale_rot2(-self.theta_prev, -self.phi_prev, 0,
+        #                                                     radius/self.radius_prev, 1, radius/self.radius_prev,
+        #                                                     theta, phi, 0).setColor(color)
+
+        self.radius_prev = radius
+        self.theta_prev = theta
+        self.phi_prev = phi
 
 class MovingPatch(BaseProgram):
     def __init__(self, screen):
@@ -206,18 +278,43 @@ class MovingPatch(BaseProgram):
         self.phi = make_as_trajectory(phi)
         self.angle = make_as_trajectory(angle)
 
-    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        t = 0
         width = return_for_time_t(self.width, t)
         height = return_for_time_t(self.height, t)
-        theta = return_for_time_t(self.theta, t)
-        phi = return_for_time_t(self.phi, t)
-        angle = return_for_time_t(self.angle, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
+        angle = np.radians(return_for_time_t(self.angle, t))
         color = return_for_time_t(self.color, t)
-        # TODO: is there a way to make this object once in configure then update with width/height in eval_at?
+
         self.stim_object = GlSphericalRect(width=width,
                                            height=height,
                                            sphere_radius=self.sphere_radius,
-                                           color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+                                           color=color).rotate(theta, phi, angle)
+
+        self.width_prev = width
+        self.height_prev = height
+        self.theta_prev = theta
+        self.phi_prev = phi
+        self.angle_prev = angle
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
+        angle = np.radians(return_for_time_t(self.angle, t))
+        color = return_for_time_t(self.color, t)
+
+        # Inverse prev rotation, scale width and height, then do current rotation
+        self.stim_object = self.stim_object.rot1_scale_rot2(-self.theta_prev, -self.phi_prev, -self.angle_prev,
+                                                            width/self.width_prev, 1, height/self.height_prev,
+                                                            theta, phi, angle).setColor(color)
+
+        self.width_prev = width
+        self.height_prev = height
+        self.theta_prev = theta
+        self.phi_prev = phi
+        self.angle_prev = angle
 
 
 class UniformWhiteNoise(BaseProgram):
@@ -294,19 +391,43 @@ class MovingPatchOnCylinder(BaseProgram):
         self.phi = make_as_trajectory(phi)
         self.angle = make_as_trajectory(angle)
 
-    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        t = 0
         width = return_for_time_t(self.width, t)
         height = return_for_time_t(self.height, t)
-        theta = return_for_time_t(self.theta, t)
-        phi = return_for_time_t(self.phi, t)
-        angle = return_for_time_t(self.angle, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
+        angle = np.radians(return_for_time_t(self.angle, t))
         color = return_for_time_t(self.color, t)
-        # TODO: is there a way to make this object once in configure then update with width/height in eval_at?
+
         self.stim_object = GlCylindricalWithPhiRect(width=width,
                                            height=height,
                                            cylinder_radius=self.cylinder_radius,
-                                           color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+                                           color=color).rotate(theta, phi, angle)
 
+        self.width_prev = width
+        self.height_prev = height
+        self.theta_prev = theta
+        self.phi_prev = phi
+        self.angle_prev = angle
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = np.radians(return_for_time_t(self.theta, t))
+        phi = np.radians(return_for_time_t(self.phi, t))
+        angle = np.radians(return_for_time_t(self.angle, t))
+        color = return_for_time_t(self.color, t)
+
+        # Inverse prev rotation, scale width and height, then do current rotation
+        self.stim_object = self.stim_object.rot1_scale_rot2(-self.theta_prev, -self.phi_prev, -self.angle_prev,
+                                                            width/self.width_prev, 1, height/self.height_prev,
+                                                            theta, phi, angle).setColor(color)
+
+        self.width_prev = width
+        self.height_prev = height
+        self.theta_prev = theta
+        self.phi_prev = phi
+        self.angle_prev = angle
 
 class TexturedSphericalPatch(BaseProgram):
     def __init__(self, screen):
