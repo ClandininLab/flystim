@@ -93,5 +93,23 @@ class Trajectory:
                 return angular_size / 2
             self.getValue = get_loom_size
 
+        elif kwargs['name'] == 'Loom2':
+            """
+            Expanding loom trajectory. Fixed loom expansion rate based on rv_ratio.
+
+            :rv_ratio: sec
+            :start_size: deg.
+            :end_size: deg.
+            """
+            def get_loom_size(t):
+                # calculate angular size at t
+                d0 = kwargs['rv_ratio'] / np.tan(np.deg2rad(kwargs['start_size'] / 2))
+                angular_size = 2 * np.rad2deg(np.arctan(kwargs['rv_ratio'] * (1 / (d0 - t))))
+                # Cap the curve at end_size and have it just hang there
+                if angular_size > kwargs['end_size'] or d0 <= t:
+                    angular_size = kwargs['end_size']
+                return angular_size / 2
+            self.getValue = get_loom_size
+
         else:
             print('Unrecognized trajectory name. See flystim.trajectory')
