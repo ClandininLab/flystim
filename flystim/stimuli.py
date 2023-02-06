@@ -479,11 +479,16 @@ class CylindricalGrating(TexturedCylinder):
         n_cycles = np.floor(360/self.period)
         self.cylinder_angular_extent = n_cycles * self.period
 
+        t = 0
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=[1, 1, 1, 1],
-                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+                                      texture=True).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
         self.mean = make_as_trajectory(mean)
         self.contrast = make_as_trajectory(contrast)
@@ -539,7 +544,7 @@ class RotatingGrating(CylindricalGrating):
         """
         super().configure(period=period, mean=mean, contrast=contrast, offset=offset, profile=profile,
                           color=color, cylinder_radius=cylinder_radius, cylinder_location=cylinder_location, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
-        self.rate = rate
+        self.rate = make_as_trajectory(rate)
         self.hold_duration = hold_duration
         self.alpha_by_face = alpha_by_face
         if self.alpha_by_face is None:
@@ -558,8 +563,13 @@ class RotatingGrating(CylindricalGrating):
                                                texture=True)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
-        shift_u = max(t - self.hold_duration, 0) * self.rate/self.cylinder_angular_extent
-        self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        rate = return_for_time_t(self.rate, t)
+
+        shift_u = max(t - self.hold_duration, 0) * rate/self.cylinder_angular_extent
+        self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 
 class ExpandingEdges(TexturedCylinder):
