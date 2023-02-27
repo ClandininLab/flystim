@@ -618,7 +618,7 @@ class ExpandingEdges(TexturedCylinder):
         self.subimg_mask = np.empty(self.n_x_subimg, dtype=bool)
         self.subimg = np.empty((1,self.n_x_subimg), dtype=np.uint8)
 
-        img = np.zeros((1, self.n_x)).astype(np.uint8)
+        img = np.zeros((1, int(self.n_x))).astype(np.uint8)
         self.add_texture_gl(img, texture_interpolation='NEAREST')
 
         # Only renders part of the cylinder if the period is not a divisor of 360
