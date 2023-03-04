@@ -586,7 +586,7 @@ class ExpandingEdges(TexturedCylinder):
         :param period: spatial period (degrees)
         :param width_0: width (degrees) of each expanding bar at the beginning
         :param vert_extent: vertical extent (degrees) of bars
-        :param theta_offset: offset of periodic bar pattern (degrees)
+        :param theta_offset: phase offset of periodic bar pattern (degrees)
         :param expander_color: color of the expanding edge [0, 1]
         :param opposite_color: color of the diminishing edge [0, 1]
         :param n_theta_pixels: number of pixels in theta for the image painted onto the cylinder
@@ -608,7 +608,7 @@ class ExpandingEdges(TexturedCylinder):
         self.expander_color = expander_color
         self.opposite_color = opposite_color
         self.width_0 = width_0 #degrees
-        self.n_x = n_theta_pixels # number of theta pixels in img (approximate, as the number of pixels in each subimage is floored)
+        self.n_x = int(n_theta_pixels) # number of theta pixels in img (approximate, as the number of pixels in each subimage is floored)
         self.hold_duration = hold_duration #seconds
 
         self.n_subimg = int(np.floor(360/self.period)) # number of subimages to be repeated
@@ -653,9 +653,9 @@ class ExpandingEdges(TexturedCylinder):
         self.subimg[:,~self.subimg_mask] = np.uint8(self.opposite_color * 255)
         img = np.tile(self.subimg, self.n_subimg)
 
-        #img[:, :tiled_img.shape[1]] = tiled_img
-
-        # TODO: theta_offset. rotate img using np.roll
+        # theta_offset
+        theta_offset_degs = self.period * (self.theta_offset / 360)
+        img = np.roll(img, int(np.round(theta_offset_degs * self.n_x / 360)), axis=1)
 
         self.update_texture_gl(img)
 
