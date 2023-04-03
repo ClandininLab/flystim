@@ -12,7 +12,7 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim.shapes import GlSphericalRect, GlCylindricalWithPhiRect, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints
+from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints
 from flystim import util, image
 import time  # for debugging and benchmarking
 import copy
@@ -67,6 +67,85 @@ class Floor(BaseProgram):
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
+class MovingEllipse(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, width=20, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+        """
+        Stimulus consisting of a circular patch on the surface of a sphere. Patch is circular in spherical coordinates.
+
+        :param width: width of ellipse in degrees
+        :param height: height of ellipse in degrees
+        :param sphere_radius: Radius of the sphere (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.sphere_radius = sphere_radius
+
+        self.width = make_as_trajectory(width)
+        self.height = make_as_trajectory(height)
+        self.color = make_as_trajectory(color)
+        self.theta = make_as_trajectory(theta)
+        self.phi = make_as_trajectory(phi)
+        self.angle = make_as_trajectory(angle)
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        color = return_for_time_t(self.color, t)
+        # TODO: is there a way to make this object once in configure then update with radius in eval_at?
+        self.stim_object = GlSphericalEllipse(width=width, 
+                                              height=height,
+                                              sphere_radius=self.sphere_radius,
+                                              color=color,
+                                              n_steps=36).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+
+class MovingEllipseOnCylinder(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, width=20, height=10, cylinder_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0):
+        """
+        Stimulus consisting of a circular patch on the surface of a sphere. Patch is circular in spherical coordinates.
+
+        :param width: width of ellipse in degrees
+        :param height: height of ellipse in degrees
+        :param cylinder_radius: Radius of the cylinder (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.cylinder_radius = cylinder_radius
+
+        self.width = make_as_trajectory(width)
+        self.height = make_as_trajectory(height)
+        self.color = make_as_trajectory(color)
+        self.theta = make_as_trajectory(theta)
+        self.phi = make_as_trajectory(phi)
+        self.angle = make_as_trajectory(angle)
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        width = return_for_time_t(self.width, t)
+        height = return_for_time_t(self.height, t)
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        color = return_for_time_t(self.color, t)
+        # TODO: is there a way to make this object once in configure then update with radius in eval_at?
+        self.stim_object = GlCylindricalWithPhiEllipse(width=width, 
+                                              height=height,
+                                              cylinder_radius=self.cylinder_radius,
+                                              color=color,
+                                              n_steps=36).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 class MovingSpot(BaseProgram):
     def __init__(self, screen):
@@ -99,7 +178,7 @@ class MovingSpot(BaseProgram):
         self.stim_object = GlSphericalCirc(circle_radius=radius,
                                            sphere_radius=self.sphere_radius,
                                            color=color,
-                                           n_steps=36).rotate(np.radians(theta) + fly_heading[0], np.radians(phi) + fly_heading[1], 0).translate(fly_position.copy())
+                                           n_steps=36).rotate(np.radians(theta), np.radians(phi), 0)
 
 
 class MovingPatch(BaseProgram):
@@ -400,11 +479,16 @@ class CylindricalGrating(TexturedCylinder):
         n_cycles = np.floor(360/self.period)
         self.cylinder_angular_extent = n_cycles * self.period
 
+        t = 0
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=[1, 1, 1, 1],
-                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+                                      texture=True).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
         self.mean = make_as_trajectory(mean)
         self.contrast = make_as_trajectory(contrast)
@@ -460,7 +544,7 @@ class RotatingGrating(CylindricalGrating):
         """
         super().configure(period=period, mean=mean, contrast=contrast, offset=offset, profile=profile,
                           color=color, cylinder_radius=cylinder_radius, cylinder_location=cylinder_location, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
-        self.rate = rate
+        self.rate = make_as_trajectory(rate)
         self.hold_duration = hold_duration
         self.alpha_by_face = alpha_by_face
         if self.alpha_by_face is None:
@@ -479,8 +563,13 @@ class RotatingGrating(CylindricalGrating):
                                                texture=True)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
-        shift_u = max(t - self.hold_duration, 0) * self.rate/self.cylinder_angular_extent
-        self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        rate = return_for_time_t(self.rate, t)
+
+        shift_u = max(t - self.hold_duration, 0) * rate/self.cylinder_angular_extent
+        self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 
 class ExpandingEdges(TexturedCylinder):
@@ -497,7 +586,7 @@ class ExpandingEdges(TexturedCylinder):
         :param period: spatial period (degrees)
         :param width_0: width (degrees) of each expanding bar at the beginning
         :param vert_extent: vertical extent (degrees) of bars
-        :param theta_offset: offset of periodic bar pattern (degrees)
+        :param theta_offset: phase offset of periodic bar pattern (degrees)
         :param expander_color: color of the expanding edge [0, 1]
         :param opposite_color: color of the diminishing edge [0, 1]
         :param n_theta_pixels: number of pixels in theta for the image painted onto the cylinder
@@ -519,7 +608,7 @@ class ExpandingEdges(TexturedCylinder):
         self.expander_color = expander_color
         self.opposite_color = opposite_color
         self.width_0 = width_0 #degrees
-        self.n_x = n_theta_pixels # number of theta pixels in img (approximate, as the number of pixels in each subimage is floored)
+        self.n_x = int(n_theta_pixels) # number of theta pixels in img (approximate, as the number of pixels in each subimage is floored)
         self.hold_duration = hold_duration #seconds
 
         self.n_subimg = int(np.floor(360/self.period)) # number of subimages to be repeated
@@ -529,7 +618,7 @@ class ExpandingEdges(TexturedCylinder):
         self.subimg_mask = np.empty(self.n_x_subimg, dtype=bool)
         self.subimg = np.empty((1,self.n_x_subimg), dtype=np.uint8)
 
-        img = np.zeros((1, self.n_x)).astype(np.uint8)
+        img = np.zeros((1, int(self.n_x))).astype(np.uint8)
         self.add_texture_gl(img, texture_interpolation='NEAREST')
 
         # Only renders part of the cylinder if the period is not a divisor of 360
@@ -564,9 +653,9 @@ class ExpandingEdges(TexturedCylinder):
         self.subimg[:,~self.subimg_mask] = np.uint8(self.opposite_color * 255)
         img = np.tile(self.subimg, self.n_subimg)
 
-        #img[:, :tiled_img.shape[1]] = tiled_img
-
-        # TODO: theta_offset. rotate img using np.roll
+        # theta_offset
+        theta_offset_degs = self.period * (self.theta_offset / 360)
+        img = np.roll(img, int(np.round(theta_offset_degs * self.n_x / 360)), axis=1)
 
         self.update_texture_gl(img)
 

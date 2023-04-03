@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import matlib
 from math import radians
-from .util import rotx, roty, rotz, translate, scale, rotate
+from .util import rotx, roty, rotz, translate, scale, rotate, rot1_scale_rot2, spherical_to_cartesian, cylindrical_to_cartesian, cylindrical_w_phi_to_cartesian
 
 
 class GlVertices:
@@ -48,6 +48,12 @@ class GlVertices:
 
     def scale(self, amt):
         return GlVertices(vertices=scale(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
+
+    def rot1_scale_rot2(self, yaw1, pitch1, roll1, scale_x, scale_y, scale_z, yaw2, pitch2, roll2):
+        '''
+        rot2 @ scale @ rot1 @ vertices
+        '''
+        return GlVertices(vertices=rot1_scale_rot2(self.vertices, yaw1, pitch1, roll1, scale_x, scale_y, scale_z, yaw2, pitch2, roll2), colors=self.colors, tex_coords=self.tex_coords)
 
     def translate(self, amt):
         return GlVertices(vertices=translate(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
@@ -150,20 +156,12 @@ class GlSphericalRect(GlVertices):
                 # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
                 theta = np.pi/2 + radians(width) * (-1/2 + (cc/n_steps_x))
                 phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
-                v1 = self.sphericalToCartesian((sphere_radius, theta, phi))
-                v2 = self.sphericalToCartesian((sphere_radius, theta, phi + d_phi))
-                v3 = self.sphericalToCartesian((sphere_radius, theta + d_theta, phi))
-                v4 = self.sphericalToCartesian((sphere_radius, theta + d_theta, phi + d_phi))
+                v1 = spherical_to_cartesian(sphere_radius, theta, phi)
+                v2 = spherical_to_cartesian(sphere_radius, theta, phi + d_phi)
+                v3 = spherical_to_cartesian(sphere_radius, theta + d_theta, phi)
+                v4 = spherical_to_cartesian(sphere_radius, theta + d_theta, phi + d_phi)
                 self.add(GlTri(v1, v2, v4, color))
                 self.add(GlTri(v1, v3, v4, color))
-
-    def sphericalToCartesian(self, spherical_coords):
-        r, theta, phi = spherical_coords
-        cartesian_coords = (r * np.sin(phi) * np.cos(theta),
-                            r * np.sin(phi) * np.sin(theta),
-                            r * np.cos(phi))
-        return cartesian_coords
-
 
 class GlSphericalTexturedRect(GlVertices):
     def __init__(self,
@@ -186,10 +184,10 @@ class GlSphericalTexturedRect(GlVertices):
                 # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
                 theta = np.pi/2 + radians(width) * (-1/2 + (cc/n_steps_x))
                 phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
-                v1 = self.sphericalToCartesian((sphere_radius, theta, phi))
-                v2 = self.sphericalToCartesian((sphere_radius, theta, phi + d_phi))
-                v3 = self.sphericalToCartesian((sphere_radius, theta + d_theta, phi))
-                v4 = self.sphericalToCartesian((sphere_radius, theta + d_theta, phi + d_phi))
+                v1 = spherical_to_cartesian(sphere_radius, theta, phi)
+                v2 = spherical_to_cartesian(sphere_radius, theta, phi + d_phi)
+                v3 = spherical_to_cartesian(sphere_radius, theta + d_theta, phi)
+                v4 = spherical_to_cartesian(sphere_radius, theta + d_theta, phi + d_phi)
                 if texture:
                     tc1 = (cc/n_steps_x, rr/n_steps_y)
                     tc2 = (cc/n_steps_x, (rr+1)/n_steps_y)
@@ -206,14 +204,57 @@ class GlSphericalTexturedRect(GlVertices):
                     self.add(GlTri(v1, v2, v4, color))
                     self.add(GlTri(v1, v3, v4, color))
 
+class GlSphericalEllipse(GlVertices):
+    def __init__(self,
+                 width=20,  # degrees in spherical coordinates
+                 height=10,  # degrees in spherical coordinates
+                 sphere_radius=1,  # meters
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 sphere_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of sphere
+                 n_steps=36):
+        super().__init__()
+        color = getColorList(color)
 
-    def sphericalToCartesian(self, spherical_coords):
-        r, theta, phi = spherical_coords
-        cartesian_coords = (r * np.sin(phi) * np.cos(theta),
-                            r * np.sin(phi) * np.sin(theta),
-                            r * np.cos(phi))
-        return cartesian_coords
+        v_center = spherical_to_cartesian(sphere_radius, np.pi/2, np.pi/2)
 
+        angles = np.linspace(0, 2*np.pi, n_steps+1)
+        for wedge in range(n_steps):
+            # render circle at the equator (phi=pi/2) so it's not near the poles
+            # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
+            v1 = spherical_to_cartesian(sphere_radius,
+                                        np.pi/2 + radians(width/2)*np.cos(angles[wedge]),
+                                        np.pi/2 + radians(height/2)*np.sin(angles[wedge]))
+            v2 = spherical_to_cartesian(sphere_radius,
+                                        np.pi/2 + radians(width/2)*np.cos(angles[wedge+1]),
+                                        np.pi/2 + radians(height/2)*np.sin(angles[wedge+1]))
+
+            self.add(GlTri(v1, v2, v_center, color).translate(sphere_location))
+
+class GlCylindricalWithPhiEllipse(GlVertices):
+    def __init__(self,
+                 width=20,  # degrees in spherical coordinates
+                 height=10,  # degrees in spherical coordinates
+                 cylinder_radius=1,  # meters
+                 color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                 cylinder_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of cylinder
+                 n_steps=36):
+        super().__init__()
+        color = getColorList(color)
+
+        v_center = cylindrical_w_phi_to_cartesian(cylinder_radius, np.pi/2, np.pi/2)
+
+        angles = np.linspace(0, 2*np.pi, n_steps+1)
+        for wedge in range(n_steps):
+            # render circle at the equator (phi=pi/2) so it's not near the poles
+            # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
+            v1 = cylindrical_w_phi_to_cartesian(cylinder_radius,
+                                            np.pi/2 + radians(width/2)*np.cos(angles[wedge]),
+                                            np.pi/2 + radians(height/2)*np.sin(angles[wedge]))
+            v2 = cylindrical_w_phi_to_cartesian(cylinder_radius,
+                                            np.pi/2 + radians(width/2)*np.cos(angles[wedge+1]),
+                                            np.pi/2 + radians(height/2)*np.sin(angles[wedge+1]))
+
+            self.add(GlTri(v1, v2, v_center, color).translate(cylinder_location))
 
 class GlSphericalCirc(GlVertices):
     def __init__(self,
@@ -225,28 +266,20 @@ class GlSphericalCirc(GlVertices):
         super().__init__()
         color = getColorList(color)
 
-        v_center = self.sphericalToCartesian((sphere_radius, np.pi/2, np.pi/2))
+        v_center = spherical_to_cartesian(sphere_radius, np.pi/2, np.pi/2)
 
         angles = np.linspace(0, 2*np.pi, n_steps+1)
         for wedge in range(n_steps):
             # render circle at the equator (phi=pi/2) so it's not near the poles
             # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
-            v1 = self.sphericalToCartesian((sphere_radius,
-                                            np.pi/2 + radians(circle_radius)*np.cos(angles[wedge]),
-                                            np.pi/2 + radians(circle_radius)*np.sin(angles[wedge])))
-            v2 = self.sphericalToCartesian((sphere_radius,
-                                            np.pi/2 + radians(circle_radius)*np.cos(angles[wedge+1]),
-                                            np.pi/2 + radians(circle_radius)*np.sin(angles[wedge+1])))
+            v1 = spherical_to_cartesian(sphere_radius,
+                                        np.pi/2 + radians(circle_radius)*np.cos(angles[wedge]),
+                                        np.pi/2 + radians(circle_radius)*np.sin(angles[wedge]))
+            v2 = spherical_to_cartesian(sphere_radius,
+                                        np.pi/2 + radians(circle_radius)*np.cos(angles[wedge+1]),
+                                        np.pi/2 + radians(circle_radius)*np.sin(angles[wedge+1]))
 
             self.add(GlTri(v1, v2, v_center, color).translate(sphere_location))
-
-    def sphericalToCartesian(self, spherical_coords):
-        r, theta, phi = spherical_coords
-        cartesian_coords = (r * np.sin(phi) * np.cos(theta),
-                            r * np.sin(phi) * np.sin(theta),
-                            r * np.cos(phi))
-        return cartesian_coords
-
 
 class GlCylindricalPoints(GlVertices):
     def __init__(self,
@@ -260,23 +293,12 @@ class GlCylindricalPoints(GlVertices):
 
         cartesian_coords = []
         for pt in range(len(theta)):
-            cartesian_coords.append(self.cylindricalWithPhiToCartesian((cylinder_radius, radians(theta[pt]), radians(phi[pt]))))
+            cartesian_coords.append(cylindrical_w_phi_to_cartesian(cylinder_radius, radians(theta[pt]), radians(phi[pt])))
 
         vertices = np.vstack(cartesian_coords).T  # 3 x n_points
         colors = matlib.repmat(color, len(theta), 1).T  # 4 x n_points
 
         super().__init__(vertices=vertices, colors=colors)
-
-    def cylindricalWithPhiToCartesian(self, cyl_phi_coords):
-        '''
-        Converts cylindrical coordinates with phi instead of z (r, theta, phi) to cartesian coordinates
-        '''
-        r, theta, phi = cyl_phi_coords
-        cartesian_coords = (r * np.cos(theta),
-                            r * np.sin(theta),
-                            r / np.tan(phi))
-        return cartesian_coords
-
 
 class GlSphericalPoints(GlVertices):
     def __init__(self,
@@ -289,21 +311,12 @@ class GlSphericalPoints(GlVertices):
 
         cartesian_coords = []
         for pt in range(len(theta)):
-            cartesian_coords.append(self.sphericalToCartesian((sphere_radius, np.pi/2 + radians(theta[pt]), np.pi/2 + radians(phi[pt]))))
+            cartesian_coords.append(spherical_to_cartesian(sphere_radius, np.pi/2 + radians(theta[pt]), np.pi/2 + radians(phi[pt])))
 
         vertices = np.vstack(cartesian_coords).T  # 3 x n_points
         colors = matlib.repmat(color, len(theta), 1).T  # 4 x n_points
 
         super().__init__(vertices=vertices, colors=colors)
-
-    def sphericalToCartesian(self, spherical_coords):
-        r, theta, phi = spherical_coords
-        cartesian_coords = (r * np.sin(phi) * np.cos(theta),
-                            r * np.sin(phi) * np.sin(theta),
-                            r * np.cos(phi))
-
-        return cartesian_coords
-
 
 class GlPointCollection(GlVertices):
     def __init__(self,
@@ -338,10 +351,10 @@ class GlCylinder(GlVertices):
         d_theta = np.radians(cylinder_angular_extent) / n_faces
         theta_start = -np.radians(cylinder_angular_extent)/2
         for face in range(n_faces):
-            v1 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, cylinder_height/2))
-            v2 = self.cylindricalToCartesian((cylinder_radius, theta_start+face*d_theta, -cylinder_height/2))
-            v3 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, -cylinder_height/2))
-            v4 = self.cylindricalToCartesian((cylinder_radius, theta_start+(face+1)*d_theta, cylinder_height/2))
+            v1 = cylindrical_to_cartesian(cylinder_radius, theta_start+face*d_theta, cylinder_height/2)
+            v2 = cylindrical_to_cartesian(cylinder_radius, theta_start+face*d_theta, -cylinder_height/2)
+            v3 = cylindrical_to_cartesian(cylinder_radius, theta_start+(face+1)*d_theta, -cylinder_height/2)
+            v4 = cylindrical_to_cartesian(cylinder_radius, theta_start+(face+1)*d_theta, cylinder_height/2)
 
             new_color = [color[0], color[1], color[2], alpha_by_face[face]]
 
@@ -355,14 +368,6 @@ class GlCylinder(GlVertices):
                                 use_texture=True).translate(cylinder_location))
             else:
                 self.add(GlQuad(v1, v2, v3, v4, color).translate(cylinder_location))
-
-    def cylindricalToCartesian(self, cylindrical_coords):
-        r, theta, z = cylindrical_coords
-        cartesian_coords = (r * np.cos(theta),
-                            r * np.sin(theta),
-                            z)
-        return cartesian_coords
-
 
 class GlCylindricalWithPhiRect(GlVertices):
     def __init__(self,
@@ -383,23 +388,12 @@ class GlCylindricalWithPhiRect(GlVertices):
                 # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
                 theta = np.pi/2 + radians(width) * (-1/2 + (cc/n_steps_x))
                 phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
-                v1 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta, phi))
-                v2 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta, phi + d_phi))
-                v3 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta + d_theta, phi))
-                v4 = self.cylindricalWithPhiToCartesian((cylinder_radius, theta + d_theta, phi + d_phi))
+                v1 = cylindrical_w_phi_to_cartesian(cylinder_radius, theta, phi)
+                v2 = cylindrical_w_phi_to_cartesian(cylinder_radius, theta, phi + d_phi)
+                v3 = cylindrical_w_phi_to_cartesian(cylinder_radius, theta + d_theta, phi)
+                v4 = cylindrical_w_phi_to_cartesian(cylinder_radius, theta + d_theta, phi + d_phi)
                 self.add(GlTri(v1, v2, v4, color))
                 self.add(GlTri(v1, v3, v4, color))
-
-    def cylindricalWithPhiToCartesian(self, cyl_phi_coords):
-        '''
-        Converts cylindrical coordinates with phi instead of z (r, theta, phi) to cartesian coordinates
-        '''
-        r, theta, phi = cyl_phi_coords
-        cartesian_coords = (r * np.cos(theta),
-                            r * np.sin(theta),
-                            r / np.tan(phi))
-        return cartesian_coords
-
 
 def getColorList(color_input):
     '''
