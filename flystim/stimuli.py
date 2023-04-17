@@ -1138,6 +1138,49 @@ class MovingDotField_Cylindrical(BaseProgram):
         for pt in range(self.n_points):
             self.stim_object.add(self.stim_object_list[pt].rotz(dtheta).roty(self.dir_list[pt]).rotx(cyl_pitch))
 
+class UniformMovingDotField_Cylindrical(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=10000)
+        self.draw_mode = 'POINTS'
+
+    def configure(self, n_points=20, point_size=20, cylinder_radius=1, color=[1, 1, 1, 1],
+                  speed=40, direction=0, random_seed=0, cylinder_pitch=0, phi_limits=[0, 180]):
+        """
+        Collection of moving points that move on a rotating cylinder. Tunable coherence.
+
+        Note that points are all the same size, so no area correction is made for perspective
+        """
+        self.n_points = n_points
+        self.point_size = point_size
+        self.cylinder_radius = cylinder_radius
+        self.color = color
+        self.speed = speed  # Deg/sec
+        self.direction = direction  # In theta/phi plane. [0, 360] degrees
+        self.random_seed = random_seed
+        # Pitch to the entire cylinder on which dots move. Shifts direction axes
+        # Note this pitch happens after the phi limits, so ultimate phi limits are changed by pitch
+        self.cylinder_pitch = cylinder_pitch  # Degrees.
+        self.phi_limits = phi_limits  # [lower, upper], degrees. Default = entire elevation range (0, 180)
+
+        self.stim_object = GlVertices()
+
+        # Set random seed
+        rng = default_rng(self.random_seed)
+        self.starting_theta = rng.uniform(0, 360, self.n_points)  # degrees
+        self.starting_phi = rng.uniform(self.phi_limits[0], self.phi_limits[1], self.n_points)  # degrees
+
+        self.stim_object_list = []
+        self.direction_rad = np.radians(self.direction)
+        self.stim_object_template = GlCylindricalPoints(cylinder_radius=self.cylinder_radius,
+                                                        color=self.color,
+                                                        theta=self.starting_theta,
+                                                        phi=self.starting_phi)
+
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        cyl_pitch = np.radians(self.cylinder_pitch)
+        dtheta = np.radians(self.speed * t)
+        self.stim_object = copy.copy(self.stim_object_template).rotz(dtheta).roty(self.direction_rad).rotx(cyl_pitch)
 
 class ProgressiveStarfield(BaseProgram):
     def __init__(self, screen):
