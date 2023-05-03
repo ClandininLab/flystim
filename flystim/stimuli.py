@@ -1131,7 +1131,7 @@ class PixMap(TexturedCylinder):
 
 
         self.last_time = 0
-        
+        self.memname=memname        
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
 

@@ -1,4 +1,6 @@
 import os
+from skimage.measure import block_reduce
+from multiprocessing import shared_memory
 from PyQt5 import QtOpenGL, QtWidgets
 
 import time
@@ -21,7 +23,7 @@ from math import radians
 
 from flyrpc.transceiver import MySocketServer
 from flyrpc.util import get_kwargs
-
+N_SCREENS=3
 
 class StimDisplay(QtOpenGL.QGLWidget):
     """
@@ -147,11 +149,16 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
             for stim in self.stim_list:
                 if self.stim_started:
+                    
                     stim.paint_at(self.get_stim_time(t),
                                   self.subscreen_viewports,
                                   perspectives,
                                   fly_position=self.global_fly_pos.copy(),
                                   fly_heading=[self.global_theta_offset+0, self.global_phi_offset+0])
+
+                    if self.reconstruct:
+                        self.memname = stim.memname
+                        self.recmemname = stim.memname + '_rec'
                 else:
                     [self.clear_viewport(viewport=x) for x in self.subscreen_viewports]
 
@@ -174,14 +181,27 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         if self.stim_started:
             # print('paintGL {:.2f} ms'.format((time.time()-t0)*1000)) #benchmarking
+            if self.reconstruct:
+                size = np.arange(10).shape
+                mem = shared_memory.SharedMemory(name=self.recmemname)
+                code = np.ndarray(size,dtype=np.uint8, buffer=mem.buf)
 
-            if self.save_pos_history:
-                self.pos_history.append(np.append(self.global_fly_pos, [self.global_theta_offset, self.global_phi_offset])) # np.append creates a copy
+                if code[self.screen.id] == 0 and code[-1] == 1:
+                    img = qimage2ndarray.rgb_view(self.grabFrameBuffer()).mean(axis=2)
+                    img = block_reduce(img, (17, 17), np.mean)
+                    self.stim_frames.append(img)
+                    code[self.screen.id] = 1
+                    # print('playa')
 
-            if self.append_stim_frames:
-                # grab frame buffer, convert to array, grab blue channel, append to list of stim_frames
-                self.stim_frames.append(qimage2ndarray.rgb_view(self.grabFrameBuffer())[:, :, 2])
-                self.current_time_index += 1
+                if code[-2] == 1 and (code[1]+code[2]+code[3]==N_SCREENS): 
+                    print('stop')
+                    self.stop_stim()
+            #     self.pos_history.append(np.append(self.global_fly_pos, [self.global_theta_offset, self.global_phi_offset])) # np.append creates a copy
+
+            # if self.append_stim_frames:
+            #     # grab frame buffer, convert to array, grab blue channel, append to list of stim_frames
+
+            #     self.current_time_index += 1
 
     ###########################################
     # control functions
@@ -214,7 +234,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         stim.configure(**stim.kwargs) # Configure stim on load
         self.stim_list.append(stim)
 
-    def start_stim(self, t, save_pos_history=False, append_stim_frames=False, pre_render=False, pre_render_timepoints=None):
+    def start_stim(self, t, save_pos_history=False, append_stim_frames=False, pre_render=False, pre_render_timepoints=None, reconstruct = False):
         """
         Start the stimulus animation, using the given time as t=0.
 
@@ -227,7 +247,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.pre_render = pre_render
         self.current_time_index = 0
         self.pre_render_timepoints = pre_render_timepoints
-
+        self.reconstruct = reconstruct
         self.save_pos_history = save_pos_history
         if save_pos_history:
             self.pos_history = []
@@ -281,18 +301,20 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.set_global_phi_offset(0)
         self.perspective = get_perspective(self.global_fly_pos, self.global_theta_offset, self.global_phi_offset, self.screen.subscreens[0].pa, self.screen.subscreens[0].pb, self.screen.subscreens[0].pc, self.screen.horizontal_flip)
 
-    def save_rendered_movie(self, file_path, downsample_xy=4):
+    def save_rendered_movie(self, file_path):
         """
         Save rendered stim frames from stim_frames as 3D np array
         Must be used with append_stim_frames in start_stim
 
         :param file_path: full file path of saved array
         """
+        
+        file_path += '_{}.npy'.format(self.screen.id)
+        mov = np.array(self.stim_frames)
         print('shape is {}'.format(len(self.stim_frames)))
-        pre_size = np.stack(self.stim_frames, axis=2).shape
-        mov = downscale_local_mean(np.stack(self.stim_frames, axis=2), factors=(downsample_xy, downsample_xy, 1)).astype('uint8')
         np.save(file_path, mov)
-        print('Downsampled from {} to {} and saved to {}'.format(pre_size, mov.shape, file_path), flush=True)
+
+        print('Downsampled to {} and saved to {}'.format(mov.shape, file_path), flush=True)
 
     def set_save_pos_history_dir(self, save_dir):
         self.save_pos_history_dir = os.path.join(save_dir, '_'.join(['screen', self.screen.name]))

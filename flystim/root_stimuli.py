@@ -1,10 +1,11 @@
+
 import numpy as np
 from multiprocessing import shared_memory
 from vidgear.gears import CamGear
 import cv2
 import atexit
 import time
-
+N_SCREENS=3
 class RootStimulus:
     def __init__(self, memname, shape=None):
         self.memname = memname
@@ -20,23 +21,34 @@ class RootStimulus:
         self.frame_bytes = frame.nbytes
         self.frame_dtype = frame.dtype
 
+        zz = np.zeros((10))
+
+
         self.memblock = shared_memory.SharedMemory(create=True,size=self.frame_bytes,name=self.memname)
         atexit.register(self.close)
+        self.recblock = shared_memory.SharedMemory(create=True,size=zz.nbytes,name=self.memname+'_rec')
+
+
         self.global_frame = np.ndarray(self.frame_shape, dtype = self.frame_dtype, buffer=self.memblock.buf)
         self.global_frame[:] = np.zeros(self.frame_shape)
+
+        self.code = np.ndarray(zz.shape, dtype = self.frame_dtype, buffer=self.recblock.buf)
+        self.code[0] = 1
+
 
     def close(self):
         self.memblock.close()
         self.memblock.unlink()
 
 class WhiteNoise(RootStimulus):
-    def __init__(self, memname, frame_shape, nominal_frame_rate, dur, seed=37, logfile=None, coverage='full'):
+    def __init__(self, memname, frame_shape, nominal_frame_rate, dur, seed=37, logfile=None, coverage='full', reconstruct=False):
         super().__init__(memname = memname)
 
-        if logfile is None:
+        if logfile is None and reconstruct is False:
             input('Must provide a log filepath...')
         else:
             self.logfile = logfile
+
         self.coverage=coverage
         self.nominal_frame_rate = nominal_frame_rate
         self.dur = dur
@@ -89,14 +101,77 @@ class WhiteNoise(RootStimulus):
         self.t = time.time()
         s.run()
 
+    def reconstruct(self):
+        # cap = CamGear(source=self.movie_path).start()
+        
+        cap = cv2.VideoCapture(self.movie_path)
+        self.img = None
+        def genframe(fr):
+            while self.code[1]+self.code[2]+self.code[3] != N_SCREENS:
+                pass
+            self.code[-1] = 0
+
+            self.code[1] = 0
+            self.code[2] = 0
+            self.code[3] = 0
+            if self.img is None:
+                ret, img = cap.read()
+                self.img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.uint8)
+
+            current_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
+            while current_frame != fr:
+                ret, img = cap.read()
+                self.img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.uint8)
+                current_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
+            
+            self.global_frame[:,:,:] =  self.img
+            self.code[-1] = 1
+             
+        
+
+        run = False
+        while not run:
+            if self.global_frame[0,0,0] == 1:
+                run = True
+        self.code[-1] = 1
+        img = None
+        t0 = time.time()
+        for idx,fr in enumerate(self.re_frame_numbers):
+            genframe(fr)
+            if idx % 10 == 0:
+                try:
+                    print('\n')
+                    print(idx/len(self.re_frame_numbers))
+                    print(time.time()-t0)
+                    print((time.time()-t0)/(idx/len(self.re_frame_numbers)))
+                except:
+                    pass
+
+        self.code[-2] = 1
+        
+        
+
+
+
+
+
+
 
 
 class NaturalMovie(RootStimulus):
-    def __init__(self, memname, movie_path, nominal_frame_rate, dur, logfile):
-        if logfile is None:
+    def __init__(self, memname, movie_path, nominal_frame_rate, dur, logfile=None,reconstruct=False, secs=None, frame_numbers=None):
+        if logfile is None and reconstruct is False:
             input('Must provide a log filepath...')
         else:
             self.logfile = logfile
+
+        if reconstruct:
+            # assert secs is not None
+            # assert frame_numbers is not None
+            
+            self.re_secs = secs
+            self.re_frame_numbers = frame_numbers
+
 
         super().__init__(memname = memname)
         self.nominal_frame_rate = nominal_frame_rate
@@ -111,8 +186,9 @@ class NaturalMovie(RootStimulus):
         self.reserve_memblock(frame)
 
         del cap
-        with open(self.logfile, 'a') as f:
-            f.write('naturalmovie - framerate: {} duration: {} file: {}\n'.format(nominal_frame_rate, dur, movie_path))
+        if not reconstruct:
+            with open(self.logfile, 'a') as f:
+                f.write('naturalmovie - framerate: {} duration: {} file: {}\n'.format(nominal_frame_rate, dur, movie_path))
 
 
     def stream(self):
@@ -130,6 +206,7 @@ class NaturalMovie(RootStimulus):
             self.global_frame[:,:,:] =  img
 
             fr = cap.stream.get(cv2.CAP_PROP_POS_FRAMES)
+            print(fr)
             writetime(time.time(), fr)
 
         tis = np.arange(0,self.dur,1/self.nominal_frame_rate)
@@ -143,5 +220,57 @@ class NaturalMovie(RootStimulus):
                 run = True
         
         s.run()
+
+
+    def reconstruct(self):
+        # cap = CamGear(source=self.movie_path).start()
+        
+        cap = cv2.VideoCapture(self.movie_path)
+        self.img = None
+        def genframe(fr):
+            while self.code[1]+self.code[2]+self.code[3] != N_SCREENS:
+                pass
+            self.code[-1] = 0
+
+            self.code[1] = 0
+            self.code[2] = 0
+            self.code[3] = 0
+            if self.img is None:
+                ret, img = cap.read()
+                self.img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.uint8)
+
+            current_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
+            while current_frame != fr:
+                ret, img = cap.read()
+                self.img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.uint8)
+                current_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
+            
+            self.global_frame[:,:,:] =  self.img
+            self.code[-1] = 1
+             
+        
+
+        run = False
+        while not run:
+            if self.global_frame[0,0,0] == 1:
+                run = True
+        self.code[-1] = 1
+        img = None
+        t0 = time.time()
+        for idx,fr in enumerate(self.re_frame_numbers):
+            genframe(fr)
+            if idx % 10 == 0:
+                try:
+                    print('\n')
+                    print(idx/len(self.re_frame_numbers))
+                    print(time.time()-t0)
+                    print((time.time()-t0)/(idx/len(self.re_frame_numbers)))
+                except:
+                    pass
+
+        self.code[-2] = 1
+        
+        
+
 
 

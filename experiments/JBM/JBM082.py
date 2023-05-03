@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import numpy as np
+from multiprocessing import shared_memory
+import coltrane
 import sys
 import os
 from flystim.root_stimuli import NaturalMovie, WhiteNoise
@@ -19,16 +22,6 @@ from time import sleep as idle
 import time
 
 def main():
-    experiment_name = __file__.split('.')[0]
-        
-    if os.path.exists('/home/baccuslab/logs/{}_log.txt'.format(experiment_name)):
-        resp = input('WARNING: {} log already exists. Delete it and continue? (y/n)'.format(experiment_name))
-        if resp == 'y':
-            os.remove('/home/baccuslab/logs/{}_log.txt'.format(experiment_name))
-        if resp == 'n':
-            sys.exit()
-
-    logfile_path = '/home/baccuslab/logs/{}_log.txt'.format(experiment_name)
 
     DM1 = '/home/baccuslab/Videos/stimulus_videos/DM1.avi'
     DM2 = '/home/baccuslab/Videos/stimulus_videos/DM2.avi'
@@ -60,280 +53,65 @@ def main():
     manager.set_idle_background(0)
     manager.start_stim()
     manager()
-    manager.stop_stim()
-    manager()
+    
 
+    
 
+    ############################################################
+    # OF Test Repeats
     manager.black_corner_square()
     manager.set_idle_background(0)
     manager()
-    idle(10)
 
-    # OF Test Repeats
-    for i in range(N_TEST):
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-        manager()
+    manager.set_global_fly_pos(0,0,-0.2) #midline of the stimulus
+    idle(INTERVAL)
+    
+    rwg = random_word.RandomWords()
+    memname = rwg.get_random_word()
+    import coltrane
+    log = coltrane.load_flystim_log('/home/baccuslab/logs/JBM075_log.txt')
 
-        manager.set_global_fly_pos(0,0,-0.2) #midline of the stimulus
-        idle(INTERVAL)
-        
-        rwg = random_word.RandomWords()
-        memname = rwg.get_random_word()
+    root_stim = NaturalMovie(memname, OF1, 29.97, TRAIN_DUR, reconstruct=True, secs=log[20]['sec'], frame_numbers=log[20]['frame_numbers'])
 
+    process = threading.Thread(target=root_stim.reconstruct).start()
+    
+    dim = get_video_dim(OF1)
 
-        root_stim = NaturalMovie(memname, OFTest, 60, TEST_DUR, logfile=logfile_path)
+    manager.load_stim(name='PixMap', memname=memname, frame_size=dim,surface='cylindrical')
+    manager()
+    
+    # Start the stimulus
+    manager.start_stim(reconstruct=True)
+    manager.start_corner_square()
+    manager()
 
-        process = threading.Thread(target=root_stim.stream).start()
-        
-        dim = get_video_dim(OFTest)
+    # Preload the stop so that extra time isnt taken setting up these calls during the idle period
+    # Meanwhile stimulus is running
 
-        manager.load_stim(name='PixMap', memname=memname, frame_size=dim,surface='cylindrical')
-        manager()
-        
-        # Start the stimulus
-        manager.start_stim()
-        manager.start_corner_square()
-        manager()
+    size = np.arange(10).shape        
+    mem = shared_memory.SharedMemory(name=memname+'_rec')
+    code = np.ndarray(size,dtype=np.uint8, buffer=mem.buf)
+    
+    running = True
+    while running:
+        if code[-2] == 1:
+            running = False
+    
+    manager.save_rendered_movie('/home/baccuslab/NS_20')
+    manager.black_corner_square()
+    manager.set_idle_background(0)
+    manager()
+    
 
-        # Preload the stop so that extra time isnt taken setting up these calls during the idle period
-        # Meanwhile stimulus is running
-        manager.stop_stim()
-        manager.black_corner_square()
-        manager.set_idle_background(0)
+    try:
+        process.terminate()
+    except:
+        pass
 
-        idle(TEST_DUR)
-        
-        
-        manager()
-        
+    idle(INTERVAL)
 
-        try:
-            process.terminate()
-        except:
-            pass
+    del root_stim,process
 
-        idle(INTERVAL)
-
-        del root_stim,process
-
-    #### TEST WN
-    for i in range(N_TEST):
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-        manager()
-
-        idle(INTERVAL)
-        
-        rwg = random_word.RandomWords()
-        memname = rwg.get_random_word()
-        root_stim = WhiteNoise(memname, (NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH), UPDATE_RATE, TEST_DUR, seed=TEST_SEED, logfile = logfile_path)
-        process = threading.Thread(target=root_stim.stream).start()
-
-        manager.load_stim(name='PixMap', memname=memname, frame_size=(NUM_PIXELS_HEIGHT,NUM_PIXELS_WIDTH,3),surface='spherical')
-        manager()
-        
-        # Start the stimulus
-        manager.start_stim()
-        manager.start_corner_square()
-        manager()
-
-        # Preload the stop so that extra time isnt taken setting up these calls during the idle period
-        # Meanwhile stimulus is running
-        manager.stop_stim()
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-
-        idle(TEST_DUR)
-        
-        manager()
-        
-
-        try:
-            process.terminate()
-        except:
-            pass
-
-        idle(INTERVAL)
-
-        del root_stim,process
-    #OF TRAIN
-    for i in range(N_TRAIN):
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-        manager()
-
-        manager.set_global_fly_pos(0,0,-0.2) #midline of the stimulus
-        idle(INTERVAL)
-        
-        rwg = random_word.RandomWords()
-        memname = rwg.get_random_word()
-
-
-        root_stim = NaturalMovie(memname, OF1, 29.97, TRAIN_DUR, logfile=logfile_path)
-
-        process = threading.Thread(target=root_stim.stream).start()
-        
-        dim = get_video_dim(OF1)
-
-        manager.load_stim(name='PixMap', memname=memname, frame_size=dim,surface='cylindrical')
-        manager()
-        
-        # Start the stimulus
-        manager.start_stim()
-        manager.start_corner_square()
-        manager()
-
-        # Preload the stop so that extra time isnt taken setting up these calls during the idle period
-        # Meanwhile stimulus is running
-        manager.stop_stim()
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-
-        idle(TRAIN_DUR)
-        
-        
-        manager()
-        
-
-        try:
-            process.terminate()
-        except:
-            pass
-
-        idle(INTERVAL)
-
-        del root_stim,process
-
-    #### TRAIN WN
-    for i in range(N_TRAIN):
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-        manager()
-
-        idle(INTERVAL)
-        
-        rwg = random_word.RandomWords()
-        memname = rwg.get_random_word()
-        root_stim = WhiteNoise(memname, (NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH), UPDATE_RATE, TRAIN_DUR, seed=TRAIN_SEED, logfile = logfile_path)
-        process = threading.Thread(target=root_stim.stream).start()
-
-        manager.load_stim(name='PixMap', memname=memname, frame_size=(NUM_PIXELS_HEIGHT,NUM_PIXELS_WIDTH,3),surface='spherical')
-        manager()
-        
-        # Start the stimulus
-        manager.start_stim()
-        manager.start_corner_square()
-        manager()
-
-        # Preload the stop so that extra time isnt taken setting up these calls during the idle period
-        # Meanwhile stimulus is running
-        manager.stop_stim()
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-
-        idle(TRAIN_DUR)
-        
-        manager()
-        
-
-        try:
-            process.terminate()
-        except:
-            pass
-
-        idle(INTERVAL)
-
-        del root_stim,process
-
-    # OF Test Repeats
-    for i in range(N_TEST):
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-        manager()
-
-        manager.set_global_fly_pos(0,0,-0.2) #midline of the stimulus
-        idle(INTERVAL)
-        
-        rwg = random_word.RandomWords()
-        memname = rwg.get_random_word()
-
-
-        root_stim = NaturalMovie(memname, OFTest, 60, TEST_DUR, logfile=logfile_path)
-
-        process = threading.Thread(target=root_stim.stream).start()
-        
-        dim = get_video_dim(OFTest)
-
-        manager.load_stim(name='PixMap', memname=memname, frame_size=dim,surface='cylindrical')
-        manager()
-        
-        # Start the stimulus
-        manager.start_stim()
-        manager.start_corner_square()
-        manager()
-
-        # Preload the stop so that extra time isnt taken setting up these calls during the idle period
-        # Meanwhile stimulus is running
-        manager.stop_stim()
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-
-        idle(TEST_DUR)
-        
-        
-        manager()
-        
-
-        try:
-            process.terminate()
-        except:
-            pass
-
-        idle(INTERVAL)
-
-        del root_stim,process
-
-    #### TEST WN
-    for i in range(N_TEST):
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-        manager()
-
-        idle(INTERVAL)
-        
-        rwg = random_word.RandomWords()
-        memname = rwg.get_random_word()
-        root_stim = WhiteNoise(memname, (NUM_PIXELS_HEIGHT, NUM_PIXELS_WIDTH), UPDATE_RATE, TEST_DUR, seed=TEST_SEED, logfile = logfile_path)
-        process = threading.Thread(target=root_stim.stream).start()
-
-        manager.load_stim(name='PixMap', memname=memname, frame_size=(NUM_PIXELS_HEIGHT,NUM_PIXELS_WIDTH,3),surface='spherical')
-        manager()
-        
-        # Start the stimulus
-        manager.start_stim()
-        manager.start_corner_square()
-        manager()
-
-        # Preload the stop so that extra time isnt taken setting up these calls during the idle period
-        # Meanwhile stimulus is running
-        manager.stop_stim()
-        manager.black_corner_square()
-        manager.set_idle_background(0)
-
-        idle(TEST_DUR)
-        
-        manager()
-        
-
-        try:
-            process.terminate()
-        except:
-            pass
-
-        idle(INTERVAL)
-
-        del root_stim,process
 if __name__ == '__main__':
     main()
 

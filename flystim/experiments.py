@@ -10,7 +10,7 @@ def init_screens():
     aux_screen = Screen(subscreens=[get_subscreens('aux')], server_number=1, id=0, fullscreen=False, vsync=True, square_size=(0, 0), square_loc=(-1, -1), name='Aux', horizontal_flip=False)
 
     screens = [left_screen, center_screen, right_screen]
-
+    # screens = [left_screen]
     manager = flyrpc.multicall.MyMultiCall(launch_stim_server(screens))
 
     return manager
