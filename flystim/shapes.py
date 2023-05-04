@@ -103,6 +103,26 @@ class GlQuad(GlVertices):
             self.add(GlTri(v1, v2, v3, color))
             self.add(GlTri(v1, v3, v4, color))
 
+class GlCircle(GlVertices):
+    '''
+    Circle parallel to the xz plane
+    '''
+    def __init__(self, color=(1, 1, 1, 1), center=(0, 0, 0), radius=1.0, n_steps=36):
+        # call the super constructor
+        super().__init__()
+
+        color = getColorList(color)
+
+        angles = np.linspace(0, 2*np.pi, n_steps+1)
+        for wedge in range(n_steps):
+            v1 = (radians(radius)*np.sin(angles[wedge]),
+                  0,
+                  radians(radius)*np.cos(angles[wedge]))
+            v2 = (radians(radius)*np.sin(angles[wedge+1]),
+                  0,
+                  radians(radius)*np.cos(angles[wedge+1]))
+
+            self.add(GlTri(v1, v2, (0,0,0), color).translate(center))
 
 class GlCube(GlVertices):
     def __init__(self, colors=None, center=[0, 0, 0], side_length=1.0):
