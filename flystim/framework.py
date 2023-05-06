@@ -41,7 +41,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         # configure window to reside on a specific screen
         # re: https://stackoverflow.com/questions/6854947/how-to-display-a-window-on-a-secondary-display-in-pyqt
-        if platform.system() == 'Windows':
+        if screen.fullscreen:
             desktop = QtWidgets.QDesktopWidget()
             rectScreen = desktop.screenGeometry(screen.id)
             self.move(rectScreen.left(), rectScreen.top())
