@@ -11,7 +11,7 @@ from flystim import normalize, rotx, roty, rotz
 
 
 class GenPerspective:
-    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.01, far=1000, fly_pos=(0, 0, 0), horizontal_flip=False):
+    def __init__(self, pa, pb, pc, pe=(0, 0, 0), near=0.0001, far=1000, fly_pos=(0, 0, 0), horizontal_flip=False):
         # save settings
         self.pa = pa
         self.pb = pb
