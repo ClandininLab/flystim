@@ -115,12 +115,12 @@ class GlCircle(GlVertices):
 
         angles = np.linspace(0, 2*np.pi, n_steps+1)
         for wedge in range(n_steps):
-            v1 = (radians(radius)*np.sin(angles[wedge]),
+            v1 = (radius*np.sin(angles[wedge]),
                   0,
-                  radians(radius)*np.cos(angles[wedge]))
-            v2 = (radians(radius)*np.sin(angles[wedge+1]),
+                  radius*np.cos(angles[wedge]))
+            v2 = (radius*np.sin(angles[wedge+1]),
                   0,
-                  radians(radius)*np.cos(angles[wedge+1]))
+                  radius*np.cos(angles[wedge+1]))
 
             self.add(GlTri(v1, v2, (0,0,0), color).translate(center))
 
