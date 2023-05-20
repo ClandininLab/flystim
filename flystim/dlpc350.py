@@ -33,7 +33,7 @@ def make_dlpc350_objects():
                 continue
         elif platform.system() == 'Linux':
             path = d['path'].decode('utf-8')
-            if path[-2:] != '00':
+            if path[-1:] != '0':
                 continue
 
         device = hid.device()
