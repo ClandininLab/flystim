@@ -1092,7 +1092,6 @@ class IndependentDotField(BaseProgram):
 
         Note that points are all the same size, so no area correction is made for perspective
         """
-        t0 = time.time()
         self.n_points = n_points
         self.point_size = point_size
         self.sphere_radius = sphere_radius
@@ -1125,9 +1124,7 @@ class IndependentDotField(BaseProgram):
                                                       theta=[0],
                                                       phi=[0])
         
-        print('config ({:.3f})'.format(time.time()-t0))
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
-        t0 = time.time()
 
         self.stim_object = GlVertices()
         for pt in range(self.n_points):
@@ -1137,7 +1134,6 @@ class IndependentDotField(BaseProgram):
             self.stim_object.add(copy.copy(self.stim_object_template).rotate(new_theta,  # yaw
                                                                              new_phi,  # pitch
                                                                              0))
-        print('eval at ({:.3f})'.format(time.time()-t0))
 
 
 
