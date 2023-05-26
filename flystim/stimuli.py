@@ -1023,6 +1023,82 @@ class Forest(BaseProgram):
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         pass
 
+class IndependentDotField(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=10000)
+        self.draw_mode = 'POINTS'
+
+    def make_random_walk(self, origin=0, duration=1, step_size=np.pi/8, nsteps=100):
+
+        """
+        origin (position, radians)
+        duration (sec)
+        nsteps
+        """
+
+        time_steps = np.linspace(0, duration, nsteps)
+        steps = np.random.choice(a=[-step_size, 0, step_size], size=nsteps-1)
+        path = np.cumsum(np.append(origin, steps))
+
+        return {'name': 'tv_pairs',
+                'tv_pairs': list(zip(time_steps, path)),
+                'kind': 'linear'}
+
+    def configure(self, n_points=100, point_size=40, sphere_radius=1, color=[1, 1, 1, 1],
+                  theta_trajectories=None, phi_trajectories=None, random_seed=0):
+        """
+        Collection of moving points. Independent trajectories
+
+        Note that points are all the same size, so no area correction is made for perspective
+        """
+        t0 = time.time()
+        self.n_points = n_points
+        self.point_size = point_size
+        self.sphere_radius = sphere_radius
+        self.color = color
+        self.random_seed = random_seed
+
+        # Set random seed
+        rng = default_rng(self.random_seed)
+
+        if theta_trajectories is None:
+            self.theta_trajectories = [make_as_trajectory(self.make_random_walk(origin=rng.uniform(0, 2*np.pi),
+                                                                                           duration=4,
+                                                                                           step_size=np.pi/32,
+                                                                                           nsteps=50)) for x in range(self.n_points)]
+        else:
+            self.theta_trajectories = [make_as_trajectory(x) for x in theta_trajectories] 
+
+        if phi_trajectories is None:
+            self.phi_trajectories = [make_as_trajectory(self.make_random_walk(origin=rng.uniform(-np.pi/2, +np.pi/2),
+                                                                              duration=4,
+                                                                              step_size=np.pi/32,
+                                                                              nsteps=50)) for x in range(self.n_points)]
+        else:
+            self.phi_trajectories = [make_as_trajectory(x) for x in phi_trajectories] 
+
+        self.stim_object = GlVertices()
+
+        self.stim_object_template = GlSphericalPoints(sphere_radius=self.sphere_radius,
+                                                      color=self.color,
+                                                      theta=[0],
+                                                      phi=[0])
+        
+        print('config ({:.3f})'.format(time.time()-t0))
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        t0 = time.time()
+
+        self.stim_object = GlVertices()
+        for pt in range(self.n_points):
+            new_theta = return_for_time_t(self.theta_trajectories[pt], t)
+            # Bounce phi back from pi to 0. Shift by pi/2 because of offset in where point is rendered in flystim.shapes
+            new_phi = return_for_time_t(self.phi_trajectories[pt], t) % np.pi - np.pi/2
+            self.stim_object.add(copy.copy(self.stim_object_template).rotate(new_theta,  # yaw
+                                                                             new_phi,  # pitch
+                                                                             0))
+        print('eval at ({:.3f})'.format(time.time()-t0))
+
+
 
 class MovingDotField(BaseProgram):
     def __init__(self, screen):
