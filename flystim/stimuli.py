@@ -12,7 +12,8 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints
+from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints, GlCircle
+from flystim.shapes import getColorList
 from flystim import util, image
 import time  # for debugging and benchmarking
 import copy
@@ -317,6 +318,46 @@ class MovingPatch(BaseProgram):
         self.angle_prev = angle
 
 
+class LoomingCircle(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, radius=0.5, color=(1, 1, 1, 1), starting_distance=1, speed=-1, n_steps=36):
+        """
+        Circle looming towards animal.
+        
+        :param radius: radius of circle in meters
+        :param color: [r,g,b,a] or mono. Color of the circle
+        :param starting_distance: distance from animal to start the circle in meters
+        :param speed: speed of the circle in meters per second
+        :param n_steps: number of steps to draw the circle
+        """
+        self.color = make_as_trajectory(color)
+        self.speed = make_as_trajectory(speed)
+        self.starting_distance = starting_distance
+        self.radius = radius
+        self.n_steps = n_steps
+        self.t_prev = 0
+
+        self.stim_object = GlCircle(color=return_for_time_t(self.color, 0), 
+                                    center=(0, self.starting_distance, 0), 
+                                    radius=self.radius, 
+                                    n_steps=self.n_steps)
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        color = return_for_time_t(self.color, t)
+        speed = return_for_time_t(self.speed, t)
+                
+        self.stim_object = self.stim_object.translate((0, speed * (t - self.t_prev), 0)
+                                ).setColor(getColorList(color))
+        self.t_prev = t
+
+        # location = (0, self.starting_distance+ speed * t, 0)
+        # self.stim_object = GlCircle(color=color, 
+        #                             center=(0, self.starting_distance + speed*t, 0), 
+        #                             radius=self.radius, 
+        #                             n_steps=self.n_steps)        
+
 class UniformWhiteNoise(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
@@ -600,11 +641,16 @@ class CylindricalGrating(TexturedCylinder):
         n_cycles = np.floor(360/self.period)
         self.cylinder_angular_extent = n_cycles * self.period
 
+        t = 0
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+
         self.stim_object = GlCylinder(cylinder_height=self.cylinder_height,
                                       cylinder_radius=self.cylinder_radius,
                                       cylinder_angular_extent=self.cylinder_angular_extent,
                                       color=[1, 1, 1, 1],
-                                      texture=True).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+                                      texture=True).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
         self.mean = make_as_trajectory(mean)
         self.contrast = make_as_trajectory(contrast)
@@ -660,7 +706,7 @@ class RotatingGrating(CylindricalGrating):
         """
         super().configure(period=period, mean=mean, contrast=contrast, offset=offset, profile=profile,
                           color=color, cylinder_radius=cylinder_radius, cylinder_location=cylinder_location, cylinder_height=cylinder_height, theta=theta, phi=phi, angle=angle)
-        self.rate = rate
+        self.rate = make_as_trajectory(rate)
         self.hold_duration = hold_duration
         self.alpha_by_face = alpha_by_face
         if self.alpha_by_face is None:
@@ -679,8 +725,13 @@ class RotatingGrating(CylindricalGrating):
                                                texture=True)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
-        shift_u = max(t - self.hold_duration, 0) * self.rate/self.cylinder_angular_extent
-        self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(self.theta), np.radians(self.phi), np.radians(self.angle))
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        rate = return_for_time_t(self.rate, t)
+
+        shift_u = max(t - self.hold_duration, 0) * rate/self.cylinder_angular_extent
+        self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 
 class ExpandingEdges(TexturedCylinder):
@@ -697,7 +748,7 @@ class ExpandingEdges(TexturedCylinder):
         :param period: spatial period (degrees)
         :param width_0: width (degrees) of each expanding bar at the beginning
         :param vert_extent: vertical extent (degrees) of bars
-        :param theta_offset: offset of periodic bar pattern (degrees)
+        :param theta_offset: phase offset of periodic bar pattern (degrees)
         :param expander_color: color of the expanding edge [0, 1]
         :param opposite_color: color of the diminishing edge [0, 1]
         :param n_theta_pixels: number of pixels in theta for the image painted onto the cylinder
@@ -719,7 +770,7 @@ class ExpandingEdges(TexturedCylinder):
         self.expander_color = expander_color
         self.opposite_color = opposite_color
         self.width_0 = width_0 #degrees
-        self.n_x = n_theta_pixels # number of theta pixels in img (approximate, as the number of pixels in each subimage is floored)
+        self.n_x = int(n_theta_pixels) # number of theta pixels in img (approximate, as the number of pixels in each subimage is floored)
         self.hold_duration = hold_duration #seconds
 
         self.n_subimg = int(np.floor(360/self.period)) # number of subimages to be repeated
@@ -729,7 +780,7 @@ class ExpandingEdges(TexturedCylinder):
         self.subimg_mask = np.empty(self.n_x_subimg, dtype=bool)
         self.subimg = np.empty((1,self.n_x_subimg), dtype=np.uint8)
 
-        img = np.zeros((1, self.n_x)).astype(np.uint8)
+        img = np.zeros((1, int(self.n_x))).astype(np.uint8)
         self.add_texture_gl(img, texture_interpolation='NEAREST')
 
         # Only renders part of the cylinder if the period is not a divisor of 360
@@ -764,9 +815,9 @@ class ExpandingEdges(TexturedCylinder):
         self.subimg[:,~self.subimg_mask] = np.uint8(self.opposite_color * 255)
         img = np.tile(self.subimg, self.n_subimg)
 
-        #img[:, :tiled_img.shape[1]] = tiled_img
-
-        # TODO: theta_offset. rotate img using np.roll
+        # theta_offset
+        theta_offset_degs = self.period * (self.theta_offset / 360)
+        img = np.roll(img, int(np.round(theta_offset_degs * self.n_x / 360)), axis=1)
 
         self.update_texture_gl(img)
 
@@ -1249,6 +1300,49 @@ class MovingDotField_Cylindrical(BaseProgram):
         for pt in range(self.n_points):
             self.stim_object.add(self.stim_object_list[pt].rotz(dtheta).roty(self.dir_list[pt]).rotx(cyl_pitch))
 
+class UniformMovingDotField_Cylindrical(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=10000)
+        self.draw_mode = 'POINTS'
+
+    def configure(self, n_points=20, point_size=20, cylinder_radius=1, color=[1, 1, 1, 1],
+                  speed=40, direction=0, random_seed=0, cylinder_pitch=0, phi_limits=[0, 180]):
+        """
+        Collection of moving points that move on a rotating cylinder. Tunable coherence.
+
+        Note that points are all the same size, so no area correction is made for perspective
+        """
+        self.n_points = n_points
+        self.point_size = point_size
+        self.cylinder_radius = cylinder_radius
+        self.color = color
+        self.speed = speed  # Deg/sec
+        self.direction = direction  # In theta/phi plane. [0, 360] degrees
+        self.random_seed = random_seed
+        # Pitch to the entire cylinder on which dots move. Shifts direction axes
+        # Note this pitch happens after the phi limits, so ultimate phi limits are changed by pitch
+        self.cylinder_pitch = cylinder_pitch  # Degrees.
+        self.phi_limits = phi_limits  # [lower, upper], degrees. Default = entire elevation range (0, 180)
+
+        self.stim_object = GlVertices()
+
+        # Set random seed
+        rng = default_rng(self.random_seed)
+        self.starting_theta = rng.uniform(0, 360, self.n_points)  # degrees
+        self.starting_phi = rng.uniform(self.phi_limits[0], self.phi_limits[1], self.n_points)  # degrees
+
+        self.stim_object_list = []
+        self.direction_rad = np.radians(self.direction)
+        self.stim_object_template = GlCylindricalPoints(cylinder_radius=self.cylinder_radius,
+                                                        color=self.color,
+                                                        theta=self.starting_theta,
+                                                        phi=self.starting_phi)
+
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        cyl_pitch = np.radians(self.cylinder_pitch)
+        dtheta = np.radians(self.speed * t)
+        self.stim_object = copy.copy(self.stim_object_template).rotz(dtheta).roty(self.direction_rad).rotx(cyl_pitch)
 
 class ProgressiveStarfield(BaseProgram):
     def __init__(self, screen):

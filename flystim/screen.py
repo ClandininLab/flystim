@@ -39,7 +39,7 @@ class SubScreen:
         # ref: https://github.com/pyqtgraph/pyqtgraph/issues/422
         x = (1+self.viewport_ll[0]) * display_width/2
         y = (1+self.viewport_ll[1]) * display_height/2
-        return (x, y, (self.viewport_width/2)*display_width, (self.viewport_height/2)*display_height)
+        return (int(x), int(y), int((self.viewport_width/2)*display_width), int((self.viewport_height/2)*display_height))
 
 
     def serialize(self):

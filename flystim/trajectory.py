@@ -73,9 +73,12 @@ class Trajectory:
 
             :rv_ratio: sec
             :stim_time: sec
-            :start_size: deg.
-            :end_size: deg.
+            :start_size: deg., diameter of spot
+            :end_size: deg., diameter of spot
+
+            : returns RADIUS of spot for time t
             """
+
             def get_loom_size(t):
                 # calculate angular size at t
                 angular_size = 2 * np.rad2deg(np.arctan(kwargs['rv_ratio'] * (1 / (kwargs['stim_time'] - t))))
@@ -90,6 +93,51 @@ class Trajectory:
                     angular_size = kwargs['end_size']
 
                 # divide by  2 to get spot radius
+                return angular_size / 2
+            self.getValue = get_loom_size
+
+        elif kwargs['name'] == 'Loom_Gabb':
+            """
+            Expanding loom trajectory defined by rv ratio and collision time
+            See def'n in Gabbiani et al., 1999
+            https://www.jneurosci.org/content/jneuro/19/3/1122.full.pdf
+
+            :rv_ratio: sec. Ratio of object physical length to approach speed
+            :end_radius: deg., maximum radius of spot
+            :collision_time: sec., time at which object is 180 deg
+
+            : returns radius of spot for time t
+            """
+
+            def get_loom_size(t):
+                # note this is spot radius
+                angular_size = np.rad2deg( np.arctan( kwargs['rv_ratio'] / (kwargs['collision_time'] - t) ) )
+                # Cap the curve at end_size and have it just hang there
+                if (angular_size > kwargs['end_radius']):
+                    angular_size = kwargs['end_radius']
+
+                # Freeze it at the max in case there is more stim time to go
+                if t > kwargs['collision_time']:
+                    angular_size = kwargs['end_radius']
+
+                return angular_size
+            self.getValue = get_loom_size
+            
+        elif kwargs['name'] == 'Loom2':
+            """
+            Expanding loom trajectory. Fixed loom expansion rate based on rv_ratio.
+
+            :rv_ratio: sec
+            :start_size: deg.
+            :end_size: deg.
+            """
+            def get_loom_size(t):
+                # calculate angular size at t
+                d0 = kwargs['rv_ratio'] / np.tan(np.deg2rad(kwargs['start_size'] / 2))
+                angular_size = 2 * np.rad2deg(np.arctan(kwargs['rv_ratio'] * (1 / (d0 - t))))
+                # Cap the curve at end_size and have it just hang there
+                if angular_size > kwargs['end_size'] or d0 <= t:
+                    angular_size = kwargs['end_size']
                 return angular_size / 2
             self.getValue = get_loom_size
 
