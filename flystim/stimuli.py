@@ -12,7 +12,8 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints
+from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints, GlCircle
+from flystim.shapes import getColorList
 from flystim import util, image
 import time  # for debugging and benchmarking
 import copy
@@ -219,6 +220,46 @@ class MovingPatch(BaseProgram):
                                            sphere_radius=self.sphere_radius,
                                            color=color).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
+
+class LoomingCircle(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, radius=0.5, color=(1, 1, 1, 1), starting_distance=1, speed=-1, n_steps=36):
+        """
+        Circle looming towards animal.
+        
+        :param radius: radius of circle in meters
+        :param color: [r,g,b,a] or mono. Color of the circle
+        :param starting_distance: distance from animal to start the circle in meters
+        :param speed: speed of the circle in meters per second
+        :param n_steps: number of steps to draw the circle
+        """
+        self.color = make_as_trajectory(color)
+        self.speed = make_as_trajectory(speed)
+        self.starting_distance = starting_distance
+        self.radius = radius
+        self.n_steps = n_steps
+        self.t_prev = 0
+
+        self.stim_object = GlCircle(color=return_for_time_t(self.color, 0), 
+                                    center=(0, self.starting_distance, 0), 
+                                    radius=self.radius, 
+                                    n_steps=self.n_steps)
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        color = return_for_time_t(self.color, t)
+        speed = return_for_time_t(self.speed, t)
+                
+        self.stim_object = self.stim_object.translate((0, speed * (t - self.t_prev), 0)
+                                ).setColor(getColorList(color))
+        self.t_prev = t
+
+        # location = (0, self.starting_distance+ speed * t, 0)
+        # self.stim_object = GlCircle(color=color, 
+        #                             center=(0, self.starting_distance + speed*t, 0), 
+        #                             radius=self.radius, 
+        #                             n_steps=self.n_steps)        
 
 class UniformWhiteNoise(BaseProgram):
     def __init__(self, screen):
