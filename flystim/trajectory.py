@@ -46,7 +46,7 @@ class Trajectory:
             times, values = zip(*kwargs['tv_pairs'])
             self.getValue = interp1d(times, values, kind=kwargs['kind'], fill_value='extrapolate', axis=0)
 
-        if kwargs['name'] == 'tv_pairs_bounded':
+        elif kwargs['name'] == 'tv_pairs_bounded':
             """
             List of arbitrary time-value pairs. 
             Values are optionally bounded by a lower and upper bound, and wrap around if they exceed the bounds.
