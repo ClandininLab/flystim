@@ -41,9 +41,31 @@ class Trajectory:
             List of arbitrary time-value pairs.
 
             :tv_pairs: list of time, value tuples. [(t0, v0), (t1, v1), ..., (tn, vn)]
+            :kind: interpolation type. See scipy.interpolate.interp1d for options.
             """
             times, values = zip(*kwargs['tv_pairs'])
             self.getValue = interp1d(times, values, kind=kwargs['kind'], fill_value='extrapolate', axis=0)
+
+        if kwargs['name'] == 'tv_pairs_bounded':
+            """
+            List of arbitrary time-value pairs. 
+            Values are optionally bounded by a lower and upper bound, and wrap around if they exceed the bounds.
+
+            :tv_pairs: list of time, value tuples. [(t0, v0), (t1, v1), ..., (tn, vn)]
+            :kind: interpolation type. See scipy.interpolate.interp1d for options.
+            :bounds: lower and upper bounds for the value. (lower, upper) or None for no bounds.
+            """
+            times, values = zip(*kwargs['tv_pairs'])
+            values_interpolated = interp1d(times, values, kind=kwargs['kind'], fill_value='extrapolate', axis=0)
+            
+            if kwargs.get('bounds', None) is None:
+                self.getValue = values_interpolated
+            else:            
+                lo = min(*kwargs['bounds'])
+                hi = max(*kwargs['bounds'])
+                bound_range = hi - lo
+                self.getValue = lambda t: np.mod(values_interpolated(t) - lo, bound_range) + lo
+            
         elif kwargs['name'] == 'Sinusoid':
             """
             Temporal sinusoid trajectory.
