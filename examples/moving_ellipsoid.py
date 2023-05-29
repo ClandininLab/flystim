@@ -28,23 +28,19 @@ def main():
                         'tv_pairs': [(0, 0), (stim_time, 0)],
                         'kind': 'linear'}
 
-    color_trajectory = {'name': 'tv_pairs',
-                        'tv_pairs': [(0, (0, 0, 0, 1)), (stim_time/2, (0, 1, 0, 1)), (stim_time, (0, 1, 1, 1))],
-                        'kind': 'linear'}
-    
     manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=False))
 
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
-    manager.load_stim(name='MovingBox', x_length=1, y_length=2, z_length=1, color=color_trajectory, 
+    manager.load_stim(name='MovingEllipsoid', x_length=2, y_length=1, z_length=1, color=None, 
                                         x=x_trajectory, y=y_trajectory, z=z_trajectory, 
                                         yaw=yaw_trajectory, pitch=pitch_trajectory, roll=roll_trajectory, 
-                                        hold=True)
+                                        n_subdivisions=6, hold=True)
 
     sleep(1)
 
     manager.start_stim()
-    sleep(2)
+    sleep(stim_time)
  
     manager.stop_stim(print_profile=True)
     sleep(1)

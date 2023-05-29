@@ -12,7 +12,7 @@ import array
 from flystim.base import BaseProgram
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 import flystim.distribution as distribution
-from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints, GlCircle, GlBox
+from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, GlPointCollection, GlCylindricalPoints, GlCircle, GlBox, GlIcosphere
 from flystim.shapes import getColorList
 from flystim import util, image
 import time  # for debugging and benchmarking
@@ -259,7 +259,7 @@ class MovingBox(BaseProgram):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
-    def configure(self, x_length=1, y_length=1, z_length=1, color=[1, 1, 1, 1], x=0, y=0, z=0, theta=0, phi=0, angle=0):
+    def configure(self, x_length=1, y_length=1, z_length=1, color=[1, 1, 1, 1], x=0, y=0, z=0, yaw=0, pitch=0, roll=0):
         """
         Stimulus consisting of a rectangular patch on the surface of a sphere. Patch is rectangular in spherical coordinates.
 
@@ -270,9 +270,9 @@ class MovingBox(BaseProgram):
         :param x: meters, x position of center of sphere
         :param y: meters, y position of center of sphere
         :param z: meters, z position of center of sphere
-        :param theta: degrees, yaw rotation around z axis
-        :param phi: degrees, pitch rotation around y axis
-        :param angle: degrees, roll rotation around x axis
+        :param yaw: degrees, rotation around z axis
+        :param pitch: degrees, rotation around y axis
+        :param roll: degrees, rotation around x axis
         *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
         """
         self.x_length = make_as_trajectory(x_length)
@@ -282,9 +282,9 @@ class MovingBox(BaseProgram):
         self.x = make_as_trajectory(x)
         self.y = make_as_trajectory(y)
         self.z = make_as_trajectory(z)
-        self.theta = make_as_trajectory(theta)
-        self.phi = make_as_trajectory(phi)
-        self.angle = make_as_trajectory(angle)
+        self.yaw = make_as_trajectory(yaw)
+        self.pitch = make_as_trajectory(pitch)
+        self.roll = make_as_trajectory(roll)
         
         color = (0,0,0,1)
         colors = {'+x': color, '-x': color,
@@ -300,15 +300,67 @@ class MovingBox(BaseProgram):
         x        = return_for_time_t(self.x, t)
         y        = return_for_time_t(self.y, t)
         z        = return_for_time_t(self.z, t)
-        theta    = return_for_time_t(self.theta, t)
-        phi      = return_for_time_t(self.phi, t)
-        angle    = return_for_time_t(self.angle, t)
+        yaw    = return_for_time_t(self.yaw, t)
+        pitch      = return_for_time_t(self.pitch, t)
+        roll    = return_for_time_t(self.roll, t)
 
         self.stim_object = copy.copy(self.stim_object_template
                                     ).scale(np.array([x_length, y_length, z_length]).reshape(3,1)
-                                    ).rotate(np.radians(theta), np.radians(phi), np.radians(angle)
+                                    ).rotate(np.radians(yaw), np.radians(pitch), np.radians(roll)
                                     ).translate((x, y, z)
                                     ).setColor(getColorList(color))
+
+class MovingEllipsoid(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=1000)
+
+    def configure(self, x_length=1, y_length=1, z_length=1, color=[1, 1, 1, 1], x=0, y=0, z=0, yaw=0, pitch=0, roll=0, n_subdivisions=6):
+        """
+        Stimulus consisting of a rectangular patch on the surface of a sphere. Patch is rectangular in spherical coordinates.
+
+        :param x_length: meters, x length of ellipsoid
+        :param y_length: meters, y length of ellipsoid
+        :param z_length: meters, z length of ellipsoid
+        :param color: [r,g,b,a] or mono. Color of the box
+        :param x: meters, x position of center of ellipsoid
+        :param y: meters, y position of center of ellipsoid
+        :param z: meters, z position of center of ellipsoid
+        :param yaw: degrees, rotation around z axis
+        :param pitch: degrees, rotation around y axis
+        :param roll: degrees, rotation around x axis
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.x_length = make_as_trajectory(x_length)
+        self.y_length = make_as_trajectory(y_length)
+        self.z_length = make_as_trajectory(z_length)
+        self.color = make_as_trajectory(color) if color is not None else None
+        self.x = make_as_trajectory(x)
+        self.y = make_as_trajectory(y)
+        self.z = make_as_trajectory(z)
+        self.yaw = make_as_trajectory(yaw)
+        self.pitch = make_as_trajectory(pitch)
+        self.roll = make_as_trajectory(roll)
+        
+        self.stim_object_template = GlIcosphere(return_for_time_t(self.color, 0), n_subdivisions)
+        
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        x_length = return_for_time_t(self.x_length, t)
+        y_length = return_for_time_t(self.y_length, t)
+        z_length = return_for_time_t(self.z_length, t)
+        color    = return_for_time_t(self.color, t)
+        x        = return_for_time_t(self.x, t)
+        y        = return_for_time_t(self.y, t)
+        z        = return_for_time_t(self.z, t)
+        yaw    = return_for_time_t(self.yaw, t)
+        pitch      = return_for_time_t(self.pitch, t)
+        roll    = return_for_time_t(self.roll, t)
+
+        self.stim_object = copy.copy(self.stim_object_template
+                                    ).scale(0.5*np.array((x_length, y_length, z_length)).reshape(3,1)
+                                    ).rotate(np.radians(yaw), np.radians(pitch), np.radians(roll)
+                                    ).translate((x, y, z))
+        if self.color is not None:
+            self.stim_object.setColor(getColorList(color))
 
 class UniformWhiteNoise(BaseProgram):
     def __init__(self, screen):
