@@ -413,23 +413,23 @@ class GlFly(GlVertices):
     
     class Head(GlVertices):
         class Eye(GlVertices):
-            def __init__(self, color=(1,0,0,1)):
+            def __init__(self, color=(1,0,0,1), n_subdivisions=5):
                 super().__init__()
-                self.add(GlIcosphere(colors=color, n_subdivisions=4
+                self.add(GlIcosphere(colors=color, n_subdivisions=n_subdivisions
                                     ).scale(np.asarray([0.75, 0.5, 1]).reshape(3,1)
                                     ))
 
-        def __init__(self, head_color=(0,0,0,1), eye_color=(1,0,0,1)):
+        def __init__(self, head_color=(0,0,0,1), eye_color=(1,0,0,1), n_subdivisions=5):
             super().__init__()
             # Head
-            self.add(GlIcosphere(colors=head_color, n_subdivisions=5
+            self.add(GlIcosphere(colors=head_color, n_subdivisions=n_subdivisions
                                  ).scale(np.asarray([0.9, 0.8, 1]).reshape(3,1)
                                  ))
 
             # Eyes (left, right)
-            self.add(GlFly.Head.Eye(color=eye_color
+            self.add(GlFly.Head.Eye(color=eye_color, n_subdivisions=n_subdivisions
                                     ).scale(0.9).rotz(radians(+20)).translate((+0.25, 0.35, 0)))
-            self.add(GlFly.Head.Eye(color=eye_color
+            self.add(GlFly.Head.Eye(color=eye_color, n_subdivisions=n_subdivisions
                                     ).scale(0.9).rotz(radians(-20)).translate((-0.25, 0.35, 0)))
     
     class Thorax(GlVertices):
@@ -441,12 +441,12 @@ class GlFly(GlVertices):
                                     ).scale(np.asarray([0.5, 1, 1]).reshape(3,1)
                                     ).rotx(np.pi/2
                                     ))
-        def __init__(self, thorax_color=(0.2,0.2,0.2,1), wing_color=(0.5,0.5,0.5,1)):
+        def __init__(self, thorax_color=(0.2,0.2,0.2,1), wing_color=(0.5,0.5,0.5,1), n_subdivisions=5):
             super().__init__()
             # color = getColorTuple(color)
 
             # Thorax
-            self.add(GlIcosphere(colors=thorax_color, n_subdivisions=5
+            self.add(GlIcosphere(colors=thorax_color, n_subdivisions=n_subdivisions
                                  ).scale(np.asarray([1, 0.75, 0.75]).reshape(3,1)
                                  ))
             
@@ -461,13 +461,13 @@ class GlFly(GlVertices):
                                 ).translate((+0.4, -1.25, 0.5)))
     
     class Abdomen(GlVertices):
-        def __init__(self, color=(0,0,0,1)):
+        def __init__(self, color=(0,0,0,1), n_subdivisions=5):
             super().__init__()
-            self.add(GlIcosphere(colors=color, n_subdivisions=5
+            self.add(GlIcosphere(colors=color, n_subdivisions=n_subdivisions
                                 ).scale(np.asarray([1, 1.4, 0.75]).reshape(3,1)
                                 ))
     
-    def __init__(self, size=1, color=None):
+    def __init__(self, size=1, color=None, n_subdivisions=5):
         super().__init__()
         
         if color is None:
@@ -491,18 +491,18 @@ class GlFly(GlVertices):
             color['eye'] = (1,0,0,1)
         
         # Head
-        self.add(GlFly.Head(head_color=color['head'], eye_color=color['eye']
+        self.add(GlFly.Head(head_color=color['head'], eye_color=color['eye'], n_subdivisions=n_subdivisions
                             ).scale(0.7
                             ).rotx(np.deg2rad(-20)
                             ).translate((0, 1, 0)))
 
         # Thorax
-        self.add(GlFly.Thorax(thorax_color=color['thorax'], wing_color=color['wing']
+        self.add(GlFly.Thorax(thorax_color=color['thorax'], wing_color=color['wing'], n_subdivisions=n_subdivisions
                             ).scale(1
                             ).translate((0, 0, 0.1)))
 
         # Abdomen
-        self.add(GlFly.Abdomen(color=color['abdomen']
+        self.add(GlFly.Abdomen(color=color['abdomen'], n_subdivisions=n_subdivisions
                             ).scale(1
                             ).rotx(np.deg2rad(20)
                             ).translate((0, -1, -0.15)))
