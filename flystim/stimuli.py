@@ -16,7 +16,7 @@ from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWit
                             GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, \
                             GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, \
                             GlPointCollection, GlCylindricalPoints, GlCircle, GlBox, GlIcosphere, GlFly
-from flystim.shapes import getColorList
+from flystim.shapes import getColorTuple
 from flystim import util, image
 import time  # for debugging and benchmarking
 import copy
@@ -255,7 +255,7 @@ class LoomingCircle(BaseProgram):
         speed = return_for_time_t(self.speed, t)
                 
         self.stim_object = self.stim_object.translate((0, speed * (t - self.t_prev), 0)
-                                ).setColor(getColorList(color))
+                                ).setColor(getColorTuple(color))
         self.t_prev = t
 
 class MovingBox(BaseProgram):
@@ -311,7 +311,7 @@ class MovingBox(BaseProgram):
                                     ).scale(np.array([x_length, y_length, z_length]).reshape(3,1)
                                     ).rotate(np.radians(yaw), np.radians(pitch), np.radians(roll)
                                     ).translate((x, y, z)
-                                    ).setColor(getColorList(color))
+                                    ).setColor(getColorTuple(color))
 
 class MovingEllipsoid(BaseProgram):
     def __init__(self, screen):
@@ -363,7 +363,7 @@ class MovingEllipsoid(BaseProgram):
                                     ).rotate(np.radians(yaw), np.radians(pitch), np.radians(roll)
                                     ).translate((x, y, z))
         if self.color is not None:
-            self.stim_object.setColor(getColorList(color))
+            self.stim_object.setColor(getColorTuple(color))
 
 class MovingFly(BaseProgram):
     def __init__(self, screen):
@@ -409,7 +409,7 @@ class MovingFly(BaseProgram):
                                     ).rotate(np.radians(yaw), np.radians(pitch), np.radians(roll)
                                     ).translate((x, y, z))
         # if self.color is not None: #TODO: fix coloring
-        #     self.stim_object.setColor(getColorList(color))
+        #     self.stim_object.setColor(getColorTuple(color))
 
 class UniformWhiteNoise(BaseProgram):
     def __init__(self, screen):

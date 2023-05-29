@@ -111,7 +111,7 @@ class GlCircle(GlVertices):
         # call the super constructor
         super().__init__()
 
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         angles = np.linspace(0, 2*np.pi, n_steps+1)
         for wedge in range(n_steps):
@@ -199,7 +199,7 @@ class GlSphericalRect(GlVertices):
                  n_steps_x=6,
                  n_steps_y=6):
         super().__init__()
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -227,7 +227,7 @@ class GlSphericalTexturedRect(GlVertices):
                  texture=False,
                  texture_shift=(0, 0)):
         super().__init__()
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -266,7 +266,7 @@ class GlSphericalEllipse(GlVertices):
                  sphere_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of sphere
                  n_steps=36):
         super().__init__()
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         v_center = spherical_to_cartesian(sphere_radius, np.pi/2, np.pi/2)
 
@@ -292,7 +292,7 @@ class GlCylindricalWithPhiEllipse(GlVertices):
                  cylinder_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of cylinder
                  n_steps=36):
         super().__init__()
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         v_center = cylindrical_w_phi_to_cartesian(cylinder_radius, np.pi/2, np.pi/2)
 
@@ -317,7 +317,7 @@ class GlSphericalCirc(GlVertices):
                  sphere_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of sphere
                  n_steps=36):
         super().__init__()
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         v_center = spherical_to_cartesian(sphere_radius, np.pi/2, np.pi/2)
 
@@ -342,7 +342,7 @@ class GlCylindricalPoints(GlVertices):
                  theta=[0],
                  phi=[0]):
 
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         cartesian_coords = []
         for pt in range(len(theta)):
@@ -360,7 +360,7 @@ class GlSphericalPoints(GlVertices):
                  theta=[0],
                  phi=[0]):
 
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         cartesian_coords = []
         for pt in range(len(theta)):
@@ -375,7 +375,7 @@ class GlPointCollection(GlVertices):
     def __init__(self,
                  locations=[[0, 0, 0]],
                  color=[1, 1, 1, 1]):
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         vertices = np.vstack(locations)  # 3 x n_points
         colors = matlib.repmat(color, vertices.shape[1], 1).T  # 4 x n_points
@@ -404,7 +404,7 @@ class GlIcosphere(GlVertices):
             assert len(colors) == len(faces), 'Number of colors must match number of faces'
         
         for face, color in zip(faces, colors):
-            self.add(GlTri(vertices[face[0]], vertices[face[1]], vertices[face[2]], getColorList(color)))
+            self.add(GlTri(vertices[face[0]], vertices[face[1]], vertices[face[2]], getColorTuple(color)))
             
 class GlFly(GlVertices):
     '''
@@ -443,7 +443,7 @@ class GlFly(GlVertices):
                                     ))
         def __init__(self, thorax_color=(0.2,0.2,0.2,1), wing_color=(0.5,0.5,0.5,1)):
             super().__init__()
-            # color = getColorList(color)
+            # color = getColorTuple(color)
 
             # Thorax
             self.add(GlIcosphere(colors=thorax_color, n_subdivisions=5
@@ -522,7 +522,7 @@ class GlCylinder(GlVertices):
                  texture_shift=(0, 0)):  # (u,v) coordinates to translate texture on shape. + is right, up.
 
         super().__init__()
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         if alpha_by_face is None:
             alpha_by_face = color[3]*np.ones(n_faces)
@@ -557,7 +557,7 @@ class GlCylindricalWithPhiRect(GlVertices):
                  n_steps_x=6,
                  n_steps_y=6):
         super().__init__()
-        color = getColorList(color)
+        color = getColorTuple(color)
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -574,7 +574,7 @@ class GlCylindricalWithPhiRect(GlVertices):
                 self.add(GlTri(v1, v2, v4, color))
                 self.add(GlTri(v1, v3, v4, color))
 
-def getColorList(color_input):
+def getColorTuple(color_input):
     '''
     Takes color input and converts to RGBA tuple.
     Acceptable inputs are:
