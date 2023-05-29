@@ -398,11 +398,116 @@ class GlIcosphere(GlVertices):
             colors = np.linspace(0, 1, len(faces))
         elif isinstance(colors, tuple):
             colors = [colors] * len(faces)
+        elif isinstance(colors, (int, float)):
+            colors = [(colors, colors, colors, 1.0)] * len(faces)
         else:
             assert len(colors) == len(faces), 'Number of colors must match number of faces'
         
         for face, color in zip(faces, colors):
             self.add(GlTri(vertices[face[0]], vertices[face[1]], vertices[face[2]], getColorList(color)))
+            
+class GlFly(GlVertices):
+    '''
+    Fly facing +y axis, thorax at origin
+    '''
+    
+    class Head(GlVertices):
+        class Eye(GlVertices):
+            def __init__(self, color=(1,0,0,1)):
+                super().__init__()
+                self.add(GlIcosphere(colors=color, n_subdivisions=4
+                                    ).scale(np.asarray([0.75, 0.5, 1]).reshape(3,1)
+                                    ))
+
+        def __init__(self, head_color=(0,0,0,1), eye_color=(1,0,0,1)):
+            super().__init__()
+            # Head
+            self.add(GlIcosphere(colors=head_color, n_subdivisions=5
+                                 ).scale(np.asarray([0.9, 0.8, 1]).reshape(3,1)
+                                 ))
+
+            # Eyes (left, right)
+            self.add(GlFly.Head.Eye(color=eye_color
+                                    ).scale(0.9).rotz(radians(+20)).translate((+0.25, 0.35, 0)))
+            self.add(GlFly.Head.Eye(color=eye_color
+                                    ).scale(0.9).rotz(radians(-20)).translate((-0.25, 0.35, 0)))
+    
+    class Thorax(GlVertices):
+        class Wing(GlVertices):
+            def __init__(self, color=(0.5,0.5,0.5,1)):
+                super().__init__()
+                # Wing
+                self.add(GlCircle(color=color, center=(0, 0, 0), radius=1.0, n_steps=36
+                                    ).scale(np.asarray([0.5, 1, 1]).reshape(3,1)
+                                    ).rotx(np.pi/2
+                                    ))
+        def __init__(self, thorax_color=(0.2,0.2,0.2,1), wing_color=(0.5,0.5,0.5,1)):
+            super().__init__()
+            # color = getColorList(color)
+
+            # Thorax
+            self.add(GlIcosphere(colors=thorax_color, n_subdivisions=5
+                                 ).scale(np.asarray([1, 0.75, 0.75]).reshape(3,1)
+                                 ))
+            
+            # Wings (L, R)
+            self.add(GlFly.Thorax.Wing(color=wing_color
+                                ).scale(1.5
+                                ).rotate(np.deg2rad(+5), np.deg2rad(5), np.deg2rad(-10)
+                                ).translate((-0.4, -1.25, 0.5)))
+            self.add(GlFly.Thorax.Wing(color=wing_color
+                                ).scale(1.5
+                                ).rotate(np.deg2rad(-5), np.deg2rad(5), np.deg2rad(+10)
+                                ).translate((+0.4, -1.25, 0.5)))
+    
+    class Abdomen(GlVertices):
+        def __init__(self, color=(0,0,0,1)):
+            super().__init__()
+            self.add(GlIcosphere(colors=color, n_subdivisions=5
+                                ).scale(np.asarray([1, 1.4, 0.75]).reshape(3,1)
+                                ))
+    
+    def __init__(self, size=1, color=None):
+        super().__init__()
+        
+        if color is None:
+            color = {}
+        elif isinstance(color, tuple):
+            color = {'head':color, 
+                     'thorax':color, 
+                     'abdomen':color, 
+                     'wing':color, 
+                     'eye':color}
+        
+        if 'head' not in color:
+            color['head'] = (0.1,0.1,0.1,1)
+        if 'thorax' not in color:
+            color['thorax'] = (0.2,0.2,0.2,1)
+        if 'abdomen' not in color:
+            color['abdomen'] = (0.1,0.1,0.1,1)
+        if 'wing' not in color:
+            color['wing'] = (0.5,0.5,0.5,0.5)
+        if 'eye' not in color:
+            color['eye'] = (1,0,0,1)
+        
+        # Head
+        self.add(GlFly.Head(head_color=color['head'], eye_color=color['eye']
+                            ).scale(0.7
+                            ).rotx(np.deg2rad(-20)
+                            ).translate((0, 1, 0)))
+
+        # Thorax
+        self.add(GlFly.Thorax(thorax_color=color['thorax'], wing_color=color['wing']
+                            ).scale(1
+                            ).translate((0, 0, 0.1)))
+
+        # Abdomen
+        self.add(GlFly.Abdomen(color=color['abdomen']
+                            ).scale(1
+                            ).rotx(np.deg2rad(20)
+                            ).translate((0, -1, -0.15)))
+        
+        self.scale(size)
 
 class GlCylinder(GlVertices):
     def __init__(self,
@@ -471,18 +576,18 @@ class GlCylindricalWithPhiRect(GlVertices):
 
 def getColorList(color_input):
     '''
-    Takes color input and converts to RGBA list.
+    Takes color input and converts to RGBA tuple.
     Acceptable inputs are:
         -RGBA list, tuple, np.array
         -Scalar - assumed monochromatic and applied to RGB, with Alpha=1
 
     '''
     if np.ndim(color_input) == 0:
-        color = [color_input,  # R
+        color = (color_input,  # R
                  color_input,  # G
                  color_input,  # B
-                 1]            # Alpha
+                 1)            # Alpha
     else:
-        color = list(color_input)
+        color = tuple(color_input)
 
     return color
