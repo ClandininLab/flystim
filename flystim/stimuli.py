@@ -344,7 +344,7 @@ class MovingEllipsoid(BaseProgram):
         self.pitch = make_as_trajectory(pitch)
         self.roll = make_as_trajectory(roll)
         
-        self.stim_object_template = GlIcosphere((0,0,0,1), n_subdivisions)
+        self.stim_object_template = GlIcosphere(return_for_time_t(self.color, 0), n_subdivisions)
         
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         x_length = return_for_time_t(self.x_length, t)
@@ -362,8 +362,8 @@ class MovingEllipsoid(BaseProgram):
                                     ).scale(0.5*np.array((x_length, y_length, z_length)).reshape(3,1)
                                     ).rotate(np.radians(yaw), np.radians(pitch), np.radians(roll)
                                     ).translate((x, y, z))
-        if self.color is not None:
-            self.stim_object.setColor(getColorTuple(color))
+        # if self.color is not None: #TODO: fix coloring
+        #     self.stim_object.setColor(getColorTuple(color))
 
 class MovingFly(BaseProgram):
     def __init__(self, screen):
