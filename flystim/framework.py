@@ -7,11 +7,11 @@ import signal
 import moderngl
 import numpy as np
 import pandas as pd
-import platform
 import qimage2ndarray
 from skimage.transform import downscale_local_mean
 
 from flystim import stimuli
+from flystim import util
 from flystim.trajectory import make_as_trajectory, return_for_time_t
 
 from flystim.perspective import GenPerspective
@@ -21,7 +21,6 @@ from math import radians
 
 from flyrpc.transceiver import MySocketServer
 from flyrpc.util import get_kwargs
-
 
 class StimDisplay(QtOpenGL.QGLWidget):
     """
@@ -88,6 +87,9 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.fly_x_trajectory = None
         self.fly_y_trajectory = None
         self.fly_theta_trajectory = None
+        
+        # imported stimuli module names
+        self.imported_stimuli_module_names = []
 
     def initializeGL(self):
         # get OpenGL context
@@ -210,7 +212,17 @@ class StimDisplay(QtOpenGL.QGLWidget):
         if hold is False:
             self.stim_list = []
 
-        stim = getattr(stimuli, name)(screen=self.screen)
+        stim_classes = util.get_all_subclasses(stimuli.BaseProgram)
+        stim_class_candidates = [x for x in stim_classes if x.__name__ == name]
+        if len(stim_class_candidates) == 0:
+            print(f'No stimuli with name {name}.')
+            return
+        if len(stim_class_candidates) > 1:
+            print(f'Multiple stimuli with name {name}.')
+            print(f'Choosing the last one: {stim_class_candidates[-1]}')
+        chosen_stim_class = stim_class_candidates[-1]
+        stim = chosen_stim_class(screen=self.screen)
+
         stim.initialize(self.ctx)
         stim.kwargs = kwargs
         stim.configure(**stim.kwargs) # Configure stim on load
@@ -384,8 +396,14 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
     def set_global_phi_offset(self, value):
         self.global_phi_offset = radians(value)
-
-
+        
+    def import_stimuli_from_path(self, path):
+        # Load other stimuli from paths containing subclasses of flystim.stimuli.BaseProgram
+        barcode = util.generate_lowercase_barcode(length=10, existing_barcodes=self.imported_stimuli_module_names)
+        util.load_module_from_path(path, barcode)
+        self.imported_stimuli_module_names.append(barcode)
+        print(f'Loaded stimuli from {path} with key {barcode}')
+        
 def get_perspective(fly_pos, theta, phi, pa, pb, pc, horizontal_flip):
     """
     :param fly_pos: (x, y, z) position of fly, meters
@@ -480,6 +498,13 @@ def main():
     server.register_function(stim_display.set_global_phi_offset)
     server.register_function(stim_display.set_save_pos_history_dir)
     server.register_function(stim_display.save_pos_history_to_file)
+    server.register_function(stim_display.import_stimuli_from_path)
+    
+    # Load other stimuli from paths given in kwargs.
+    # These modules contain subclasses of flystim.stimuli.BaseProgram
+    other_stimuli_paths = kwargs.get('other_stimuli_paths', [])
+    for path in other_stimuli_paths:
+        stim_display.import_stimuli_from_path(path)
 
     # display the stimulus
     if screen.fullscreen:

@@ -12,8 +12,8 @@ def main():
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
     distribution_data = {'name': 'Ternary',
-                         'args': [0.0, 1.0],
-                         'kwargs': {}}
+                         'rand_min': 0.0,
+                         'rand_max': 1.0}
     #
     # theta_trajectory = {'name': 'tv_pairs',
     #                     'tv_pairs': [(0, -45), (4, 45)],

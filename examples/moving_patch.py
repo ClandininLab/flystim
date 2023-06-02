@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 from flystim.stim_server import launch_stim_server
 from flystim.screen import Screen
-from flystim.trajectory import Trajectory
-import numpy as np
-
 from time import sleep
 
 
@@ -12,7 +9,7 @@ def main():
 
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 
-    theta_trajectory = {'name': 'tv_pairs',
+    theta_trajectory = {'name': 'TVPairs',
                         'tv_pairs': [(0, -45), (4, 45)],
                         'kind': 'linear'}
 
@@ -21,7 +18,7 @@ def main():
     #                     'amplitude': 1,
     #                     'offset': 1}
 
-    color_trajectory = {'name': 'tv_pairs',
+    color_trajectory = {'name': 'TVPairs',
                         'tv_pairs': [(0, (0, 0, 0, 1)), (1, (0, 0, 0, 0)), (2, (0, 0, 0, 1))],
                         'kind': 'linear'}
 

@@ -1,7 +1,16 @@
 import numpy as np
+from flystim import util as futil
 
+def make_as_distribution(parameter):
+    """Return parameter as Distribution object if it is a dictionary."""
+    return futil.make_as(parameter, parent_class=Distribution)
 
-class Uniform:
+class Distribution:
+    def __init__(self):
+        raise NotImplementedError
+    
+
+class Uniform(Distribution):
     def __init__(self, rand_min, rand_max):
         self.rand_min = rand_min
         self.rand_max = rand_max
@@ -11,7 +20,7 @@ class Uniform:
         return rand_values
 
 
-class Gaussian:
+class Gaussian(Distribution):
     def __init__(self, rand_mean, rand_stdev):
         self.rand_mean = rand_mean
         self.rand_stdev = rand_stdev
@@ -21,28 +30,7 @@ class Gaussian:
         return rand_values
 
 
-class SparseBinary:
-    """
-    Ternary distribution with tunable degree of sparseness. High sparseness means lower
-    probability of min or max values being shown. Note that:
-        Sparseness of 0 is a binary, uniform distribution,
-        Sparseness of 1/3 is a standard ternary distribution
-    """
-
-    def __init__(self, rand_min, rand_max, sparseness):
-        self.rand_min = rand_min
-        self.rand_max = rand_max
-        self.mean_p = sparseness
-        self.tail_p = (1.0-sparseness)/2
-
-    def get_random_values(self, output_shape):
-        rand_values = np.random.choice([self.rand_min, (self.rand_min + self.rand_max)/2, self.rand_max],
-                                       size=output_shape,
-                                       p=(self.tail_p, self.mean_p, self.tail_p))
-        return rand_values
-
-
-class Binary:
+class Binary(Distribution):
     def __init__(self, rand_min, rand_max):
         self.rand_min = rand_min
         self.rand_max = rand_max
@@ -52,7 +40,7 @@ class Binary:
         return rand_values
 
 
-class Ternary:
+class Ternary(Distribution):
     def __init__(self, rand_min, rand_max):
         self.rand_min = rand_min
         self.rand_max = rand_max

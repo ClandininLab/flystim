@@ -8,27 +8,27 @@ from time import sleep
 def main():
     stim_time = 4
     
-    x_trajectory = {'name': 'tv_pairs',
+    x_trajectory = {'name': 'TVPairs',
                     'tv_pairs': [(0, -2), (stim_time, 2)],
                     'kind': 'linear'}
-    y_trajectory = {'name': 'tv_pairs',
+    y_trajectory = {'name': 'TVPairs',
                     'tv_pairs': [(0, 4), (stim_time, 6)],
                     'kind': 'linear'}
-    z_trajectory = {'name': 'tv_pairs',
+    z_trajectory = {'name': 'TVPairs',
                     'tv_pairs': [(0, -2), (stim_time, 2)],
                     'kind': 'linear'}
 
-    yaw_trajectory = {'name': 'tv_pairs',
+    yaw_trajectory = {'name': 'TVPairs',
                         'tv_pairs': [(0, 0), (stim_time, 90*stim_time)],
                         'kind': 'linear'}
-    pitch_trajectory   = {'name': 'tv_pairs',
+    pitch_trajectory   = {'name': 'TVPairs',
                         'tv_pairs': [(0, 0), (stim_time, 90*stim_time)],
                         'kind': 'linear'}
-    roll_trajectory = {'name': 'tv_pairs',
+    roll_trajectory = {'name': 'TVPairs',
                         'tv_pairs': [(0, 0), (stim_time, 0)],
                         'kind': 'linear'}
 
-    color_trajectory = {'name': 'tv_pairs',
+    color_trajectory = {'name': 'TVPairs',
                         'tv_pairs': [(0, (0, 0, 0, 1)), (stim_time/2, (0, 1, 0, 1)), (stim_time, (0, 1, 1, 1))],
                         'kind': 'linear'}
     
@@ -44,7 +44,7 @@ def main():
     sleep(1)
 
     manager.start_stim()
-    sleep(2)
+    sleep(stim_time)
  
     manager.stop_stim(print_profile=True)
     sleep(1)

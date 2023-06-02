@@ -1,8 +1,7 @@
 import numpy as np
 from numpy import matlib
 from math import radians
-from .util import rotx, roty, rotz, translate, scale, rotate, rot1_scale_rot2, spherical_to_cartesian, cylindrical_to_cartesian, cylindrical_w_phi_to_cartesian
-import icosphere
+from . import util
 
 class GlVertices:
     def __init__(self, vertices=None, colors=None, tex_coords=None):
@@ -35,34 +34,28 @@ class GlVertices:
         :param x: rotation around x axis (pitch), radians
         :param y: rotation around y axis (roll), radians
         """
-        return GlVertices(vertices=rotate(self.vertices, z, x, y), colors=self.colors, tex_coords=self.tex_coords)
+        return GlVertices(vertices=util.rotate(self.vertices, z, x, y), colors=self.colors, tex_coords=self.tex_coords)
 
     def rotx(self, th):
-        return GlVertices(vertices=rotx(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
+        return GlVertices(vertices=util.rotx(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
 
     def roty(self, th):
-        return GlVertices(vertices=roty(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
+        return GlVertices(vertices=util.roty(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
 
     def rotz(self, th):
-        return GlVertices(vertices=rotz(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
+        return GlVertices(vertices=util.rotz(self.vertices, th), colors=self.colors, tex_coords=self.tex_coords)
 
     def scale(self, amt):
-        return GlVertices(vertices=scale(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
-
-    def rot1_scale_rot2(self, yaw1, pitch1, roll1, scale_x, scale_y, scale_z, yaw2, pitch2, roll2):
-        '''
-        rot2 @ scale @ rot1 @ vertices
-        '''
-        return GlVertices(vertices=rot1_scale_rot2(self.vertices, yaw1, pitch1, roll1, scale_x, scale_y, scale_z, yaw2, pitch2, roll2), colors=self.colors, tex_coords=self.tex_coords)
+        return GlVertices(vertices=util.scale(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
 
     def translate(self, amt):
-        return GlVertices(vertices=translate(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
+        return GlVertices(vertices=util.translate(self.vertices, amt), colors=self.colors, tex_coords=self.tex_coords)
 
-    def setColor(self, color):
+    def set_color(self, color):
         new_colors = np.tile(np.array(color), (self.vertices.shape[1], 1)).T
         return GlVertices(vertices=self.vertices, colors=new_colors, tex_coords=self.tex_coords)
 
-    def shiftTexture(self, shift):
+    def shift_texture(self, shift):
         new_tex_coords = self.tex_coords + np.tile(shift, (self.tex_coords.shape[1], 1)).T
         return GlVertices(vertices=self.vertices, colors=self.colors, tex_coords=new_tex_coords)
 
@@ -111,7 +104,7 @@ class GlCircle(GlVertices):
         # call the super constructor
         super().__init__()
 
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
         angles = np.linspace(0, 2*np.pi, n_steps+1)
         for wedge in range(n_steps):
@@ -199,7 +192,7 @@ class GlSphericalRect(GlVertices):
                  n_steps_x=6,
                  n_steps_y=6):
         super().__init__()
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -209,10 +202,10 @@ class GlSphericalRect(GlVertices):
                 # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
                 theta = np.pi/2 + radians(width) * (-1/2 + (cc/n_steps_x))
                 phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
-                v1 = spherical_to_cartesian(sphere_radius, theta, phi)
-                v2 = spherical_to_cartesian(sphere_radius, theta, phi + d_phi)
-                v3 = spherical_to_cartesian(sphere_radius, theta + d_theta, phi)
-                v4 = spherical_to_cartesian(sphere_radius, theta + d_theta, phi + d_phi)
+                v1 = util.spherical_to_cartesian(sphere_radius, theta, phi)
+                v2 = util.spherical_to_cartesian(sphere_radius, theta, phi + d_phi)
+                v3 = util.spherical_to_cartesian(sphere_radius, theta + d_theta, phi)
+                v4 = util.spherical_to_cartesian(sphere_radius, theta + d_theta, phi + d_phi)
                 self.add(GlTri(v1, v2, v4, color))
                 self.add(GlTri(v1, v3, v4, color))
 
@@ -227,7 +220,7 @@ class GlSphericalTexturedRect(GlVertices):
                  texture=False,
                  texture_shift=(0, 0)):
         super().__init__()
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -237,10 +230,10 @@ class GlSphericalTexturedRect(GlVertices):
                 # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
                 theta = np.pi/2 + radians(width) * (-1/2 + (cc/n_steps_x))
                 phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
-                v1 = spherical_to_cartesian(sphere_radius, theta, phi)
-                v2 = spherical_to_cartesian(sphere_radius, theta, phi + d_phi)
-                v3 = spherical_to_cartesian(sphere_radius, theta + d_theta, phi)
-                v4 = spherical_to_cartesian(sphere_radius, theta + d_theta, phi + d_phi)
+                v1 = util.spherical_to_cartesian(sphere_radius, theta, phi)
+                v2 = util.spherical_to_cartesian(sphere_radius, theta, phi + d_phi)
+                v3 = util.spherical_to_cartesian(sphere_radius, theta + d_theta, phi)
+                v4 = util.spherical_to_cartesian(sphere_radius, theta + d_theta, phi + d_phi)
                 if texture:
                     tc1 = (cc/n_steps_x, rr/n_steps_y)
                     tc2 = (cc/n_steps_x, (rr+1)/n_steps_y)
@@ -266,18 +259,18 @@ class GlSphericalEllipse(GlVertices):
                  sphere_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of sphere
                  n_steps=36):
         super().__init__()
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
-        v_center = spherical_to_cartesian(sphere_radius, np.pi/2, np.pi/2)
+        v_center = util.spherical_to_cartesian(sphere_radius, np.pi/2, np.pi/2)
 
         angles = np.linspace(0, 2*np.pi, n_steps+1)
         for wedge in range(n_steps):
             # render circle at the equator (phi=pi/2) so it's not near the poles
             # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
-            v1 = spherical_to_cartesian(sphere_radius,
+            v1 = util.spherical_to_cartesian(sphere_radius,
                                         np.pi/2 + radians(width/2)*np.cos(angles[wedge]),
                                         np.pi/2 + radians(height/2)*np.sin(angles[wedge]))
-            v2 = spherical_to_cartesian(sphere_radius,
+            v2 = util.spherical_to_cartesian(sphere_radius,
                                         np.pi/2 + radians(width/2)*np.cos(angles[wedge+1]),
                                         np.pi/2 + radians(height/2)*np.sin(angles[wedge+1]))
 
@@ -292,18 +285,18 @@ class GlCylindricalWithPhiEllipse(GlVertices):
                  cylinder_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of cylinder
                  n_steps=36):
         super().__init__()
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
-        v_center = cylindrical_w_phi_to_cartesian(cylinder_radius, np.pi/2, np.pi/2)
+        v_center = util.cylindrical_w_phi_to_cartesian(cylinder_radius, np.pi/2, np.pi/2)
 
         angles = np.linspace(0, 2*np.pi, n_steps+1)
         for wedge in range(n_steps):
             # render circle at the equator (phi=pi/2) so it's not near the poles
             # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
-            v1 = cylindrical_w_phi_to_cartesian(cylinder_radius,
+            v1 = util.cylindrical_w_phi_to_cartesian(cylinder_radius,
                                             np.pi/2 + radians(width/2)*np.cos(angles[wedge]),
                                             np.pi/2 + radians(height/2)*np.sin(angles[wedge]))
-            v2 = cylindrical_w_phi_to_cartesian(cylinder_radius,
+            v2 = util.cylindrical_w_phi_to_cartesian(cylinder_radius,
                                             np.pi/2 + radians(width/2)*np.cos(angles[wedge+1]),
                                             np.pi/2 + radians(height/2)*np.sin(angles[wedge+1]))
 
@@ -317,18 +310,18 @@ class GlSphericalCirc(GlVertices):
                  sphere_location=(0, 0, 0),  # (x,y,z) meters. (0,0,0) is center of sphere
                  n_steps=36):
         super().__init__()
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
-        v_center = spherical_to_cartesian(sphere_radius, np.pi/2, np.pi/2)
+        v_center = util.spherical_to_cartesian(sphere_radius, np.pi/2, np.pi/2)
 
         angles = np.linspace(0, 2*np.pi, n_steps+1)
         for wedge in range(n_steps):
             # render circle at the equator (phi=pi/2) so it's not near the poles
             # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
-            v1 = spherical_to_cartesian(sphere_radius,
+            v1 = util.spherical_to_cartesian(sphere_radius,
                                         np.pi/2 + radians(circle_radius)*np.cos(angles[wedge]),
                                         np.pi/2 + radians(circle_radius)*np.sin(angles[wedge]))
-            v2 = spherical_to_cartesian(sphere_radius,
+            v2 = util.spherical_to_cartesian(sphere_radius,
                                         np.pi/2 + radians(circle_radius)*np.cos(angles[wedge+1]),
                                         np.pi/2 + radians(circle_radius)*np.sin(angles[wedge+1]))
 
@@ -342,11 +335,11 @@ class GlCylindricalPoints(GlVertices):
                  theta=[0],
                  phi=[0]):
 
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
         cartesian_coords = []
         for pt in range(len(theta)):
-            cartesian_coords.append(cylindrical_w_phi_to_cartesian(cylinder_radius, radians(theta[pt]), radians(phi[pt])))
+            cartesian_coords.append(util.cylindrical_w_phi_to_cartesian(cylinder_radius, radians(theta[pt]), radians(phi[pt])))
 
         vertices = np.vstack(cartesian_coords).T  # 3 x n_points
         colors = matlib.repmat(color, len(theta), 1).T  # 4 x n_points
@@ -360,11 +353,11 @@ class GlSphericalPoints(GlVertices):
                  theta=[0],
                  phi=[0]):
 
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
         cartesian_coords = []
         for pt in range(len(theta)):
-            cartesian_coords.append(spherical_to_cartesian(sphere_radius, np.pi/2 + radians(theta[pt]), np.pi/2 + radians(phi[pt])))
+            cartesian_coords.append(util.spherical_to_cartesian(sphere_radius, np.pi/2 + radians(theta[pt]), np.pi/2 + radians(phi[pt])))
 
         vertices = np.vstack(cartesian_coords).T  # 3 x n_points
         colors = matlib.repmat(color, len(theta), 1).T  # 4 x n_points
@@ -375,139 +368,12 @@ class GlPointCollection(GlVertices):
     def __init__(self,
                  locations=[[0, 0, 0]],
                  color=[1, 1, 1, 1]):
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
         vertices = np.vstack(locations)  # 3 x n_points
         colors = matlib.repmat(color, vertices.shape[1], 1).T  # 4 x n_points
 
         super().__init__(vertices=vertices, colors=colors)
-
-class GlIcosphere(GlVertices):
-    def __init__(self, colors=(1, 1, 1, 1), n_subdivisions=6):
-        '''
-        :param colors: list of colors, one for each face or a single color for all faces; None for default colors
-        :param n_subdivisions: number of subdivisions of each edge of the icosahedron. 
-                                nr_vertex = 12 + 10 * (nu**2 -1) (e.g. 1=12, 2=42, 3=92, 4=162, 5=252, 6=362)
-                                nr_face = 20 * nu**2 (e.g. 1 = 20, 2 = 80, 3 = 180, 4 = 320, 5 = 500, 6 = 720)
-        '''
-        super().__init__()
-
-        vertices, faces = icosphere.icosphere(n_subdivisions)
-        
-        if colors is None:
-            colors = np.linspace(0, 1, len(faces))
-        elif isinstance(colors, tuple):
-            colors = [colors] * len(faces)
-        elif isinstance(colors, (int, float)):
-            colors = [(colors, colors, colors, 1.0)] * len(faces)
-        else:
-            assert len(colors) == len(faces), 'Number of colors must match number of faces'
-        
-        for face, color in zip(faces, colors):
-            self.add(GlTri(vertices[face[0]], vertices[face[1]], vertices[face[2]], getColorTuple(color)))
-            
-class GlFly(GlVertices):
-    '''
-    Fly facing +y axis, thorax at origin
-    '''
-    
-    class Head(GlVertices):
-        class Eye(GlVertices):
-            def __init__(self, color=(1,0,0,1), n_subdivisions=5):
-                super().__init__()
-                self.add(GlIcosphere(colors=color, n_subdivisions=n_subdivisions
-                                    ).scale(np.asarray([0.75, 0.5, 1]).reshape(3,1)
-                                    ))
-
-        def __init__(self, head_color=(0,0,0,1), eye_color=(1,0,0,1), n_subdivisions=5):
-            super().__init__()
-            # Head
-            self.add(GlIcosphere(colors=head_color, n_subdivisions=n_subdivisions
-                                 ).scale(np.asarray([0.9, 0.8, 1]).reshape(3,1)
-                                 ))
-
-            # Eyes (left, right)
-            self.add(GlFly.Head.Eye(color=eye_color, n_subdivisions=n_subdivisions
-                                    ).scale(0.9).rotz(radians(+20)).translate((+0.25, 0.35, 0)))
-            self.add(GlFly.Head.Eye(color=eye_color, n_subdivisions=n_subdivisions
-                                    ).scale(0.9).rotz(radians(-20)).translate((-0.25, 0.35, 0)))
-    
-    class Thorax(GlVertices):
-        class Wing(GlVertices):
-            def __init__(self, color=(0.5,0.5,0.5,1)):
-                super().__init__()
-                # Wing
-                self.add(GlCircle(color=color, center=(0, 0, 0), radius=1.0, n_steps=36
-                                    ).scale(np.asarray([0.5, 1, 1]).reshape(3,1)
-                                    ).rotx(np.pi/2
-                                    ))
-        def __init__(self, thorax_color=(0.2,0.2,0.2,1), wing_color=(0.5,0.5,0.5,1), n_subdivisions=5):
-            super().__init__()
-            # color = getColorTuple(color)
-
-            # Thorax
-            self.add(GlIcosphere(colors=thorax_color, n_subdivisions=n_subdivisions
-                                 ).scale(np.asarray([1, 0.75, 0.75]).reshape(3,1)
-                                 ))
-            
-            # Wings (L, R)
-            self.add(GlFly.Thorax.Wing(color=wing_color
-                                ).scale(1.5
-                                ).rotate(np.deg2rad(+5), np.deg2rad(5), np.deg2rad(-10)
-                                ).translate((-0.4, -1.25, 0.5)))
-            self.add(GlFly.Thorax.Wing(color=wing_color
-                                ).scale(1.5
-                                ).rotate(np.deg2rad(-5), np.deg2rad(5), np.deg2rad(+10)
-                                ).translate((+0.4, -1.25, 0.5)))
-    
-    class Abdomen(GlVertices):
-        def __init__(self, color=(0,0,0,1), n_subdivisions=5):
-            super().__init__()
-            self.add(GlIcosphere(colors=color, n_subdivisions=n_subdivisions
-                                ).scale(np.asarray([1, 1.4, 0.75]).reshape(3,1)
-                                ))
-    
-    def __init__(self, size=1, color=None, n_subdivisions=5):
-        super().__init__()
-        
-        if color is None:
-            color = {}
-        elif isinstance(color, tuple):
-            color = {'head':color, 
-                     'thorax':color, 
-                     'abdomen':color, 
-                     'wing':color, 
-                     'eye':color}
-        
-        if 'head' not in color:
-            color['head'] = (0.1,0.1,0.1,1)
-        if 'thorax' not in color:
-            color['thorax'] = (0.2,0.2,0.2,1)
-        if 'abdomen' not in color:
-            color['abdomen'] = (0.1,0.1,0.1,1)
-        if 'wing' not in color:
-            color['wing'] = (0.5,0.5,0.5,0.5)
-        if 'eye' not in color:
-            color['eye'] = (1,0,0,1)
-        
-        # Head
-        self.add(GlFly.Head(head_color=color['head'], eye_color=color['eye'], n_subdivisions=n_subdivisions
-                            ).scale(0.7
-                            ).rotx(np.deg2rad(-20)
-                            ).translate((0, 1, 0)))
-
-        # Thorax
-        self.add(GlFly.Thorax(thorax_color=color['thorax'], wing_color=color['wing'], n_subdivisions=n_subdivisions
-                            ).scale(1
-                            ).translate((0, 0, 0.1)))
-
-        # Abdomen
-        self.add(GlFly.Abdomen(color=color['abdomen'], n_subdivisions=n_subdivisions
-                            ).scale(1
-                            ).rotx(np.deg2rad(20)
-                            ).translate((0, -1, -0.15)))
-        
-        self.scale(size)
 
 class GlCylinder(GlVertices):
     def __init__(self,
@@ -522,7 +388,7 @@ class GlCylinder(GlVertices):
                  texture_shift=(0, 0)):  # (u,v) coordinates to translate texture on shape. + is right, up.
 
         super().__init__()
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
         if alpha_by_face is None:
             alpha_by_face = color[3]*np.ones(n_faces)
@@ -530,10 +396,10 @@ class GlCylinder(GlVertices):
         d_theta = np.radians(cylinder_angular_extent) / n_faces
         theta_start = -np.radians(cylinder_angular_extent)/2
         for face in range(n_faces):
-            v1 = cylindrical_to_cartesian(cylinder_radius, theta_start+face*d_theta, cylinder_height/2)
-            v2 = cylindrical_to_cartesian(cylinder_radius, theta_start+face*d_theta, -cylinder_height/2)
-            v3 = cylindrical_to_cartesian(cylinder_radius, theta_start+(face+1)*d_theta, -cylinder_height/2)
-            v4 = cylindrical_to_cartesian(cylinder_radius, theta_start+(face+1)*d_theta, cylinder_height/2)
+            v1 = util.cylindrical_to_cartesian(cylinder_radius, theta_start+face*d_theta, cylinder_height/2)
+            v2 = util.cylindrical_to_cartesian(cylinder_radius, theta_start+face*d_theta, -cylinder_height/2)
+            v3 = util.cylindrical_to_cartesian(cylinder_radius, theta_start+(face+1)*d_theta, -cylinder_height/2)
+            v4 = util.cylindrical_to_cartesian(cylinder_radius, theta_start+(face+1)*d_theta, cylinder_height/2)
 
             new_color = [color[0], color[1], color[2], alpha_by_face[face]]
 
@@ -557,7 +423,7 @@ class GlCylindricalWithPhiRect(GlVertices):
                  n_steps_x=6,
                  n_steps_y=6):
         super().__init__()
-        color = getColorTuple(color)
+        color = util.get_rgba(color)
 
         d_theta = (1/n_steps_x) * radians(width)
         d_phi = (1/n_steps_y) * radians(height)
@@ -567,27 +433,9 @@ class GlCylindricalWithPhiRect(GlVertices):
                 # Also render it at theta = 90 degrees, for flystim coordinates where heading (0,0,0) is +y axis
                 theta = np.pi/2 + radians(width) * (-1/2 + (cc/n_steps_x))
                 phi = np.pi/2 + radians(height) * (-1/2 + (rr/n_steps_y))
-                v1 = cylindrical_w_phi_to_cartesian(cylinder_radius, theta, phi)
-                v2 = cylindrical_w_phi_to_cartesian(cylinder_radius, theta, phi + d_phi)
-                v3 = cylindrical_w_phi_to_cartesian(cylinder_radius, theta + d_theta, phi)
-                v4 = cylindrical_w_phi_to_cartesian(cylinder_radius, theta + d_theta, phi + d_phi)
+                v1 = util.cylindrical_w_phi_to_cartesian(cylinder_radius, theta, phi)
+                v2 = util.cylindrical_w_phi_to_cartesian(cylinder_radius, theta, phi + d_phi)
+                v3 = util.cylindrical_w_phi_to_cartesian(cylinder_radius, theta + d_theta, phi)
+                v4 = util.cylindrical_w_phi_to_cartesian(cylinder_radius, theta + d_theta, phi + d_phi)
                 self.add(GlTri(v1, v2, v4, color))
                 self.add(GlTri(v1, v3, v4, color))
-
-def getColorTuple(color_input):
-    '''
-    Takes color input and converts to RGBA tuple.
-    Acceptable inputs are:
-        -RGBA list, tuple, np.array
-        -Scalar - assumed monochromatic and applied to RGB, with Alpha=1
-
-    '''
-    if np.ndim(color_input) == 0:
-        color = (color_input,  # R
-                 color_input,  # G
-                 color_input,  # B
-                 1)            # Alpha
-    else:
-        color = tuple(color_input)
-
-    return color

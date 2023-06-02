@@ -64,7 +64,7 @@ def main():
                       color=[1, 1, 1, 1], cylinder_radius=1.1, cylinder_height=10, theta=0, phi=0, angle=90, hold=True)
 
     tv_pairs = [(0, 0), (4, 360)]
-    theta_traj = {'name': 'tv_pairs',
+    theta_traj = {'name': 'TVPairs',
                   'tv_pairs': tv_pairs,
                   'kind': 'linear'}
 

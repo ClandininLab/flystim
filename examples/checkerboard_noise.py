@@ -12,9 +12,9 @@ def main():
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100, hold=True)
 
     distribution_data = {'name': 'Ternary',
-                         'args': [0, 1],
-                         'kwargs': {}}
-
+                         'rand_min': 0,
+                         'rand_max': 1}
+    
     # manager.load_stim(name='RandomGrid', patch_width=5, patch_height=5, cylinder_vertical_extent=80, cylinder_angular_extent=120,
     #                   distribution_data=distribution_data, update_rate=1.0, start_seed=0,
     #                   color=[1, 1, 1, 1], cylinder_radius=1, theta=90, phi=0, angle=0.0, hold=True)

@@ -27,7 +27,7 @@ def main():
     # point_locations = [x_locations, y_locations, z_locations]
     #
     # velocity_y = -0.5  # m/sec
-    # y_offset = {'name': 'tv_pairs',
+    # y_offset = {'name': 'TVPairs',
     #             'tv_pairs': [(0, 0), (6, 6*velocity_y)],
     #             'kind': 'linear'}
     # manager.load_stim(name='ProgressiveStarfield', point_size=20, color=[0, 0, 0, 1],

@@ -1,21 +1,77 @@
 from math import sin, cos
 from numbers import Number
 import numpy as np
-import os
+import os, sys
 import inspect
+import importlib
+import random
+import string
 import flystim
+from .trajectory import Trajectory
 
+def load_stimuli_paths_from_file():
+    path_for_paths_to_other_stimuli = importlib.resources.files(flystim).joinpath('paths_to_other_stimuli.txt')
+    if not os.path.exists(path_for_paths_to_other_stimuli):
+        print('No paths_to_other_stimuli.txt found!')
+        print('Creating new file at paths_to_other_stimuli - please fill this in with paths (one per line) of files with any other stimuli you want to use.')
+        with open(path_for_paths_to_other_stimuli, "w") as text_file:
+            text_file.write('/path/to/other/stimuli')
 
-def get_resource_path(resource_name):
-    path_to_resource = os.path.join(inspect.getfile(flystim).split('flystim')[0],
-                                    'flystim',
-                                    'resources',
-                                    resource_name)
+    with open(path_for_paths_to_other_stimuli, "r") as paths_file:
+        other_stimuli_paths = [x for x in paths_file.readlines() if os.path.exists(x.strip())]
+        
+    return other_stimuli_paths
 
-    assert os.path.exists(path_to_resource), 'Resource not found at {}'.format(path_to_resource)
+def load_module_from_path(path, module_name=None):
+    '''
+    Load a module from specified path.
+    '''
+    if module_name is None:
+        module_name = 'loaded_module'
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    loaded_mod = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = loaded_mod
+    spec.loader.exec_module(loaded_mod)
+    return
 
-    return path_to_resource
+def generate_lowercase_barcode(length=5, existing_barcodes=[]):
+    """Generates a random barcode that is not in existing_barcodes"""
+    barcode = ''.join(random.choice(string.ascii_lowercase) for i in range(length))
+    while barcode in existing_barcodes:
+        barcode = ''.join(random.choice(string.ascii_lowercase) for i in range(length))
+    return barcode
 
+def get_all_subclasses(cls):
+    return set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in get_all_subclasses(c)])
+
+def make_as(parameter, parent_class=Trajectory):
+    """Return parameter as parent class object if it is a dictionary."""
+    if type(parameter) is dict: # trajectory-specifying dict
+        subclasses = get_all_subclasses(parent_class)
+        subclass_names = [sc.__name__ for sc in subclasses]
+        
+        assert parameter['name'] in subclass_names, f'Unrecognized subclass name {parameter["name"]} for parent class {parent_class.__name__}.'
+        
+        subclass_candidates = [sc for sc in subclasses if sc.__name__ == parameter['name']]
+        if len(subclass_candidates) > 1:
+            print(f'Multiple subclasses with name {parameter["name"]} for parent class {parent_class.__name__}.')
+            print(f'Choosing the last one: {subclass_candidates[-1]}')
+        
+        chosen_subclass = subclass_candidates[-1]
+        
+        # check that all required arguments are specified
+        traj_params = inspect.signature(chosen_subclass.__init__).parameters.values()
+        for p in traj_params:
+            if p.name != 'self' and p.kind == p.POSITIONAL_OR_KEYWORD and p.default is p.empty:
+                assert p.name in parameter, f'Required subclass parameter {p.name} not specified.'
+        
+        # remove name parameter
+        parameter.pop('name')
+        
+        return chosen_subclass(**parameter)
+    
+    else: # not specified as a dict, just return the original param
+        return parameter
 
 def listify(x, type_):
     if isinstance(x, (list, tuple)):
@@ -28,10 +84,6 @@ def listify(x, type_):
 
 def normalize(vec):
     return vec / np.linalg.norm(vec)
-
-def rot1_scale_rot2(pts, yaw1, pitch1, roll1, scale_x, scale_y, scale_z, yaw2, pitch2, roll2):
-    A = rot_mat(yaw2, pitch2, roll2) @ np.diag([scale_x, scale_y, scale_z]) @ rot_mat(yaw1, pitch1, roll1)
-    return A @ pts
 
 # rotation matrix reference:
 # https://en.wikipedia.org/wiki/Rotation_matrix

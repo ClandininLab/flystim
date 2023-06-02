@@ -108,12 +108,12 @@ def main():
     occluder_traj_l = list(zip(occluder_time, (center + np.array(occluder_x)).tolist()))
 
     # Create flystim trajectory objects
-    con_bar_r = {'name': 'tv_pairs', 'tv_pairs': con_bar_traj_r, 'kind': 'linear'}
-    con_bar_l = {'name': 'tv_pairs', 'tv_pairs': con_bar_traj_l, 'kind': 'linear'}
-    inc_bar_r = {'name': 'tv_pairs', 'tv_pairs': inc_bar_traj_r, 'kind': 'linear'}
-    inc_bar_l = {'name': 'tv_pairs', 'tv_pairs': inc_bar_traj_l, 'kind': 'linear'}
-    occluder_r = {'name': 'tv_pairs', 'tv_pairs': occluder_traj_r, 'kind': 'linear'}
-    occluder_l = {'name': 'tv_pairs', 'tv_pairs': occluder_traj_l, 'kind': 'linear'}
+    con_bar_r = {'name': 'TVPairs', 'tv_pairs': con_bar_traj_r, 'kind': 'linear'}
+    con_bar_l = {'name': 'TVPairs', 'tv_pairs': con_bar_traj_l, 'kind': 'linear'}
+    inc_bar_r = {'name': 'TVPairs', 'tv_pairs': inc_bar_traj_r, 'kind': 'linear'}
+    inc_bar_l = {'name': 'TVPairs', 'tv_pairs': inc_bar_traj_l, 'kind': 'linear'}
+    occluder_r = {'name': 'TVPairs', 'tv_pairs': occluder_traj_r, 'kind': 'linear'}
+    occluder_l = {'name': 'TVPairs', 'tv_pairs': occluder_traj_l, 'kind': 'linear'}
 
 
 

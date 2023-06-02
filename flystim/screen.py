@@ -64,7 +64,7 @@ class Screen:
     """
 
     def __init__(self, subscreens=None, server_number=None, id=None, fullscreen=None, vsync=None,
-                 square_size=None, square_loc=None, square_max_color=None, name=None, horizontal_flip=False, 
+                 square_size=None, square_loc=None, square_on_color=None, square_off_color=None, name=None, horizontal_flip=False, 
                  pa=(-0.15, 0.30, -0.15), pb=(+0.15, 0.30, -0.15), pc=(-0.15, 0.30, +0.15)):
         """
         :param subscreens: list of SubScreen objects (see above), if none are provided, one full-viewport subscreen will be produced using inputs pa, pb, pc
@@ -94,9 +94,13 @@ class Screen:
             square_size = (0.25, 0.25)
         if square_loc is None:
             square_loc = (-1, -1)
-        if square_max_color is None:
-            square_max_color = 1.0
-        square_max_color = min(square_max_color, 1.0)
+        if square_on_color is None:
+            square_on_color = 1.0
+        if square_off_color is None:
+            square_off_color = 1.0
+        square_on_color = max(min(square_on_color, 1.0), 0.0)
+        square_off_color = max(min(square_off_color, 1.0), 0.0)
+
         if name is None:
             name = 'Screen' + str(id)
 
@@ -108,7 +112,8 @@ class Screen:
         self.vsync = vsync
         self.square_size = square_size
         self.square_loc = square_loc
-        self.square_max_color = square_max_color
+        self.square_on_color = square_on_color
+        self.square_off_color = square_off_color
         self.name = name
         self.horizontal_flip = horizontal_flip
         self.pa = pa
@@ -117,7 +122,8 @@ class Screen:
 
     def serialize(self):
         # get all variables needed to reconstruct the screen object
-        vars = ['id', 'server_number', 'fullscreen', 'vsync', 'square_size', 'square_loc', 'square_max_color', 'name', 'horizontal_flip', 'pa', 'pb', 'pc']
+        vars = ['id', 'server_number', 'fullscreen', 'vsync', 'square_size', 'square_loc', 
+                'square_on_color', 'square_off_color', 'name', 'horizontal_flip', 'pa', 'pb', 'pc']
         data = {var: getattr(self, var) for var in vars}
 
         # special handling for tri_list since it could contain numpy values

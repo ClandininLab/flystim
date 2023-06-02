@@ -5,12 +5,14 @@ import numpy as np
 
 
 class SquareProgram:
-    def __init__(self, screen):
+    def __init__(self, screen, on_color=1.0, off_color=0.0):
         # save settings
         self.screen = screen
+        self.on_color = on_color
+        self.off_color = off_color
 
         # initialize settings
-        self.color = 1.0
+        self.on = True
         self.toggle = True
         self.draw = True
 
@@ -77,11 +79,11 @@ class SquareProgram:
 
         if self.draw:
             # write color
-            self.prog['color'].value = self.color * self.screen.square_max_color
+            self.prog['color'].value = self.on_color if self.on else self.off_color
 
             # Set viewport and render to screen
             self.ctx.viewport = self.viewport
             self.vao.render(mode=moderngl.TRIANGLE_STRIP)
 
         if self.toggle:
-            self.color = 1.0 - self.color
+            self.on = not self.on

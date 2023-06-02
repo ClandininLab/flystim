@@ -9,3 +9,4 @@ examples/*.dat
 examples/*.log
 resources/*
 !resources/using_resources.txt
+flystim/paths_to_other_stimuli.txt

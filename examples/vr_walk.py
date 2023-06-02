@@ -40,13 +40,13 @@ def main():
     dtheta = tt * 0.0
     theta = np.cumsum(dtheta)
 
-    fly_x_trajectory = {'name': 'tv_pairs',
+    fly_x_trajectory = {'name': 'TVPairs',
                         'tv_pairs': list(zip(tt, xx)),
                         'kind': 'linear'}
-    fly_y_trajectory = {'name': 'tv_pairs',
+    fly_y_trajectory = {'name': 'TVPairs',
                         'tv_pairs': list(zip(tt, yy)),
                         'kind': 'linear'}
-    fly_theta_trajectory = {'name': 'tv_pairs',
+    fly_theta_trajectory = {'name': 'TVPairs',
                             'tv_pairs': list(zip(tt, theta)),
                             'kind': 'linear'}
 

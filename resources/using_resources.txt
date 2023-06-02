@@ -1,4 +1,0 @@
-The contents of this directory are not tracked by git (see .gitignore file)
-You may add to it any resources (images, trajectory data, etc) that you need
-locally for flystim to generate a stimulus.
-util.get_resource_path() can be used to return the full path to a resource (if it exists on that machine)
