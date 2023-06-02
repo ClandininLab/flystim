@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 from flystim.stim_server import launch_stim_server
 from flystim.screen import Screen, SubScreen
-from flystim.trajectory import Trajectory
-from math import pi, radians
-import matplotlib.pyplot as plt
 from flystim.draw import draw_screens
 
 from time import sleep

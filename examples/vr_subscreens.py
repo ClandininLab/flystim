@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from flystim.stim_server import launch_stim_server
 from flystim.screen import Screen, SubScreen
-from flystim.trajectory import Trajectory
 import numpy as np
 from flystim.draw import draw_screens
 import flyrpc.multicall

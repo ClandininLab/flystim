@@ -4,9 +4,7 @@ import sys
 import signal
 import moderngl
 import numpy as np
-import os.path
 from argparse import ArgumentParser
-from flystim.square import SquareProgram
 
 class SpotProgram:
     def __init__(self, color=1.0):

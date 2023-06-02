@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 from flystim.stim_server import launch_stim_server
 from flystim.screen import Screen
-from flystim.trajectory import Trajectory
-import numpy as np
 
 from time import sleep
 
