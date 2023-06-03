@@ -89,7 +89,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
         self.fly_theta_trajectory = None
         
         # imported stimuli module names
-        self.imported_stimuli_module_names = []
+        self.imported_stim_module_names = []
 
     def initializeGL(self):
         # get OpenGL context
@@ -397,12 +397,12 @@ class StimDisplay(QtOpenGL.QGLWidget):
     def set_global_phi_offset(self, value):
         self.global_phi_offset = radians(value)
         
-    def import_stimuli_from_path(self, path):
-        # Load other stimuli from paths containing subclasses of flystim.stimuli.BaseProgram
-        barcode = util.generate_lowercase_barcode(length=10, existing_barcodes=self.imported_stimuli_module_names)
-        util.load_module_from_path(path, barcode)
-        self.imported_stimuli_module_names.append(barcode)
-        print(f'Loaded stimuli from {path} with key {barcode}')
+    def import_stim_module(self, path):
+        # Load other stim modules from paths containing subclasses of flystim.stimuli.BaseProgram
+        barcode = util.generate_lowercase_barcode(length=10, existing_barcodes=self.imported_stim_module_names)
+        util.load_stim_module_from_path(path, barcode)
+        self.imported_stim_module_names.append(barcode)
+        print(f'Loaded stim module from {path} with key {barcode}')
         
 def get_perspective(fly_pos, theta, phi, pa, pb, pc, horizontal_flip):
     """
@@ -498,13 +498,13 @@ def main():
     server.register_function(stim_display.set_global_phi_offset)
     server.register_function(stim_display.set_save_pos_history_dir)
     server.register_function(stim_display.save_pos_history_to_file)
-    server.register_function(stim_display.import_stimuli_from_path)
+    server.register_function(stim_display.import_stim_module)
     
     # Load other stimuli from paths given in kwargs.
     # These modules contain subclasses of flystim.stimuli.BaseProgram
-    other_stimuli_paths = kwargs.get('other_stimuli_paths', [])
-    for path in other_stimuli_paths:
-        stim_display.import_stimuli_from_path(path)
+    other_stim_module_paths = kwargs.get('other_stim_module_paths', [])
+    for stim_module_path in other_stim_module_paths:
+        stim_display.import_stim_module(stim_module_path)
 
     # display the stimulus
     if screen.fullscreen:

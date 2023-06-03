@@ -6,10 +6,11 @@ import inspect
 import importlib
 import random
 import string
+import warnings
 import flystim
 from .trajectory import Trajectory
 
-def load_stimuli_paths_from_file():
+def load_stim_module_paths_from_file():
     path_for_paths_to_other_stimuli = importlib.resources.files(flystim).joinpath('paths_to_other_stimuli.txt')
     if not os.path.exists(path_for_paths_to_other_stimuli):
         print('No paths_to_other_stimuli.txt found!')
@@ -18,20 +19,24 @@ def load_stimuli_paths_from_file():
             text_file.write('/path/to/other/stimuli')
 
     with open(path_for_paths_to_other_stimuli, "r") as paths_file:
-        other_stimuli_paths = [x for x in paths_file.readlines() if os.path.exists(x.strip())]
+        other_stim_module_paths = [x for x in paths_file.readlines() if os.path.exists(x.strip())]
         
-    return other_stimuli_paths
+    return other_stim_module_paths
 
-def load_module_from_path(path, module_name=None):
+def load_stim_module_from_path(path, module_name='loaded_module', submodules=['stimuli', 'trajectory', 'distribution']):
     '''
-    Load a module from specified path.
+    Load a module from specified path. Module must contained specified submodules.
     '''
-    if module_name is None:
-        module_name = 'loaded_module'
-    spec = importlib.util.spec_from_file_location(module_name, path)
-    loaded_mod = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = loaded_mod
-    spec.loader.exec_module(loaded_mod)
+    for submodule_name in submodules:
+        submodule_name_full = module_name+'.'+submodule_name
+        submodule_path = os.path.join(path, submodule_name+'.py')
+        if not os.path.exists(submodule_path):
+            warnings.warn(f'Could not find {submodule_name} at {submodule_path}')
+            continue
+        spec = importlib.util.spec_from_file_location(submodule_name_full, submodule_path)
+        loaded_mod = importlib.util.module_from_spec(spec)
+        sys.modules[submodule_name_full] = loaded_mod
+        spec.loader.exec_module(loaded_mod)
     return
 
 def generate_lowercase_barcode(length=5, existing_barcodes=[]):

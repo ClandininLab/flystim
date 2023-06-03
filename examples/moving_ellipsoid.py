@@ -29,7 +29,7 @@ def main():
                         'kind': 'linear'}
 
     manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=False)) #,
-                                 # other_stimuli_paths=[])
+                                 # other_stim_module_paths=[])
 
     manager.load_stim(name='ConstantBackground', color=[0.5, 0.5, 0.5, 1.0], side_length=100)
 

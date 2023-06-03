@@ -1,12 +1,9 @@
 import platform
-import importlib
-import os
-
 from time import time
 
 import flystim.framework
 from flystim.screen import Screen
-from flystim.util import listify, load_stimuli_paths_from_file
+from flystim import util
 
 from flyrpc.transceiver import MySocketServer
 from flyrpc.launch import launch_server
@@ -30,21 +27,21 @@ def launch_screen(screen, **kwargs):
 class StimServer(MySocketServer):
     time_stamp_commands = ['start_stim', 'pause_stim', 'update_stim']
 
-    def __init__(self, screens, host=None, port=None, auto_stop=None, other_stimuli_paths=None, **kwargs):
+    def __init__(self, screens, host=None, port=None, auto_stop=None, other_stim_module_paths=None, **kwargs):
         # call super constructor
         super().__init__(host=host, port=port, threaded=False, auto_stop=auto_stop)
 
         self.functions_on_root = {}
         self.register_function_on_root(lambda x: print(x), "print_on_server")
         
-        # If other_stimuli_paths specified in kwargs, use that. Otherwise, import from paths_to_other_stimuli.txt
-        if other_stimuli_paths is None:
-            load_stimuli_paths_from_file()
-        elif not isinstance(other_stimuli_paths, list):
-            other_stimuli_paths = [other_stimuli_paths]
-                    
+        # If other_stim_module_paths specified in kwargs, use that. Otherwise, import from paths_to_other_stimuli.txt
+        if other_stim_module_paths is None:
+            util.load_stim_module_paths_from_file()
+        elif not isinstance(other_stim_module_paths, list):
+            other_stim_module_paths = [other_stim_module_paths]
+        
         # launch screens
-        self.clients = [launch_screen(screen=screen, other_stimuli_paths=other_stimuli_paths, **kwargs) for screen in screens]
+        self.clients = [launch_screen(screen=screen, other_stim_module_paths=other_stim_module_paths, **kwargs) for screen in screens]
 
     def __getattr__(self, name):
         '''
@@ -108,7 +105,7 @@ def launch_stim_server(screen_or_screens=None, **kwargs):
         screen_or_screens = []
 
     # make list from single screen if necessary
-    screens = listify(screen_or_screens, Screen)
+    screens = util.listify(screen_or_screens, Screen)
 
     # serialize the Screen objects
     screens = [screen.serialize() for screen in screens]
