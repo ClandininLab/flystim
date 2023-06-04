@@ -36,7 +36,7 @@ class StimServer(MySocketServer):
         
         # If other_stim_module_paths specified in kwargs, use that. Otherwise, import from paths_to_other_stimuli.txt
         if other_stim_module_paths is None:
-            util.load_stim_module_paths_from_file()
+            other_stim_module_paths = util.load_stim_module_paths_from_file()
         elif not isinstance(other_stim_module_paths, list):
             other_stim_module_paths = [other_stim_module_paths]
         
