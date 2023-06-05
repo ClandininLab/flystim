@@ -1,5 +1,5 @@
 import os
-from PyQt5 import QtOpenGL, QtWidgets
+from PyQt5 import QtOpenGL, QtWidgets, QtGui
 
 import time
 import sys
@@ -472,6 +472,9 @@ def main():
 
     # launch application
     app = QtWidgets.QApplication([])
+
+    icon_path = os.path.join(os.path.abspath(os.path.dirname(os.path.dirname(__file__))), 'misc', 'icon.png')
+    app.setWindowIcon(QtGui.QIcon(icon_path))
 
     # create the StimDisplay object
     screen = Screen.deserialize(kwargs.get('screen', {}))
