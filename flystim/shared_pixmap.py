@@ -9,11 +9,10 @@ class SharedPixMapStimulus:
     def __init__(self, memname, shape=None):
         self.memname = memname
         if shape is not None:
-            print('Reserved memory')
             dummy = np.ones(shape).astype(np.uint8)
             self.reserve_memblock(dummy)
         else:
-            print('SharedPixMapStimulus initialized, waiting for frame')
+            print('SharedPixMapStimulus initialized without shape, waiting for frame')
 
     def reserve_memblock(self,frame):
         self.frame_shape = frame.shape

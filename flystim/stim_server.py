@@ -80,11 +80,7 @@ class StimServer(MySocketServer):
     def load_shared_pixmap_stim(self, **kwargs):
         '''
         '''
-        try:
-            print(kwargs)
-            self.spms = util.make_as(kwargs, parent_class=SharedPixMapStimulus)
-        except:
-            print('spms gen failed')
+        self.spms = util.make_as(kwargs, parent_class=SharedPixMapStimulus)
     
     def start_shared_pixmap_stim(self):
         if self.spms is not None:
