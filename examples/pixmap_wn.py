@@ -10,10 +10,10 @@ def main():
     memname = random_word.RandomWords().get_random_word()
     frame_shape = (200, 100, 3)
     nominal_frame_rate = 1
-    duration = 4
+    duration = 2
     seed = 37
 
-    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=False))
+    manager = launch_stim_server(Screen(fullscreen=False, server_number=0, id=0, vsync=True))
     # manager = init_screens()
 
     manager.load_shared_pixmap_stim(name='WhiteNoise', memname=memname, 

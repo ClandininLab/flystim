@@ -23,8 +23,8 @@ class SharedPixMapStimulus:
         zz = np.zeros((10))
 
         self.memblock = shared_memory.SharedMemory(create=True,size=self.frame_bytes,name=self.memname)
-        atexit.register(self.close)
         self.recblock = shared_memory.SharedMemory(create=True,size=zz.nbytes,name=self.memname+'_rec')
+        #atexit.register(self.close)
 
 
         self.global_frame = np.ndarray(self.frame_shape, dtype = self.frame_dtype, buffer=self.memblock.buf)
@@ -32,8 +32,10 @@ class SharedPixMapStimulus:
 
     def close(self):
         self.memblock.close()
+        self.recblock.close()
         self.memblock.unlink()
-        self.thread.join(timeout=1)
+        self.recblock.unlink()
+        self.thread.join()
 
     def genframe(self):
         '''

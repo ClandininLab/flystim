@@ -81,6 +81,7 @@ class StimServer(MySocketServer):
         '''
         '''
         try:
+            print(kwargs)
             self.spms = util.make_as(kwargs, parent_class=SharedPixMapStimulus)
         except:
             print('spms gen failed')

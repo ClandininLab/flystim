@@ -261,6 +261,7 @@ class StimDisplay(QtOpenGL.QGLWidget):
 
         for stim in self.stim_list:
             stim.prog.release()
+            stim.destroy()
 
         # print profiling information if applicable
         if (print_profile):

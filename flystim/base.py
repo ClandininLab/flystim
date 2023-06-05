@@ -43,6 +43,9 @@ class BaseProgram:
     def configure(self, *args, **kwargs):
         pass
 
+    def destroy(self):
+        pass
+
     def paint_at(self, t, viewports, perspectives, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         """
         :param t: current time in seconds

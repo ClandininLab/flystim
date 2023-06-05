@@ -1099,5 +1099,7 @@ class PixMap(TexturedCylinder):
 
         frame = np.ndarray(self.frame_size,dtype=np.uint8, buffer=self.existing_shm.buf)
         self.update_texture_gl(frame)
-        
+
+    def destroy(self):
+        self.existing_shm.close()
 
