@@ -12,7 +12,7 @@ import flystim.distribution as distribution
 from flystim import shapes
 from flystim import util
 import copy
-
+from multiprocessing import shared_memory
 
 class ConstantBackground(BaseProgram):
     def __init__(self, screen):
@@ -477,8 +477,8 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
         self.updateTexture(t)
 
 class TexturedCylinder(BaseProgram):
-    def __init__(self, screen):
-        super().__init__(screen=screen)
+    def __init__(self, screen, **kwargs):
+        super().__init__(screen=screen, **kwargs)
         self.use_texture = True
 
     def configure(self, color=[1, 1, 1, 1], cylinder_radius=1, cylinder_location=(0,0,0), cylinder_height=10, theta=0, phi=0, angle=0.0):
@@ -1048,3 +1048,56 @@ class Forest(BaseProgram):
         pass
 
 # %%
+
+class PixMap(TexturedCylinder):
+    def __init__(self, screen):
+        super().__init__(screen=screen, num_tri=10000)
+
+    def configure(self, memname='test', frame_size=None, rgb_texture=True, width=180, radius=1, 
+                        n_steps=16, surface='cylindrical'):
+
+        height = frame_size[0] / frame_size[1]
+        height *= width
+
+        self.rgb_texture=rgb_texture
+
+        self.existing_shm = shared_memory.SharedMemory(name=memname)
+        frame = np.ndarray(frame_size,dtype=np.uint8, buffer=self.existing_shm.buf)
+        self.frame_size = frame_size
+
+        self.add_texture_gl(frame, texture_interpolation='NEAREST')
+        
+        if surface == 'cylindrical':
+            n_patches_height = frame_size[0]
+            patch_height_m = radius * np.tan(np.radians(height/n_patches_height))  # in meters
+            cylinder_height = n_patches_height * patch_height_m
+            self.stim_object = shapes.GlCylinder(cylinder_height=cylinder_height, cylinder_angular_extent=280, 
+                                                n_faces=n_steps, texture=True).rotate(np.radians(90),0,0)
+
+        elif surface == 'cylindrical_with_phi':
+            self.stim_object = shapes.GlCylindricalWithPhiRect(width= width,  # degrees, theta
+                     height=height,  # degrees, phi
+                     cylinder_radius=radius,  # meters
+                     color=[1, 1, 1, 1],  # [r,g,b,a] or single value for monochrome, alpha = 1
+                     n_steps_x=n_steps,
+                     n_steps_y=n_steps)
+        # self.stim_object = GlSphericalTexturedRect(height=1080/1920*270/2, width=270, n_steps_x=48, n_steps_y=48, texture=True)
+        
+        elif surface == 'spherical':
+            self.stim_object = shapes.GlSphericalTexturedRect(height=height, width=width, sphere_radius=radius,
+                                                                n_steps_x = n_steps, n_steps_y = n_steps, 
+                                                                color=[1,1,1,1], texture=True)
+            # self.stim_object = shapes.GlSphericalTexturedRect(width=10,
+            #                                                 height=10,
+            #                                                 sphere_radius=1,
+            #                                                 color=[1,1,1,1], n_steps_x=n_steps, n_steps_y=n_steps, texture=True)
+
+        self.last_time = 0
+        self.memname=memname        
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+
+        frame = np.ndarray(self.frame_size,dtype=np.uint8, buffer=self.existing_shm.buf)
+        self.update_texture_gl(frame)
+        
+

@@ -9,6 +9,8 @@ from flyrpc.transceiver import MySocketServer
 from flyrpc.launch import launch_server
 from flyrpc.util import get_kwargs, get_from_dict
 
+from flystim.shared_pixmap import SharedPixMapStimulus
+
 def launch_screen(screen, **kwargs):
     """
     This function launches a subprocess to display stimuli on a given screen.  In general, this function should
@@ -32,7 +34,15 @@ class StimServer(MySocketServer):
         super().__init__(host=host, port=port, threaded=False, auto_stop=auto_stop)
 
         self.functions_on_root = {}
+
+        # Print on server
         self.register_function_on_root(lambda x: print(x), "print_on_server")
+
+        # Shared PixMap Memory stim
+        self.spms = None
+        self.register_function_on_root(self.load_shared_pixmap_stim, "load_shared_pixmap_stim")
+        self.register_function_on_root(self.start_shared_pixmap_stim, "start_shared_pixmap_stim")
+        self.register_function_on_root(self.clear_shared_pixmap_stim, "clear_shared_pixmap_stim")
         
         # If other_stim_module_paths specified in kwargs, use that. Otherwise, import from paths_to_other_stimuli.txt
         if other_stim_module_paths is None:
@@ -66,6 +76,22 @@ class StimServer(MySocketServer):
 
         assert name not in self.functions_on_root, 'Function "{}" already defined.'.format(name)
         self.functions_on_root[name] = function
+    
+    def load_shared_pixmap_stim(self, **kwargs):
+        '''
+        '''
+        try:
+            self.spms = util.make_as(kwargs, parent_class=SharedPixMapStimulus)
+        except:
+            print('spms gen failed')
+    
+    def start_shared_pixmap_stim(self):
+        if self.spms is not None:
+            self.spms.start_stream()
+
+    def clear_shared_pixmap_stim(self):
+        if self.spms is not None:
+            self.spms.close()
 
     def handle_request_list(self, request_list):
         # make sure that request list is actually a list...
