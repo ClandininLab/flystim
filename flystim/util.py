@@ -48,7 +48,7 @@ def generate_lowercase_barcode(length=5, existing_barcodes=[]):
     return barcode
 
 def get_all_subclasses(cls):
-    return set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in get_all_subclasses(c)])
+    return list(set(cls.__subclasses__()).union([s for c in cls.__subclasses__() for s in get_all_subclasses(c)]))
 
 def make_as(parameter, parent_class=Trajectory):
     """Return parameter as parent class object if it is a dictionary."""
