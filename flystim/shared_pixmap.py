@@ -1,6 +1,5 @@
 from multiprocessing import shared_memory
 import numpy as np
-import atexit
 import time
 import sched
 import threading
@@ -23,8 +22,6 @@ class SharedPixMapStimulus:
 
         self.memblock = shared_memory.SharedMemory(create=True,size=self.frame_bytes,name=self.memname)
         self.recblock = shared_memory.SharedMemory(create=True,size=zz.nbytes,name=self.memname+'_rec')
-        #atexit.register(self.close)
-
 
         self.global_frame = np.ndarray(self.frame_shape, dtype = self.frame_dtype, buffer=self.memblock.buf)
         self.global_frame[:] = np.zeros(self.frame_shape)
@@ -45,7 +42,6 @@ class SharedPixMapStimulus:
     def load_stream(self):
 
         self.s = sched.scheduler(time.time, time.sleep)
-        begin_time = None
         
         tis = np.arange(0,self.dur,1/self.nominal_frame_rate)
         tis = tis[1:]
@@ -75,7 +71,7 @@ class WhiteNoise(SharedPixMapStimulus):
     def genframe(self):
 
         t = time.time()-self.t
-        seed = int(round(self.seed + t*self.nominal_frame_rate))
+        seed = int(round(self.seed + t*self.nominal_frame_rate)) # slightly risky, as t could be imprecise with PixMap approach
         np.random.seed(seed)
         img = np.random.rand(self.frame_shape[0], self.frame_shape[1])
 

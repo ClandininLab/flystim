@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 from flystim.stim_server import launch_stim_server
 from flystim.screen import Screen
+from flystim.util import generate_lowercase_barcode
 from time import sleep
-import random_word
-
 
 def main():
-
-    memname = random_word.RandomWords().get_random_word()
+    memname = generate_lowercase_barcode(10)
     frame_shape = (200, 100, 3)
-    nominal_frame_rate = 1
+    nominal_frame_rate = 10
     duration = 2
     seed = 37
 
@@ -25,13 +23,14 @@ def main():
                         width=180, radius=1, n_steps=32, surface='spherical', hold=True)
 
     sleep(1)
-    manager.start_shared_pixmap_stim()
 
+    manager.start_shared_pixmap_stim()
     manager.start_stim()
     sleep(duration)
 
     manager.stop_stim(print_profile=True)
     manager.clear_shared_pixmap_stim()
+
     sleep(1)
 
     
