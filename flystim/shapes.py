@@ -417,21 +417,21 @@ class GlFly(GlVertices):
             def __init__(self, color=(1,0,0,1), n_subdivisions=5):
                 super().__init__()
                 self.add(GlIcosphere(colors=color, n_subdivisions=n_subdivisions
-                                    ).scale(np.asarray([1.5, 1, 2]).reshape(3,1)
+                                    ).scale(np.asarray([0.75, 0.5, 1]).reshape(3,1)
                                     ))
 
         def __init__(self, head_color=(0,0,0,1), eye_color=(1,0,0,1), n_subdivisions=5):
             super().__init__()
             # Head
             self.add(GlIcosphere(colors=head_color, n_subdivisions=n_subdivisions
-                                 ).scale(np.asarray([1.125, 1, 1.25]).reshape(3,1)
+                                 ).scale(np.asarray([0.5625, 0.5, 0.625]).reshape(3,1)
                                  ))
 
             # Eyes (left, right)
             self.add(GlFly.Head.Eye(color=eye_color, n_subdivisions=n_subdivisions
-                                    ).scale(0.5).rotz(radians(+20)).translate((+0.35, 0.45, 0)))
+                                    ).scale(0.5).rotz(radians(+20)).translate((+0.175, 0.225, 0)))
             self.add(GlFly.Head.Eye(color=eye_color, n_subdivisions=n_subdivisions
-                                    ).scale(0.5).rotz(radians(-20)).translate((-0.35, 0.45, 0)))
+                                    ).scale(0.5).rotz(radians(-20)).translate((-0.175, 0.225, 0)))
     
     class Thorax(GlVertices):
         class Wing(GlVertices):
@@ -439,7 +439,7 @@ class GlFly(GlVertices):
                 super().__init__()
                 # Wing
                 self.add(GlCircle(color=color, center=(0, 0, 0), radius=1.0, n_steps=36
-                                    ).scale(np.asarray([0.5, 1, 1]).reshape(3,1)
+                                    ).scale(np.asarray([0.25, 0.5, 0.5]).reshape(3,1)
                                     ).rotx(np.pi/2
                                     ))
         def __init__(self, thorax_color=(0.2,0.2,0.2,1), wing_color=(0.5,0.5,0.5,1), n_subdivisions=5):
@@ -448,26 +448,26 @@ class GlFly(GlVertices):
 
             # Thorax
             self.add(GlIcosphere(colors=thorax_color, n_subdivisions=n_subdivisions
-                                 ).scale(np.asarray([1.33, 1, 1]).reshape(3,1)
+                                 ).scale(np.asarray([0.67, 0.5, 0.5]).reshape(3,1)
                                  ))
             
             # Wings (L, R)
             self.add(GlFly.Thorax.Wing(color=wing_color
                                 ).scale(2
                                 ).rotate(np.deg2rad(+5), np.deg2rad(5), np.deg2rad(-10)
-                                ).translate((-0.53, -1.67, 0.67)))
+                                ).translate((-0.265, -0.83, 0.33)))
             self.add(GlFly.Thorax.Wing(color=wing_color
                                 ).scale(2
                                 ).rotate(np.deg2rad(-5), np.deg2rad(5), np.deg2rad(+10)
-                                ).translate((+0.53, -1.67, 0.67)))
+                                ).translate((+0.265, -0.83, 0.33)))
     
     class Abdomen(GlVertices):
         def __init__(self, color=(0,0,0,1), n_subdivisions=5):
             super().__init__()
             self.add(GlIcosphere(colors=color, n_subdivisions=n_subdivisions
-                                ).scale(np.asarray([0.7, 1, 0.54]).reshape(3,1)
+                                ).scale(np.asarray([0.35, 0.5, 0.27]).reshape(3,1)
                                 ))
-    
+
     def __init__(self, size=1, color=None, n_subdivisions=5):
         super().__init__()
         
@@ -495,20 +495,20 @@ class GlFly(GlVertices):
         self.add(GlFly.Head(head_color=color['head'], eye_color=color['eye'], n_subdivisions=n_subdivisions
                             ).scale(0.28
                             ).rotx(np.deg2rad(-20)
-                            ).translate((0, 0.5, 0)))
+                            ).translate((0, 0.25, 0)))
 
         # Thorax
         self.add(GlFly.Thorax(thorax_color=color['thorax'], wing_color=color['wing'], n_subdivisions=n_subdivisions
                             ).scale(0.375
-                            ).translate((0, 0, 0.05)))
+                            ).translate((0, 0, 0.025)))
 
         # Abdomen
         self.add(GlFly.Abdomen(color=color['abdomen'], n_subdivisions=n_subdivisions
                             ).scale(0.7
                             ).rotx(np.deg2rad(20)
-                            ).translate((0, -0.5, -0.075)))
+                            ).translate((0, -0.25, -0.0375)))
         
-        self.scale(size)
+        self.vertices = scale(translate(self.vertices, (0, 0.1, 0)), size)
 
 class GlCylinder(GlVertices):
     def __init__(self,
