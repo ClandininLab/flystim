@@ -3,7 +3,6 @@
 import platform
 import time
 import hid
-import array
 from math import floor
 
 
@@ -21,9 +20,9 @@ def make_dlpc350_objects():
     Returns a list of DLPC350 objects corresponding to the connected Lightcrafter 4500 units.
     """
 
-    vid_pid_set = set()
+    dlpc350_objects = []
 
-    for d in hid.enumerate(vid=0x451):
+    for d in hid.enumerate():
         if d['product_string'] != 'DLPC350':
             continue
 
@@ -32,10 +31,14 @@ def make_dlpc350_objects():
                 continue
             if d['usage_page'] != 65280:
                 continue
-        
-        vid_pid_set.add((d['vendor_id'], d['product_id']))
+        elif platform.system() == 'Linux':
+            path = d['path'].decode('utf-8')
+            if path[-1:] != '0':
+                continue
 
-    dlpc350_objects = [DLPC350(device=hid.Device(vid=x[0], pid=x[1])) for x in vid_pid_set]
+        device = hid.device()
+        device.open_path(d['path'])
+        dlpc350_objects.append(DLPC350(device=device))
 
     return dlpc350_objects
 
@@ -73,11 +76,8 @@ class DLPC350:
         # add padding
         command.extend([0]*(65-len(command)))
 
-        # Convert to bytearray
-        command_bytearray = array.array('B', command).tobytes()
-
         # run command
-        self.device.write(command_bytearray)
+        self.device.write(command)
 
     def write(self, cmd2, cmd3, data=None):
         # send command
