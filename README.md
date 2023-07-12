@@ -1,3 +1,6 @@
+# Flystim is now deprecated and unsupported
+We recommend switching to [stimpack](https://github.com/ClandininLab/stimpack), which includes and expands flystim functionality.
+
 # flystim
 
 [![Build Status](https://travis-ci.com/ClandininLab/flystim.svg?branch=master)](https://travis-ci.com/ClandininLab/flystim)
@@ -32,6 +35,13 @@ On Linux, you'll also need to install a few packages via **apt-get**:
 ```
 
 If you get a permissions error when running the **pip** command, you can try adding the **--user** flag.  This will cause **pip** to install packages in your user directory rather than to a system-wide location.
+
+Flystim depends on PyQt5. We have seen performance issues running flystim on Linux machines depending on the specific version of PyQt5 installed. Best performance is found using PyQt5==5.11.2. If you have trouble installing this specific version, you can try:
+```
+pip install PyQt5==5.11.2 --no-deps
+```
+
+For this and other reasons, we recommend upgrading to [stimpack](https://github.com/ClandininLab/stimpack), which uses PyQt6 and is much more stable.
 
 # Running the Example Code
 
