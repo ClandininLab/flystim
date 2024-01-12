@@ -76,6 +76,16 @@ class Trajectory:
             """
             self.getValue = lambda t: kwargs['offset'] + kwargs['amplitude'] * np.sin(2*np.pi*kwargs['temporal_frequency']*t)
 
+        elif kwargs['name'] == 'SquareWave':
+            """
+            Temporal squarewave trajectory.
+
+            :offset: Y offset
+            :amplitude:
+            :temporal_frequency: Hz
+            """
+            self.getValue = lambda t: kwargs['offset'] + kwargs['amplitude'] * np.sign(np.sin(2*np.pi*kwargs['temporal_frequency']*t))
+
         elif kwargs['name'] == 'SinusoidInTimeWindow':
             """
             Temporal sinusoid trajectory, only shown during a time window, defined by stim_start and stim_end.
