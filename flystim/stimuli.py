@@ -15,7 +15,7 @@ import flystim.distribution as distribution
 from flystim.shapes import GlSphericalRect, GlSphericalEllipse, GlCylindricalWithPhiRect, \
                             GlCylindricalWithPhiEllipse, GlCylinder, GlCube, GlQuad, \
                             GlSphericalCirc, GlVertices, GlSphericalPoints, GlSphericalTexturedRect, \
-                            GlPointCollection, GlCylindricalPoints, GlCircle, GlBox, GlIcosphere, GlFly
+                            GlPointCollection, GlCylindricalPoints, GlCircle, GlBox
 from flystim.shapes import getColorTuple
 from flystim import util, image
 import time  # for debugging and benchmarking
