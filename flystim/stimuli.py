@@ -628,7 +628,6 @@ class SphericalMovingGrating(TexturedSphericalPatch):
 
         :other params: see TexturedSphericalPatch
         """
-        self.rgb_texture = rgb_texture
 
         super().configure(width=width, height=height, sphere_radius=sphere_radius, color=color, theta=theta, phi=phi, angle=angle, n_steps_x=n_steps_x, n_steps_y=n_steps_y)
         self.rate = make_as_trajectory(rate)
@@ -645,6 +644,8 @@ class SphericalMovingGrating(TexturedSphericalPatch):
 
         self.add_texture_gl(img, texture_interpolation='NEAREST')
 
+        self.stim_object_template = self.stim_object
+
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         theta = return_for_time_t(self.theta, t)
         phi = return_for_time_t(self.phi, t)
@@ -652,7 +653,7 @@ class SphericalMovingGrating(TexturedSphericalPatch):
         rate = return_for_time_t(self.rate, t)
         # define the rotation extent for each step
         shift_u = t * rate/360
-        self.stim_object = self.shiftTexture((shift_u, 0)).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+        self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 
 
