@@ -105,7 +105,7 @@ class MovingEllipse(BaseProgram):
         angle = return_for_time_t(self.angle, t)
         color = return_for_time_t(self.color, t)
         # TODO: is there a way to make this object once in configure then update with radius in eval_at?
-        self.stim_object = GlSphericalEllipse(width=width, 
+        self.stim_object = GlSphericalEllipse(width=width,
                                               height=height,
                                               sphere_radius=self.sphere_radius,
                                               color=color,
@@ -145,7 +145,7 @@ class MovingEllipseOnCylinder(BaseProgram):
         angle = return_for_time_t(self.angle, t)
         color = return_for_time_t(self.color, t)
         # TODO: is there a way to make this object once in configure then update with radius in eval_at?
-        self.stim_object = GlCylindricalWithPhiEllipse(width=width, 
+        self.stim_object = GlCylindricalWithPhiEllipse(width=width,
                                               height=height,
                                               cylinder_radius=self.cylinder_radius,
                                               color=color,
@@ -231,7 +231,7 @@ class LoomingCircle(BaseProgram):
     def configure(self, radius=0.5, color=(1, 1, 1, 1), starting_distance=1, speed=-1, n_steps=36):
         """
         Circle looming towards animal.
-        
+
         :param radius: radius of circle in meters
         :param color: [r,g,b,a] or mono. Color of the circle
         :param starting_distance: distance from animal to start the circle in meters
@@ -245,15 +245,15 @@ class LoomingCircle(BaseProgram):
         self.n_steps = n_steps
         self.t_prev = 0
 
-        self.stim_object = GlCircle(color=return_for_time_t(self.color, 0), 
-                                    center=(0, self.starting_distance, 0), 
-                                    radius=self.radius, 
+        self.stim_object = GlCircle(color=return_for_time_t(self.color, 0),
+                                    center=(0, self.starting_distance, 0),
+                                    radius=self.radius,
                                     n_steps=self.n_steps)
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         color = return_for_time_t(self.color, t)
         speed = return_for_time_t(self.speed, t)
-                
+
         self.stim_object = self.stim_object.translate((0, speed * (t - self.t_prev), 0)
                                 ).setColor(getColorTuple(color))
         self.t_prev = t
@@ -288,13 +288,13 @@ class MovingBox(BaseProgram):
         self.yaw = make_as_trajectory(yaw)
         self.pitch = make_as_trajectory(pitch)
         self.roll = make_as_trajectory(roll)
-        
+
         color = (0,0,0,1)
         colors = {'+x': color, '-x': color,
                   '+y': color, '-y': color,
                   '+z': color, '-z': color}
         self.stim_object_template = GlBox(colors, (0, 0, 0), {'x':1, 'y':1, 'z':1})
-        
+
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         x_length = return_for_time_t(self.x_length, t)
         y_length = return_for_time_t(self.y_length, t)
@@ -343,9 +343,9 @@ class MovingEllipsoid(BaseProgram):
         self.yaw = make_as_trajectory(yaw)
         self.pitch = make_as_trajectory(pitch)
         self.roll = make_as_trajectory(roll)
-        
+
         self.stim_object_template = GlIcosphere(return_for_time_t(self.color, 0), n_subdivisions).scale(0.5)
-        
+
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         x_length = return_for_time_t(self.x_length, t)
         y_length = return_for_time_t(self.y_length, t)
@@ -391,9 +391,9 @@ class MovingFly(BaseProgram):
         self.yaw = make_as_trajectory(yaw)
         self.pitch = make_as_trajectory(pitch)
         self.roll = make_as_trajectory(roll)
-        
+
         self.stim_object_template = GlFly(size=1, color=return_for_time_t(self.color, 0))
-        
+
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         size     = return_for_time_t(self.size, t)
         color    = return_for_time_t(self.color, t)
@@ -604,6 +604,67 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
 
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
         self.updateTexture(t)
+
+
+
+
+
+
+
+
+class SphericalMovingGrating(TexturedSphericalPatch):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, patch_width=20, patch_height=80, update_rate=60.0, width=80, height=80, sphere_radius=1, color=[1, 0, 1, 1],
+                    theta=0, phi=0, angle=0, rate=20, n_steps_x=12, n_steps_y=12):
+        """
+        Vertical square grid pattern painted on a spherical patch that rotates over time.
+
+        :param patch_width: Azimuth extent (degrees) of each bar
+        :param patch height: Elevation extent (degrees) of each bar
+        :param update_rate: Hz, update rate of bar intensity
+        :param rate: rotation rate, degrees/sec
+
+        :other params: see TexturedSphericalPatch
+        """
+        self.rgb_texture = rgb_texture
+
+        super().configure(width=width, height=height, sphere_radius=sphere_radius, color=color, theta=theta, phi=phi, angle=angle, n_steps_x=n_steps_x, n_steps_y=n_steps_y)
+        self.rate = make_as_trajectory(rate)
+        self.patch_width = patch_width
+        self.patch_height = patch_height
+        self.update_rate = update_rate
+
+        self.n_patches_width = int(np.floor(width/self.patch_width))
+        self.n_patches_height = int(np.floor(height/self.patch_height))
+
+        # define the grating face colors (alternating 0 and 255)
+        img = np.zeros((self.n_patches_height, self.n_patches_width)).astype(np.uint8)
+        img[0,::2] = 255
+
+        self.add_texture_gl(img, texture_interpolation='NEAREST')
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        rate = return_for_time_t(self.rate, t)
+        # define the rotation extent for each step
+        shift_u = t * rate/360
+        self.stim_object = self.shiftTexture((shift_u, 0)).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class TexturedCylinder(BaseProgram):
@@ -1257,7 +1318,7 @@ class IndependentDotField(BaseProgram):
                                                                                            step_size=np.pi/32,
                                                                                            nsteps=50)) for x in range(self.n_points)]
         else:
-            self.theta_trajectories = [make_as_trajectory(x) for x in theta_trajectories] 
+            self.theta_trajectories = [make_as_trajectory(x) for x in theta_trajectories]
 
         if phi_trajectories is None:
             self.phi_trajectories = [make_as_trajectory(self.make_random_walk(origin=rng.uniform(-np.pi/2, +np.pi/2),
@@ -1265,7 +1326,7 @@ class IndependentDotField(BaseProgram):
                                                                               step_size=np.pi/32,
                                                                               nsteps=50)) for x in range(self.n_points)]
         else:
-            self.phi_trajectories = [make_as_trajectory(x) for x in phi_trajectories] 
+            self.phi_trajectories = [make_as_trajectory(x) for x in phi_trajectories]
 
         self.stim_object = GlVertices()
 
@@ -1273,7 +1334,7 @@ class IndependentDotField(BaseProgram):
                                                       color=self.color,
                                                       theta=[0],
                                                       phi=[0])
-        
+
     def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
 
         self.stim_object = GlVertices()
