@@ -611,8 +611,47 @@ class RandomGridOnSphericalPatch(TexturedSphericalPatch):
 
 
 
+class TexturedSphericalPatchNoRotate(BaseProgram):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+        self.use_texture = True
 
-class SphericalMovingGrating(TexturedSphericalPatch):
+    def configure(self, width=10, height=10, sphere_radius=1, color=[1, 1, 1, 1], theta=0, phi=0, angle=0, n_steps_x=12, n_steps_y=12):
+        """
+        Stimulus consisting of a rectangular patch on the surface of a sphere. Patch is rectangular in spherical coordinates.
+
+        :param width: Width in degrees (azimuth)
+        :param height: Height in degrees (elevation)
+        :param sphere_radius: Radius of the sphere (meters)
+        :param color: [r,g,b,a] or mono. Color of the patch
+        :param theta: degrees, azimuth of the center of the patch (yaw rotation around z axis)
+        :param phi: degrees, elevation of the center of the patch (pitch rotation around y axis)
+        :param angle: degrees orientation of patch (roll rotation around x axis)
+        *Any of these params can be passed as a trajectory dict to vary these as a function of time elapsed
+        """
+        self.width = width
+        self.height = height
+        self.sphere_radius = sphere_radius
+        self.color = color
+        self.theta = theta
+        self.phi = phi
+        self.angle = angle
+
+        self.stim_object = GlSphericalTexturedRect(width=self.width,
+                                                   height=self.height,
+                                                   sphere_radius=self.sphere_radius,
+                                                   color=self.color, n_steps_x=n_steps_x, n_steps_y=n_steps_y, texture=True)
+        
+    def updateTexture(self):
+        # overwrite in subclass
+        pass
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        # overwrite in subclass
+        pass
+
+
+class SphericalMovingGrating(TexturedSphericalPatchNoRotate):
     def __init__(self, screen):
         super().__init__(screen=screen)
 
@@ -653,11 +692,53 @@ class SphericalMovingGrating(TexturedSphericalPatch):
         rate = return_for_time_t(self.rate, t)
         # define the rotation extent for each step
         shift_u = t * rate/360
+        # it seems that this rotation is stacking on top of the rotation in textured_spherical_patch
         self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 
 
 
+class SphericalMovingSineGrating(TexturedSphericalPatchNoRotate):
+    def __init__(self, screen):
+        super().__init__(screen=screen)
+
+    def configure(self, period=20, update_rate=60.0, width=180, height=180, sphere_radius=1, color=[1, 0, 1, 1],
+                    theta=0, phi=0, angle=0, rate=20, n_steps_x=12, n_steps_y=12):
+        """
+        Vertical square grid pattern painted on a spherical patch that rotates over time.
+
+        :param period: period (degrees) of sine texture for single patch
+        :param update_rate: Hz, update rate of bar intensity
+        :param rate: rotation rate, degrees/sec
+
+        :other params: see TexturedSphericalPatch
+        """
+
+        super().configure(width=width, height=height, sphere_radius=sphere_radius, color=color, theta=theta, phi=phi, angle=angle, n_steps_x=n_steps_x, n_steps_y=n_steps_y)
+        self.rate = make_as_trajectory(rate)
+        self.update_rate = update_rate
+        self.period = period
+        
+
+        # make the texture image
+        sf = 1/np.radians(self.period)  # spatial frequency
+        xx = np.linspace(0, np.radians(360), 512)
+        yy = np.sin(np.radians(0) + sf*2*np.pi*xx)
+        yy = 255*(0.5 + 0.5*yy)  # shift/scale from [-1,1] to mean and contrast and scale to [0,255] for uint8. currently only does max contrast version
+        img = np.expand_dims(yy, axis=0).astype(np.uint8)  # pass as x by 1, gets stretched out by shader
+        self.add_texture_gl(img, texture_interpolation='LINEAR')
+
+        self.stim_object_template = self.stim_object
+
+    def eval_at(self, t, fly_position=[0, 0, 0], fly_heading=[0, 0]):
+        theta = return_for_time_t(self.theta, t)
+        phi = return_for_time_t(self.phi, t)
+        angle = return_for_time_t(self.angle, t)
+        rate = return_for_time_t(self.rate, t)
+        # define the rotation extent for each step
+        shift_u = t * rate/360
+        # it seems that this rotation is stacking on top of the rotation in textured_spherical_patch
+        self.stim_object = copy.copy(self.stim_object_template).shiftTexture((shift_u, 0)).rotate(np.radians(theta), np.radians(phi), np.radians(angle))
 
 
 
